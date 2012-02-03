@@ -9,11 +9,11 @@ issues will be noticeable.
 
 ### bash
 
-![tty.js can run bash well](http://imgur.com/D5x3k)
+![tty.js can run bash well](http://i.imgur.com/D5x3k.png)
 
 ### vim
 
-![possible to run vim](http://imgur.com/K0dXe)
+![possible to run vim](http://i.imgur.com/K0dXe.png)
 
 ## TERM
 
