@@ -1,0 +1,18 @@
+{
+  "name": "tty.js",
+  "description": "A web terminal",
+  "author": "Christopher Jeffrey",
+  "version": "0.0.1",
+  "main": "./lib/tty.js",
+  "bin": "./bin/tty.js",
+  "preferGlobal": false,
+  "scripts": { "preinstall": "make" },
+  "repository": "git://github.com/chjj/tty.js.git",
+  "homepage": "https://github.com/chjj/tty.js",
+  "keywords": [ "tty", "terminal" ],
+  "tags": [ "tty", "terminal" ],
+  "dependencies": {
+    "express": "2.5.x",
+    "socket.io": "0.8.x"
+  }
+}
