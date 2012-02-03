@@ -1,6 +1,6 @@
 {
   "name": "tty.js",
-  "description": "A web terminal",
+  "description": "A terminal for your browser",
   "author": "Christopher Jeffrey",
   "version": "0.0.1",
   "main": "./lib/tty.js",
@@ -13,6 +13,7 @@
   "tags": [ "tty", "terminal" ],
   "dependencies": {
     "express": "2.5.x",
-    "socket.io": "0.8.x"
+    "socket.io": "0.8.x",
+    "socket.io-client": "0.8.x"
   }
 }
