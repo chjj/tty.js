@@ -345,6 +345,7 @@ Term.prototype.write = function(str) {
     switch (this.state) {
       case normal:
         switch (ch) {
+          // '\n'
           case 10:
             if (this.convertEol) {
               this.x = 0;
@@ -357,24 +358,29 @@ Term.prototype.write = function(str) {
               rowh = this.rows - 1;
             }
             break;
+          // '\r'
           case 13:
             this.x = 0;
             break;
+          // '\b'
           case 8:
             if (this.x > 0) {
               this.x--;
             }
             break;
+          // '\t'
           case 9:
             param = (this.x + 8) & ~7;
             if (param <= this.cols) {
               this.x = param;
             }
             break;
+          // '\e'
           case 27:
             this.state = escaped;
             break;
           default:
+            // ' '
             if (ch >= 32) {
               if (this.x >= this.cols) {
                 this.x = 0;
@@ -387,8 +393,9 @@ Term.prototype.write = function(str) {
                 }
               }
               row = this.y + this.ybase;
-              if (row >= this.currentHeight)
+              if (row >= this.currentHeight) {
                 row -= this.currentHeight;
+              }
               this.lines[row][this.x] = (ch & 0xffff) | (this.curAttr << 16);
               this.x++;
               getRows(this.y);
@@ -397,6 +404,7 @@ Term.prototype.write = function(str) {
         }
         break;
       case escaped:
+        // '['
         if (ch === 91) {
           this.params = [];
           this.currentParam = 0;
@@ -406,31 +414,36 @@ Term.prototype.write = function(str) {
         }
         break;
       case csi:
+        // 0 - 9
         if (ch >= 48 && ch <= 57) {
           this.currentParam = this.currentParam * 10 + ch - 48;
         } else {
           this.params[this.params.length] = this.currentParam;
           this.currentParam = 0;
 
+          // ';'
           if (ch === 59) break;
 
           this.state = normal;
+
           switch (ch) {
+            // 'A'
             case 65:
               param = this.params[0];
               if (param < 1) param = 1;
               this.y -= param;
               if (this.y < 0) this.y = 0;
               break;
+            // 'B'
             case 66:
               param = this.params[0];
-              if (param < 1)
-                param = 1;
+              if (param < 1) param = 1;
               this.y += param;
               if (this.y >= this.rows) {
                 this.y = this.rows - 1;
               }
               break;
+            // 'C'
             case 67:
               param = this.params[0];
               if (param < 1) param = 1;
@@ -439,12 +452,14 @@ Term.prototype.write = function(str) {
                 this.x = this.cols - 1;
               }
               break;
+            // 'D'
             case 68:
               param = this.params[0];
               if (param < 1) param = 1;
               this.x -= param;
               if (this.x < 0) this.x = 0;
               break;
+            // 'H'
             case 72:
               row = this.params[0] - 1;
 
@@ -469,18 +484,22 @@ Term.prototype.write = function(str) {
               this.x = col;
               this.y = row;
               break;
+            // 'J'
             case 74:
               setLine(this, this.x, this.y);
               for (j = this.y + 1; j < this.rows; j++) {
                 setLine(this, 0, j);
               }
               break;
+            // 'K'
             case 75:
               setLine(this, this.x, this.y);
               break;
+            // 'm'
             case 109:
               changeAttr(this, this.params);
               break;
+            // 'n'
             case 110:
               this.queueChars('\x1b['
                 + (this.y + 1)
@@ -508,25 +527,32 @@ Term.prototype.writeln = function(str) {
 Term.prototype.keyDownHandler = function(ev) {
   var str = '';
   switch (ev.keyCode) {
+    // backspace
     case 8:
       str = '\x7f'; // ^?
       //str = '\x08'; // ^H
       break;
+    // tab
     case 9:
       str = '\t';
       break;
+    // return/enter
     case 13:
       str = '\r';
       break;
+    // escape
     case 27:
       str = '\x1b';
       break;
+    // left-arrow
     case 37:
       str = '\x1b[D';
       break;
+    // right-arrow
     case 39:
       str = '\x1b[C';
       break;
+    // up-arrow
     case 38:
       if (ev.ctrlKey) {
         this.scrollDisp(-1);
@@ -534,6 +560,7 @@ Term.prototype.keyDownHandler = function(ev) {
         str = '\x1b[A';
       }
       break;
+    // down-arrow
     case 40:
       if (ev.ctrlKey) {
         this.scrollDisp(1);
@@ -541,18 +568,23 @@ Term.prototype.keyDownHandler = function(ev) {
         str = '\x1b[B';
       }
       break;
+    // delete
     case 46:
       str = '\x1b[3~';
       break;
+    // insert
     case 45:
       str = '\x1b[2~';
       break;
+    // home
     case 36:
       str = '\x1bOH';
       break;
+    // end
     case 35:
       str = '\x1bOF';
       break;
+    // page up
     case 33:
       if (ev.ctrlKey) {
         this.scrollDisp(-(this.rows - 1));
@@ -560,6 +592,7 @@ Term.prototype.keyDownHandler = function(ev) {
         str = '\x1b[5~';
       }
       break;
+    // page down
     case 34:
       if (ev.ctrlKey) {
         this.scrollDisp(this.rows - 1);
@@ -568,6 +601,7 @@ Term.prototype.keyDownHandler = function(ev) {
       }
       break;
     default:
+      // a-z and space
       if (ev.ctrlKey) {
         if (ev.keyCode >= 65 && ev.keyCode <= 90) {
           str = String.fromCharCode(ev.keyCode - 64);
