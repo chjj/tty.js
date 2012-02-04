@@ -92,11 +92,11 @@ Term.prototype.open = function() {
   this.refresh(0, this.rows - 1);
 
   document.addEventListener('keydown', function(key) {
-    self.keyDownHandler(key);
+    return self.keyDownHandler(key);
   }, true);
 
   document.addEventListener('keypress', function(key) {
-    self.keyPressHandler(key);
+    return self.keyPressHandler(key);
   }, true);
 
   setInterval(function() {
@@ -231,6 +231,7 @@ Term.prototype.scroll = function() {
 
   this.ydisp = this.ybase;
   ch = 32 | (this.defAttr << 16);
+
   line = [];
   for (x = 0; x < this.cols; x++) {
     line[x] = ch;
@@ -250,10 +251,12 @@ Term.prototype.scrollDisp = function(disp) {
 
   if (disp >= 0) {
     for (i = 0; i < disp; i++) {
-      if (this.ydisp === this.ybase)
+      if (this.ydisp === this.ybase) {
         break;
-      if (++this.ydisp === this.currentHeight)
+      }
+      if (++this.ydisp === this.currentHeight) {
         this.ydisp = 0;
+      }
     }
   } else {
     disp = -disp;
@@ -280,7 +283,7 @@ Term.prototype.write = function(str) {
     rowh = Math.max(rowh, y);
   }
 
-  function setLine(self, x, y) {
+  function eraseLine(self, x, y) {
     var line, i, ch, row;
     row = self.ybase + y;
 
@@ -409,6 +412,9 @@ Term.prototype.write = function(str) {
           this.params = [];
           this.currentParam = 0;
           this.state = csi;
+        } else if (ch === 93) {
+          console.log('Unsupported OSC code.');
+          this.state = normal;
         } else {
           this.state = normal;
         }
@@ -427,14 +433,16 @@ Term.prototype.write = function(str) {
           this.state = normal;
 
           switch (ch) {
-            // 'A'
+            // CSI Ps A
+            // Cursor Up Ps Times (default = 1) (CUU).
             case 65:
               param = this.params[0];
               if (param < 1) param = 1;
               this.y -= param;
               if (this.y < 0) this.y = 0;
               break;
-            // 'B'
+            // CSI Ps B
+            // Cursor Down Ps Times (default = 1) (CUD).
             case 66:
               param = this.params[0];
               if (param < 1) param = 1;
@@ -443,7 +451,8 @@ Term.prototype.write = function(str) {
                 this.y = this.rows - 1;
               }
               break;
-            // 'C'
+            // CSI Ps C
+            // Cursor Forward Ps Times (default = 1) (CUF).
             case 67:
               param = this.params[0];
               if (param < 1) param = 1;
@@ -452,14 +461,16 @@ Term.prototype.write = function(str) {
                 this.x = this.cols - 1;
               }
               break;
-            // 'D'
+            // CSI Ps D
+            // Cursor Backward Ps Times (default = 1) (CUB).
             case 68:
               param = this.params[0];
               if (param < 1) param = 1;
               this.x -= param;
               if (this.x < 0) this.x = 0;
               break;
-            // 'H'
+            // CSI Ps ; Ps H
+            // Cursor Position [row;column] (default = [1,1]) (CUP).
             case 72:
               row = this.params[0] - 1;
 
@@ -484,22 +495,32 @@ Term.prototype.write = function(str) {
               this.x = col;
               this.y = row;
               break;
-            // 'J'
+            // CSI Ps J  Erase in Display (ED).
+            //   Ps = 0  -> Erase Below (default).
+            //   Ps = 1  -> Erase Above.
+            //   Ps = 2  -> Erase All.
+            //   Ps = 3  -> Erase Saved Lines (xterm).
+            // Not fully implemented.
             case 74:
-              setLine(this, this.x, this.y);
+              eraseLine(this, this.x, this.y);
               for (j = this.y + 1; j < this.rows; j++) {
-                setLine(this, 0, j);
+                eraseLine(this, 0, j);
               }
               break;
-            // 'K'
+            // CSI Ps K  Erase in Line (EL).
+            //   Ps = 0  -> Erase to Right (default).
+            //   Ps = 1  -> Erase to Left.
+            //   Ps = 2  -> Erase All.
+            // Not fully implemented.
             case 75:
-              setLine(this, this.x, this.y);
+              eraseLine(this, this.x, this.y);
               break;
-            // 'm'
+            // CSI Pm m  Character Attributes (SGR).
             case 109:
               changeAttr(this, this.params);
               break;
-            // 'n'
+            // CSI Ps n  Device Status Report (DSR).
+            // Not fully implemented.
             case 110:
               this.queueChars('\x1b['
                 + (this.y + 1)
@@ -660,6 +681,7 @@ Term.prototype.keyPressHandler = function(ev) {
       str = String.fromCharCode(key);
     }
   }
+
   if (str) {
     this.showCursor();
     this.handler(str);
