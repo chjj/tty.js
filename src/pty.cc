@@ -83,7 +83,7 @@ static Handle<Value> ForkPty(const Arguments& args) {
         return ThrowException(Exception::Error(
           String::New("Second argument must be a string.")));
       }
-      String::Utf8Value term(args[0]->ToString());
+      String::Utf8Value term(args[1]->ToString());
       setenv("TERM", strdup(*term), 1);
     } else {
       setenv("TERM", "vt100", 1);
