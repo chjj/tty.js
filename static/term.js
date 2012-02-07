@@ -663,11 +663,6 @@ Term.prototype.write = function(str) {
               this.resetMode(this.params);
               break;
 
-            // CSI Ps n  Device Status Report (DSR).
-            case 110:
-              this.deviceStatusReport(this.params);
-              break;
-
             // CSI Ps ; Ps r
             //   Set Scrolling Region [top;bottom] (default = full size of win-
             //   dow) (DECSTBM).
@@ -1084,20 +1079,24 @@ Term.prototype.charAttributes = function(params) {
 };
 
 // CSI Ps n  Device Status Report (DSR).
-// Not fully implemented.
 Term.prototype.deviceStatus = function(params) {
-  this.queueChars('\x1b['
-    + (this.y + 1)
-    + ';'
-    + (this.x + 1)
-    + 'R');
+  switch (this.params[0]) {
+    case 5:
+      this.queueChars('\x1b[0n');
+      break;
+    case 6:
+      this.queueChars('\x1b['
+        + (this.y+1)
+        + ';'
+        + (this.x+1)
+        + 'R');
+      break;
+  }
 };
 
 // ADDITIONS:
 // CSI Ps @
 // Insert Ps (Blank) Character(s) (default = 1) (ICH).
-// insert spaces at cursor, have it "push" other
-// characters forward
 Term.prototype.insertChars = function(params) {
   var param, row, j;
   param = this.params[0];
@@ -1389,22 +1388,6 @@ Term.prototype.resetMode = function(params) {
         }
         break;
     }
-  }
-};
-
-// CSI Ps n  Device Status Report (DSR).
-Term.prototype.deviceStatusReport = function(params) {
-  switch (this.params[0]) {
-    case 5:
-      this.queueChars('\x1b[0n');
-      break;
-    case 6:
-      this.queueChars('\x1b['
-        + (this.y+1)
-        + ';'
-        + (this.x+1)
-        + 'R');
-      break;
   }
 };
 
