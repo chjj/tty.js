@@ -9,6 +9,7 @@
   "scripts": { "preinstall": "make" },
   "repository": "git://github.com/chjj/tty.js.git",
   "homepage": "https://github.com/chjj/tty.js",
+  "bugs": { "url": "https://github.com/chjj/tty.js/issues" },
   "keywords": [ "tty", "terminal" ],
   "tags": [ "tty", "terminal" ],
   "dependencies": {
