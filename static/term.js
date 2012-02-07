@@ -899,7 +899,7 @@ Term.prototype.eraseLine = function(x, y) {
   this.getRows(y);
 };
 
-Term.prototype.blankLine = function(x, y) {
+Term.prototype.blankLine = function() {
   var ch = 32 | (this.defAttr << 16)
     , line = []
     , i = 0;
@@ -960,7 +960,7 @@ Term.prototype.reset = function() {
   var j = this.rows - 1;
   this.lines = [ this.blankLine() ];
   while (j--) {
-    this.lines.push(this.lines[0]);
+    this.lines.push(this.lines[0].slice());
   }
 };
 
@@ -1309,16 +1309,39 @@ Term.prototype.HVPosition = function(params) {
 // CSI Pm h  Set Mode (SM).
 // CSI ? Pm h - mouse escape codes, cursor escape codes
 Term.prototype.setMode = function(params) {
+  if (typeof params === 'object') {
+    while (params.length) this.setMode(params.shift());
+    return;
+  }
+
   if (this.prefix !== '?') {
-    switch (this.params[0]) {
+    switch (params) {
       case 20:
         //this.convertEol = true;
         break;
     }
   } else {
-    switch (this.params[0]) {
-      case 25:
+    switch (params) {
+      case 25: // show cursor
         this.cursorHidden = false;
+        break;
+      case 1049: // alt screen buffer cursor
+        //this.saveCursor();
+        ; // FALL-THROUGH
+      case 47: // alt screen buffer
+      case 1047: // alt screen buffer
+        if (!this.normal) {
+          this.normal = {};
+          this.normal.lines = this.lines;
+          this.normal.currentHeight = this.currentHeight;
+          this.normal.ybase = this.ybase;
+          this.normal.ydisp = this.ydisp;
+          this.normal.x = this.x;
+          this.normal.y = this.y;
+          this.normal.scrollTop = this.scrollTop;
+          this.normal.scrollBottom = this.scrollBottom;
+          this.reset();
+        }
         break;
     }
   }
@@ -1328,16 +1351,42 @@ Term.prototype.setMode = function(params) {
 // CSI ? Pm l
 // opposite of Pm h
 Term.prototype.resetMode = function(params) {
+  if (typeof params === 'object') {
+    while (params.length) this.resetMode(params.shift());
+    return;
+  }
+
   if (this.prefix !== '?') {
-    switch (this.params[0]) {
+    switch (params) {
       case 20:
         //this.convertEol = false;
         break;
     }
   } else {
-    switch (this.params[0]) {
-      case 25:
+    switch (params) {
+      case 25: // hide cursor
         this.cursorHidden = true;
+        break;
+      case 1049: // alt screen buffer cursor
+        ; // FALL-THROUGH
+      case 47: // normal screen buffer
+      case 1047: // normal screen buffer - clearing it first
+        if (this.normal) {
+          this.lines = this.normal.lines;
+          this.currentHeight = this.normal.currentHeight;
+          this.ybase = this.normal.ybase;
+          this.ydisp = this.normal.ydisp;
+          this.x = this.normal.x;
+          this.y = this.normal.y;
+          this.scrollTop = this.normal.scrollTop;
+          this.scrollBottom = this.normal.scrollBottom;
+          this.normal = null;
+          // if (params === 1049) {
+          //   this.x = this.savedX;
+          //   this.y = this.savedY;
+          // }
+          this.refresh(0, this.rows - 1);
+        }
         break;
     }
   }
