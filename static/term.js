@@ -565,13 +565,13 @@ Term.prototype.write = function(str) {
 
             // CSI Ps F
             // Cursor Preceding Line Ps Times (default = 1) (CNL).
-            case 69:
+            case 70:
               this.cursorPrecedingLine(this.params);
               break;
 
             // CSI Ps G
             // Cursor Character Absolute  [column] (default = [row,1]) (CHA).
-            case 70:
+            case 71:
               this.cursorCharAbsolute(this.params);
               break;
 
@@ -686,8 +686,9 @@ Term.prototype.write = function(str) {
               break;
 
             default:
-              console.log('Unknown CSI code: %s',
-                String.fromCharCode(ch), this.params);
+              console.log(
+                'Unknown CSI code: %s',
+                str[i], this.params);
               break;
           }
         }
