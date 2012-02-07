@@ -43,14 +43,16 @@ extern "C" void init(Handle<Object>);
 static Handle<Value> ForkPty(const Arguments& args) {
   HandleScope scope;
 
-  if (args.Length() < 1 || !args[0]->IsString()) {
-    return ThrowException(Exception::Error(
-      String::New("First argument must be a string.")));
-  }
+  char *argv[] = { "sh", NULL };
 
-  String::Utf8Value file(args[0]->ToString());
-  char *argv[] = { NULL, NULL };
-  argv[0] = strdup(*file);
+  if (args.Length() > 0) {
+    if (!args[0]->IsString()) {
+      return ThrowException(Exception::Error(
+        String::New("First argument must be a string.")));
+    }
+    String::Utf8Value file(args[0]->ToString());
+    argv[0] = strdup(*file);
+  }
 
   struct winsize winp = {};
   winp.ws_col = 80;
@@ -78,11 +80,7 @@ static Handle<Value> ForkPty(const Arguments& args) {
   }
 
   if (pid == 0) {
-    if (args.Length() > 1) {
-      if (!args[1]->IsString()) {
-        return ThrowException(Exception::Error(
-          String::New("Second argument must be a string.")));
-      }
+    if (args.Length() > 1 && args[1]->IsString()) {
       String::Utf8Value term(args[1]->ToString());
       setenv("TERM", strdup(*term), 1);
     } else {
