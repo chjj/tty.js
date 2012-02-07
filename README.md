@@ -23,12 +23,13 @@ Unfortunately, tty.js is rough around the edges right now. `$TERM` is
 set to vt100/linux by default. You could also try:
 
 ``` bash
+$ TERM=vt100 exec bash
 $ TERM=linux exec bash
 $ TERM=xterm-color exec bash
 $ TERM=screen exec bash
 ```
 
-linux, vt100, or screen are probably the safest TERM names to use, but you will
+linux and vt100 are probably the safest TERM names to use, but you will
 still have compatibility issues.
 
 Running screen directly seems to have good effects too. Beware though, there
@@ -36,8 +37,9 @@ will be terminal compatibility issues abound.
 
 ## Portability
 
-tty.js should ultimately be able to work on any unix, but it was written for
-linux. If you get `pty` to compile on any other unix, pull requests are welcome.
+tty.js should ultimately be able to work on any unix that implements unix98
+tty's and `forkpty(3)`, but it was written for linux. If you get `pty` to
+compile on any other unix, pull requests are welcome.
 
 ## License
 
