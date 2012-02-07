@@ -4,7 +4,7 @@ var socket
   , term;
 
 function start() {
-  term = new Term(120, 45, handler);
+  term = new Term(80, 30, handler);
   // term.convertEol = true;
 
   term.open();
