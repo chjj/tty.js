@@ -305,10 +305,7 @@ Term.prototype.scrollDisp = function(disp) {
 };
 
 Term.prototype.write = function(str) {
-  console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
-
-  this.refreshStart = 0;
-  this.refreshEnd = 0;
+  //console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
 
   var l = str.length
     , i = 0
@@ -909,7 +906,7 @@ Term.prototype.blankLine = function(x, y) {
 };
 
 /**
- * Escape
+ * ESC
  */
 
 // ESC D
@@ -943,7 +940,6 @@ Term.prototype.reverseIndex = function() {
 // ESC c
 Term.prototype.reset = function() {
   this.currentHeight = this.rows;
-  this.totalHeight = 1000;
   this.ybase = 0;
   this.ydisp = 0;
   this.x = 0;
@@ -961,7 +957,6 @@ Term.prototype.reset = function() {
     this.lines.push(this.lines[0]);
   }
 };
-
 
 /**
  * CSI
@@ -1252,6 +1247,7 @@ Term.prototype.HPositionRelative = function(params) {
 // Send Device Attributes (Secondary DA)
 // vim always likes to spam it!
 Term.prototype.sendDeviceAttributes = function(params) {
+  // this breaks things currently
   return;
   if (this.prefix !== '>') {
     this.queueChars('\x1b[?1;2c');
@@ -1343,7 +1339,6 @@ Term.prototype.resetMode = function(params) {
 
 // CSI Ps n  Device Status Report (DSR).
 Term.prototype.deviceStatusReport = function(params) {
-  return;
   switch (this.params[0]) {
     case 5:
       this.queueChars('\x1b[0n');
@@ -1379,4 +1374,3 @@ Term.prototype.restoreCursor = function(params) {
   this.x = this.savedX || 0;
   this.y = this.savedY || 0;
 };
-
