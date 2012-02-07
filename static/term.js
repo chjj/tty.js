@@ -28,6 +28,8 @@ function Term(cols, rows, handler) {
   this.convertEol = false;
   this.state = 0;
   this.outputQueue = '';
+  this.scrollTop = 0;
+  this.scrollBottom = this.rows - 1;
 
   this.bgColors = [
     '#000000',
@@ -243,7 +245,19 @@ Term.prototype.scroll = function() {
     row -= this.currentHeight;
   }
 
-  this.lines[row] = line;
+  var b = this.scrollBottom + this.ybase;
+  if (row > b) {
+    var j = this.rows - 1 - this.scrollBottom;
+    this.lines.splice(this.rows - 1 + this.ybase - j, 0, line);
+  } else {
+    this.lines[row] = line;
+  }
+
+  if (this.scrollTop !== 0) {
+    this.ybase--;
+    this.ydisp = this.ybase;
+    this.lines.splice(this.ybase + this.scrollTop, 1);
+  }
 };
 
 Term.prototype.scrollDisp = function(disp) {
@@ -278,6 +292,8 @@ Term.prototype.scrollDisp = function(disp) {
 };
 
 Term.prototype.write = function(str) {
+  //console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
+
   function getRows(y) {
     rows = Math.min(rows, y);
     rowh = Math.max(rowh, y);
@@ -322,6 +338,7 @@ Term.prototype.write = function(str) {
   var normal = 0;
   var escaped = 1;
   var csi = 2;
+  var osc = 3;
 
   var l = str.length
     , i = 0
@@ -354,7 +371,7 @@ Term.prototype.write = function(str) {
               this.x = 0;
             }
             this.y++;
-            if (this.y >= this.rows) {
+            if (this.y >= this.scrollBottom + 1) {
               this.y--;
               this.scroll();
               rows = 0;
@@ -388,7 +405,7 @@ Term.prototype.write = function(str) {
               if (this.x >= this.cols) {
                 this.x = 0;
                 this.y++;
-                if (this.y >= this.rows) {
+                if (this.y >= this.scrollBottom + 1) {
                   this.y--;
                   this.scroll();
                   rows = 0;
@@ -407,19 +424,102 @@ Term.prototype.write = function(str) {
         }
         break;
       case escaped:
-        // '['
-        if (ch === 91) {
-          this.params = [];
-          this.currentParam = 0;
-          this.state = csi;
-        } else if (ch === 93) {
-          console.log('Unsupported OSC code.');
-          this.state = normal;
-        } else {
-          this.state = normal;
+        switch (String.fromCharCode(ch)) {
+          case '[': // csi
+            this.params = [];
+            this.currentParam = 0;
+            this.state = csi;
+            break;
+          case ']': // osc
+            this.params = [];
+            this.currentParam = 0;
+            this.state = osc;
+            break;
+          case 'c': // full reset
+            this.x = 0;
+            this.y = 0;
+            j = this.rows - 1;
+            eraseLine(this, 0, -this.ybase);
+            this.lines = [ this.lines[0] ];
+            while (j--) {
+              this.lines.push(this.lines[0]);
+            }
+            this.ybase = 0;
+            this.ydisp = 0;
+            this.state = normal;
+            break;
+          case 'E': // next line
+            this.x = 0;
+            ; // FALL-THROUGH
+          case 'D': // index
+            this.y++;
+            if (this.y >= this.scrollBottom + 1) {
+              this.y--;
+              this.scroll();
+              rows = 0;
+              rowh = this.rows - 1;
+            }
+            this.state = normal;
+            break;
+          case 'M': // reverse index
+            this.y--;
+            if (this.y < this.scrollTop) {
+              this.y++;
+              this.lines.splice(this.y + this.ybase, 0, []);
+              eraseLine(this, this.x, this.y);
+              j = this.rows - 1 - this.scrollBottom;
+              // add an extra one because we just added a line
+              // maybe put this above
+              this.lines.splice(this.rows - 1 + this.ybase - j + 1, 1);
+            }
+            this.state = normal;
+            break;
+          case '%': // encoding changes
+          case '(':
+          case ')':
+          case '*':
+          case '+':
+          case '-':
+          case '.':
+          case '/':
+            console.log('Serial port requested encoding change');
+            this.state = normal;
+            break;
+          default:
+            this.state = normal;
+            break;
         }
         break;
+      case osc:
+        // '?' or '>'
+        if (ch === 63 || ch === 62) {
+          this.prefix = String.fromCharCode(ch);
+        } else {
+          this.prefix = '';
+        }
+        // 0 - 9
+        if (ch >= 48 && ch <= 57) {
+          this.currentParam = this.currentParam * 10 + ch - 48;
+        } else {
+          this.params[this.params.length] = this.currentParam;
+          this.currentParam = 0;
+
+          // ';'
+          if (ch === 59) break;
+
+          this.state = normal;
+
+          console.log('Unknown OSC code: %s',
+            String.fromCharCode(ch), this.params);
+        }
       case csi:
+        // '?' or '>'
+        if (ch === 63 || ch === 62) {
+          this.prefix = String.fromCharCode(ch);
+          break;
+        } else {
+          this.prefix = '';
+        }
         // 0 - 9
         if (ch >= 48 && ch <= 57) {
           this.currentParam = this.currentParam * 10 + ch - 48;
@@ -528,7 +628,264 @@ Term.prototype.write = function(str) {
                 + (this.x + 1)
                 + 'R');
               break;
+
+            // ADDITIONS:
+            // CSI Ps @
+            // Insert Ps (Blank) Character(s) (default = 1) (ICH).
+            // insert spaces at cursor, have it "push" other
+            // characters forward
+            case 64:
+              param = this.params[0];
+              if (param < 1) param = 1;
+              row = this.y + this.ybase;
+              j = this.x;
+              while (param-- && j < this.cols) {
+                this.lines[row].splice(j++, 0, (this.defAttr << 16) | 32);
+                this.lines[row].pop();
+              }
+              break;
+            // CSI Ps E
+            // Cursor Next Line Ps Times (default = 1) (CNL).
+            case 69:
+              param = this.params[0];
+              if (param < 1) param = 1;
+              this.y += param;
+              if (this.y >= this.rows) {
+                this.y = this.rows - 1;
+              }
+              // above is the same as CSI Ps B
+              this.x = 0;
+              break;
+            // CSI Ps F
+            // Cursor Preceding Line Ps Times (default = 1) (CNL).
+            case 69:
+              param = this.params[0];
+              if (param < 1) param = 1;
+              this.y -= param;
+              if (this.y < 0) this.y = 0;
+              // above is the same as CSI Ps A
+              this.x = 0;
+              break;
+            // CSI Ps G
+            // Cursor Character Absolute  [column] (default = [row,1]) (CHA).
+            case 70:
+              param = this.params[0];
+              if (param < 1) param = 1;
+              this.x = param;
+              break;
+            // CSI Ps L
+            // Insert Ps Line(s) (default = 1) (IL).
+            // pushes the lines immediately after the
+            // cursor down to make room for the inserted
+            // lines
+            case 76:
+              param = this.params[0];
+              if (param < 1) param = 1;
+              row = this.y + this.ybase;
+              while (param--) {
+                this.lines.splice(row, 0, []);
+                eraseLine(this, 0, this.y);
+                j = this.rows - 1 - this.scrollBottom;
+                // add an extra one because we added one
+                // above
+                j = this.rows - 1 + this.ybase - j + 1;
+                this.lines.splice(j, 1);
+              }
+              //this.refresh(0, this.rows - 1);
+              rows = 0;
+              rowh = this.rows - 1;
+              break;
+            // CSI Ps M
+            // Delete Ps Line(s) (default = 1) (DL).
+            // deletes the lines after the cursor
+            // the lines after the deleted ones get pulled
+            // up to fill their place
+            case 77:
+              param = this.params[0];
+              if (param < 1) param = 1;
+              row = this.y + this.ybase;
+              while (param--) {
+                j = this.rows - 1 - this.scrollBottom;
+                j = this.rows - 1 + this.ybase - j;
+                this.lines.splice(j, 0, []);
+                eraseLine(this, 0, j - this.ybase);
+                this.lines.splice(row, 1);
+              }
+              //this.refresh(0, this.rows - 1);
+              rows = 0;
+              rowh = this.rows - 1;
+              break;
+            // CSI Ps P
+            // Delete Ps Character(s) (default = 1) (DCH).
+            // delete characters in front of cursor and
+            // "pull" back characters after that to fill
+            // their place
+            case 80:
+              param = this.params[0];
+              if (param < 1) param = 1;
+              row = this.y + this.ybase;
+              while (param--) {
+                this.lines[row].splice(this.x, 1);
+                this.lines.push((this.defAttr << 16) | 32);
+              }
+              break;
+            // CSI Ps X
+            // Erase Ps Character(s) (default = 1) (ECH).
+            // erase characters in front of cursor, but
+            // don't "pull" the next characters back (?)
+            case 88:
+              param = this.params[0];
+              if (param < 1) param = 1;
+              row = this.y + this.ybase;
+              j = this.x;
+              while (param-- && j < this.cols) {
+                this.lines[row][j++] = (this.defAttr << 16) | 32;
+              }
+              break;
+            // CSI Pm `  Character Position Absolute
+            //   [column] (default = [row,1]) (HPA).
+            case 96:
+              param = this.params[0];
+              if (param < 1) param = 1;
+              this.x = param - 1;
+              if (this.x >= this.cols) {
+                this.x = this.cols - 1;
+              }
+              break;
+            // 141 61 a * HPR -
+            // Horizontal Position Relative
+            case 97:
+              param = this.params[0];
+              if (param < 1) param = 1;
+              this.x += param;
+              if (this.x >= this.cols - 1) {
+                this.x = this.cols - 1;
+              }
+              // above is the same as CSI Ps C
+              break;
+            // CSI P s c
+            // Send Device Attributes (Primary DA).
+            // CSI > P s c
+            // Send Device Attributes (Secondary DA)
+            // vim always likes to spam it!
+            case 99:
+              break;
+              if (this.prefix !== '>') {
+                this.queueChars('\x1b[?1;2c');
+              } else {
+                // say we're a vt100 with
+                // firmware version 95
+                this.queueChars('\x1b[>0;95;0');
+              }
+              break;
+            // CSI Pm d
+            // Line Position Absolute  [row] (default = [1,column]) (VPA).
+            case 100:
+              param = this.params[0];
+              if (param < 1) param = 1;
+              this.y = param - 1;
+              if (this.y >= this.rows) {
+                this.y = this.rows - 1;
+              }
+              break;
+            // 145 65 e * VPR - Vertical Position Relative
+            case 101:
+              param = this.params[0];
+              if (param < 1) param = 1;
+              this.y += param;
+              if (this.y >= this.rows) {
+                this.y = this.rows - 1;
+              }
+              // above is same as CSI Ps B
+              break;
+            // CSI Ps ; Ps f
+            //   Horizontal and Vertical Position [row;column] (default =
+            //   [1,1]) (HVP).
+            case 102:
+              if (this.params[0] < 1) this.params[0] = 1;
+              if (this.params[1] < 1) this.params[1] = 1;
+              this.y = this.params[0] - 1;
+              if (this.y >= this.rows) {
+                this.y = this.rows - 1;
+              }
+              this.x = this.params[1] - 1;
+              if (this.x >= this.cols) {
+                this.x = this.cols - 1;
+              }
+              break;
+            // CSI Pm h  Set Mode (SM).
+            // CSI ? Pm h - mouse escape codes, cursor escape codes
+            case 104:
+              if (this.prefix !== '?') {
+                switch (this.params[0]) {
+                  case 20:
+                    //this.convertEol = true;
+                    break;
+                }
+              } else {
+                switch (this.params[0]) {
+                  case 25:
+                    // show cursor
+                    break;
+                }
+              }
+              break;
+            // CSI Pm l  Reset Mode (RM).
+            // CSI ? Pm l
+            // opposite of Pm h
+            case 108:
+              if (this.prefix !== '?') {
+                switch (this.params[0]) {
+                  case 20:
+                    //this.convertEol = false;
+                    break;
+                }
+              } else {
+                switch (this.params[0]) {
+                  case 25:
+                    // hide cursor
+                    break;
+                }
+              }
+              break;
+            // CSI Ps n  Device Status Report (DSR).
+            case 110:
+              break;
+              switch (this.params[0]) {
+                case 5:
+                  this.queueChars('\x1b[0n');
+                  break;
+                case 6:
+                  this.queueChars('\x1b['
+                    + (this.y+1)
+                    + ';'
+                    + (this.x+1)
+                    + 'R');
+                  break;
+              }
+              break;
+            // CSI Ps ; Ps r
+            //   Set Scrolling Region [top;bottom] (default = full size of win-
+            //   dow) (DECSTBM).
+            // CSI ? Pm r
+            case 114:
+              if (this.prefix === '?') break;
+              this.scrollTop = (this.params[0] || 1) - 1;
+              this.scrollBottom = (this.params[1] || this.rows) - 1;
+              break;
+            // CSI s     Save cursor (ANSI.SYS).
+            case 115:
+              this.savedX = this.x;
+              this.savedY = this.y;
+              break;
+            // CSI u     Restore cursor (ANSI.SYS).
+            case 117:
+              this.x = this.savedX || 0;
+              this.y = this.savedY || 0;
+              break;
             default:
+              console.log('Unknown CSI code: %s',
+                String.fromCharCode(ch), this.params);
               break;
           }
         }
