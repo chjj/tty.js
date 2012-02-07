@@ -552,8 +552,6 @@ Term.prototype.write = function(str) {
             // ADDITIONS:
             // CSI Ps @
             // Insert Ps (Blank) Character(s) (default = 1) (ICH).
-            // insert spaces at cursor, have it "push" other
-            // characters forward
             case 64:
               this.insertChars(this.params);
               break;
@@ -578,35 +576,24 @@ Term.prototype.write = function(str) {
 
             // CSI Ps L
             // Insert Ps Line(s) (default = 1) (IL).
-            // pushes the lines immediately after the
-            // cursor down to make room for the inserted
-            // lines
             case 76:
               this.insertLines(this.params);
               break;
 
             // CSI Ps M
             // Delete Ps Line(s) (default = 1) (DL).
-            // deletes the lines after the cursor
-            // the lines after the deleted ones get pulled
-            // up to fill their place
             case 77:
               this.deleteLines(this.params);
               break;
 
             // CSI Ps P
             // Delete Ps Character(s) (default = 1) (DCH).
-            // delete characters in front of cursor and
-            // "pull" back characters after that to fill
-            // their place
             case 80:
               this.deleteChars(this.params);
               break;
 
             // CSI Ps X
             // Erase Ps Character(s) (default = 1) (ECH).
-            // erase characters in front of cursor, but
-            // don't "pull" the next characters back (?)
             case 88:
               this.eraseChars(this.params);
               break;
@@ -627,7 +614,6 @@ Term.prototype.write = function(str) {
             // Send Device Attributes (Primary DA).
             // CSI > P s c
             // Send Device Attributes (Secondary DA)
-            // vim always likes to spam it!
             case 99:
               this.sendDeviceAttributes(this.params);
               break;
@@ -658,7 +644,6 @@ Term.prototype.write = function(str) {
 
             // CSI Pm l  Reset Mode (RM).
             // CSI ? Pm l
-            // opposite of Pm h
             case 108:
               this.resetMode(this.params);
               break;
@@ -1146,9 +1131,6 @@ Term.prototype.cursorCharAbsolute = function(params) {
 
 // CSI Ps L
 // Insert Ps Line(s) (default = 1) (IL).
-// pushes the lines immediately after the
-// cursor down to make room for the inserted
-// lines
 Term.prototype.insertLines = function(params) {
   var param, row, j;
   param = this.params[0];
@@ -1170,9 +1152,6 @@ Term.prototype.insertLines = function(params) {
 
 // CSI Ps M
 // Delete Ps Line(s) (default = 1) (DL).
-// deletes the lines after the cursor
-// the lines after the deleted ones get pulled
-// up to fill their place
 Term.prototype.deleteLines = function(params) {
   var param, row, j;
   param = this.params[0];
@@ -1192,9 +1171,6 @@ Term.prototype.deleteLines = function(params) {
 
 // CSI Ps P
 // Delete Ps Character(s) (default = 1) (DCH).
-// delete characters in front of cursor and
-// "pull" back characters after that to fill
-// their place
 Term.prototype.deleteChars = function(params) {
   var param, row;
   param = this.params[0];
@@ -1208,8 +1184,6 @@ Term.prototype.deleteChars = function(params) {
 
 // CSI Ps X
 // Erase Ps Character(s) (default = 1) (ECH).
-// erase characters in front of cursor, but
-// don't "pull" the next characters back (?)
 Term.prototype.eraseChars = function(params) {
   var param, row, j;
   param = this.params[0];
@@ -1250,7 +1224,6 @@ Term.prototype.HPositionRelative = function(params) {
 // Send Device Attributes (Primary DA).
 // CSI > P s c
 // Send Device Attributes (Secondary DA)
-// vim always likes to spam it!
 Term.prototype.sendDeviceAttributes = function(params) {
   // this breaks things currently
   return;
@@ -1348,7 +1321,6 @@ Term.prototype.setMode = function(params) {
 
 // CSI Pm l  Reset Mode (RM).
 // CSI ? Pm l
-// opposite of Pm h
 Term.prototype.resetMode = function(params) {
   if (typeof params === 'object') {
     while (params.length) this.resetMode(params.shift());
