@@ -14,6 +14,19 @@
 
 'use strict';
 
+/**
+ * States
+ */
+
+var normal = 0
+  , escaped = 1
+  , csi = 2
+  , osc = 3;
+
+/**
+ * Terminal
+ */
+
 function Term(cols, rows, handler) {
   this.cols = cols;
   this.rows = rows;
@@ -294,11 +307,6 @@ Term.prototype.scrollDisp = function(disp) {
 Term.prototype.write = function(str) {
   console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
 
-  var normal = 0;
-  var escaped = 1;
-  var csi = 2;
-  var osc = 3;
-
   this.refreshStart = 0;
   this.refreshEnd = 0;
 
@@ -306,8 +314,6 @@ Term.prototype.write = function(str) {
     , i = 0
     , ch
     , param
-    , j
-    , col
     , row;
 
   this.refreshStart = this.rows;
@@ -389,7 +395,7 @@ Term.prototype.write = function(str) {
         }
         break;
       case escaped:
-        switch (String.fromCharCode(ch)) {
+        switch (str[i]) {
           case '[': // csi
             this.params = [];
             this.currentParam = 0;
@@ -403,45 +409,18 @@ Term.prototype.write = function(str) {
             break;
 
           case 'c': // full reset
-            this.x = 0;
-            this.y = 0;
-            j = this.rows - 1;
-            this.eraseLine(0, -this.ybase);
-            this.lines = [ this.lines[0] ];
-            while (j--) {
-              this.lines.push(this.lines[0]);
-            }
-            this.ybase = 0;
-            this.ydisp = 0;
-            this.state = normal;
+            this.reset();
             break;
 
           case 'E': // next line
             this.x = 0;
             ; // FALL-THROUGH
           case 'D': // index
-            this.y++;
-            if (this.y >= this.scrollBottom + 1) {
-              this.y--;
-              this.scroll();
-              this.refreshStart = 0;
-              this.refreshEnd = this.rows - 1;
-            }
-            this.state = normal;
+            this.index();
             break;
 
           case 'M': // reverse index
-            this.y--;
-            if (this.y < this.scrollTop) {
-              this.y++;
-              this.lines.splice(this.y + this.ybase, 0, []);
-              this.eraseLine(this.x, this.y);
-              j = this.rows - 1 - this.scrollBottom;
-              // add an extra one because we just added a line
-              // maybe put this above
-              this.lines.splice(this.rows - 1 + this.ybase - j + 1, 1);
-            }
-            this.state = normal;
+            this.reverseIndex();
             break;
 
           case '%': // encoding changes
@@ -469,6 +448,7 @@ Term.prototype.write = function(str) {
         } else {
           this.prefix = '';
         }
+
         // 0 - 9
         if (ch >= 48 && ch <= 57) {
           this.currentParam = this.currentParam * 10 + ch - 48;
@@ -489,11 +469,12 @@ Term.prototype.write = function(str) {
       case csi:
         // '?' or '>'
         if (ch === 63 || ch === 62) {
-          this.prefix = String.fromCharCode(ch);
+          this.prefix = str[i];
           break;
         } else {
           this.prefix = '';
         }
+
         // 0 - 9
         if (ch >= 48 && ch <= 57) {
           this.currentParam = this.currentParam * 10 + ch - 48;
@@ -897,6 +878,7 @@ Term.prototype.getRows = function(y) {
 
 Term.prototype.eraseLine = function(x, y) {
   var line, i, ch, row;
+
   row = this.ybase + y;
 
   if (row >= this.currentHeight) {
@@ -925,14 +907,69 @@ Term.prototype.blankLine = function(x, y) {
   return line;
 };
 
+/**
+ * Escape
+ */
+
+// ESC D
+Term.prototype.index = function() {
+  this.y++;
+  if (this.y >= this.scrollBottom + 1) {
+    this.y--;
+    this.scroll();
+    this.refreshStart = 0;
+    this.refreshEnd = this.rows - 1;
+  }
+  this.state = normal;
+};
+
+// ESC M
+Term.prototype.reverseIndex = function() {
+  var j;
+  this.y--;
+  if (this.y < this.scrollTop) {
+    this.y++;
+    this.lines.splice(this.y + this.ybase, 0, []);
+    this.eraseLine(this.x, this.y);
+    j = this.rows - 1 - this.scrollBottom;
+    // add an extra one because we just added a line
+    // maybe put this above
+    this.lines.splice(this.rows - 1 + this.ybase - j + 1, 1);
+  }
+  this.state = normal;
+};
+
+// ESC c
+Term.prototype.reset = function() {
+  this.currentHeight = this.rows;
+  this.totalHeight = 1000;
+  this.ybase = 0;
+  this.ydisp = 0;
+  this.x = 0;
+  this.y = 0;
+  this.cursorState = 0;
+  this.convertEol = false;
+  this.state = 0;
+  this.outputQueue = '';
+  this.scrollTop = 0;
+  this.scrollBottom = this.rows - 1;
+
+  var j = this.rows - 1;
+  this.lines = [ this.blankLine() ];
+  while (j--) {
+    this.lines.push(this.lines[0]);
+  }
+};
 
 
-
-
+/**
+ * CSI
+ */
 
 // CSI Ps A
 // Cursor Up Ps Times (default = 1) (CUU).
 Term.prototype.cursorUp = function(params) {
+  var param, row;
   param = this.params[0];
   if (param < 1) param = 1;
   this.y -= param;
@@ -942,6 +979,7 @@ Term.prototype.cursorUp = function(params) {
 // CSI Ps B
 // Cursor Down Ps Times (default = 1) (CUD).
 Term.prototype.cursorDown = function(params) {
+  var param, row;
   param = this.params[0];
   if (param < 1) param = 1;
   this.y += param;
@@ -953,6 +991,7 @@ Term.prototype.cursorDown = function(params) {
 // CSI Ps C
 // Cursor Forward Ps Times (default = 1) (CUF).
 Term.prototype.cursorForward = function(params) {
+  var param, row;
   param = this.params[0];
   if (param < 1) param = 1;
   this.x += param;
@@ -964,6 +1003,7 @@ Term.prototype.cursorForward = function(params) {
 // CSI Ps D
 // Cursor Backward Ps Times (default = 1) (CUB).
 Term.prototype.cursorBackward = function(params) {
+  var param, row;
   param = this.params[0];
   if (param < 1) param = 1;
   this.x -= param;
@@ -973,6 +1013,8 @@ Term.prototype.cursorBackward = function(params) {
 // CSI Ps ; Ps H
 // Cursor Position [row;column] (default = [1,1]) (CUP).
 Term.prototype.cursorPos = function(params) {
+  var param, row, col;
+
   row = this.params[0] - 1;
 
   if (this.params.length >= 2) {
@@ -1004,6 +1046,7 @@ Term.prototype.cursorPos = function(params) {
 //   Ps = 3  -> Erase Saved Lines (xterm).
 // Not fully implemented.
 Term.prototype.eraseInDisplay = function(params) {
+  var param, row, j;
   this.eraseLine(this.x, this.y);
   for (j = this.y + 1; j < this.rows; j++) {
     this.eraseLine(0, j);
@@ -1054,6 +1097,7 @@ Term.prototype.deviceStatus = function(params) {
 // insert spaces at cursor, have it "push" other
 // characters forward
 Term.prototype.insertChars = function(params) {
+  var param, row, j;
   param = this.params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
@@ -1067,6 +1111,7 @@ Term.prototype.insertChars = function(params) {
 // CSI Ps E
 // Cursor Next Line Ps Times (default = 1) (CNL).
 Term.prototype.cursorNextLine = function(params) {
+  var param, row;
   param = this.params[0];
   if (param < 1) param = 1;
   this.y += param;
@@ -1080,6 +1125,7 @@ Term.prototype.cursorNextLine = function(params) {
 // CSI Ps F
 // Cursor Preceding Line Ps Times (default = 1) (CNL).
 Term.prototype.cursorPrecedingLine = function(params) {
+  var param, row;
   param = this.params[0];
   if (param < 1) param = 1;
   this.y -= param;
@@ -1091,6 +1137,7 @@ Term.prototype.cursorPrecedingLine = function(params) {
 // CSI Ps G
 // Cursor Character Absolute  [column] (default = [row,1]) (CHA).
 Term.prototype.cursorCharAbsolute = function(params) {
+  var param, row;
   param = this.params[0];
   if (param < 1) param = 1;
   this.x = param;
@@ -1102,6 +1149,7 @@ Term.prototype.cursorCharAbsolute = function(params) {
 // cursor down to make room for the inserted
 // lines
 Term.prototype.insertLines = function(params) {
+  var param, row, j;
   param = this.params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
@@ -1125,6 +1173,7 @@ Term.prototype.insertLines = function(params) {
 // the lines after the deleted ones get pulled
 // up to fill their place
 Term.prototype.deleteLines = function(params) {
+  var param, row, j;
   param = this.params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
@@ -1146,6 +1195,7 @@ Term.prototype.deleteLines = function(params) {
 // "pull" back characters after that to fill
 // their place
 Term.prototype.deleteChars = function(params) {
+  var param, row;
   param = this.params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
@@ -1160,6 +1210,7 @@ Term.prototype.deleteChars = function(params) {
 // erase characters in front of cursor, but
 // don't "pull" the next characters back (?)
 Term.prototype.eraseChars = function(params) {
+  var param, row, j;
   param = this.params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
@@ -1172,6 +1223,7 @@ Term.prototype.eraseChars = function(params) {
 // CSI Pm `  Character Position Absolute
 //   [column] (default = [row,1]) (HPA).
 Term.prototype.charPosAbsolute = function(params) {
+  var param, row;
   param = this.params[0];
   if (param < 1) param = 1;
   this.x = param - 1;
@@ -1183,6 +1235,7 @@ Term.prototype.charPosAbsolute = function(params) {
 // 141 61 a * HPR -
 // Horizontal Position Relative
 Term.prototype.HPositionRelative = function(params) {
+  var param, row;
   param = this.params[0];
   if (param < 1) param = 1;
   this.x += param;
@@ -1198,7 +1251,7 @@ Term.prototype.HPositionRelative = function(params) {
 // Send Device Attributes (Secondary DA)
 // vim always likes to spam it!
 Term.prototype.sendDeviceAttributes = function(params) {
-  break;
+  return;
   if (this.prefix !== '>') {
     this.queueChars('\x1b[?1;2c');
   } else {
@@ -1211,6 +1264,7 @@ Term.prototype.sendDeviceAttributes = function(params) {
 // CSI Pm d
 // Line Position Absolute  [row] (default = [1,column]) (VPA).
 Term.prototype.linePosAbsolute = function(params) {
+  var param, row;
   param = this.params[0];
   if (param < 1) param = 1;
   this.y = param - 1;
@@ -1221,6 +1275,7 @@ Term.prototype.linePosAbsolute = function(params) {
 
 // 145 65 e * VPR - Vertical Position Relative
 Term.prototype.VPositionRelative = function(params) {
+  var param, row;
   param = this.params[0];
   if (param < 1) param = 1;
   this.y += param;
@@ -1236,10 +1291,12 @@ Term.prototype.VPositionRelative = function(params) {
 Term.prototype.HVPosition = function(params) {
   if (this.params[0] < 1) this.params[0] = 1;
   if (this.params[1] < 1) this.params[1] = 1;
+
   this.y = this.params[0] - 1;
   if (this.y >= this.rows) {
     this.y = this.rows - 1;
   }
+
   this.x = this.params[1] - 1;
   if (this.x >= this.cols) {
     this.x = this.cols - 1;
@@ -1285,7 +1342,7 @@ Term.prototype.resetMode = function(params) {
 
 // CSI Ps n  Device Status Report (DSR).
 Term.prototype.deviceStatusReport = function(params) {
-  break;
+  return;
   switch (this.params[0]) {
     case 5:
       this.queueChars('\x1b[0n');
@@ -1305,7 +1362,7 @@ Term.prototype.deviceStatusReport = function(params) {
 //   dow) (DECSTBM).
 // CSI ? Pm r
 Term.prototype.setScrollRegion = function(params) {
-  if (this.prefix === '?') break;
+  if (this.prefix === '?') return;
   this.scrollTop = (this.params[0] || 1) - 1;
   this.scrollBottom = (this.params[1] || this.rows) - 1;
 };
