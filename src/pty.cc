@@ -72,6 +72,8 @@ static Handle<Value> ForkPty(const Arguments& args) {
   }
 
   int master;
+  signal(SIGCHLD, SIG_IGN);
+
   pid_t pid = forkpty(&master, NULL, NULL, &winp);
 
   if (pid == -1) {
