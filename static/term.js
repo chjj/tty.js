@@ -14,6 +14,19 @@
 
 'use strict';
 
+/**
+ * States
+ */
+
+var normal = 0
+  , escaped = 1
+  , csi = 2
+  , osc = 3;
+
+/**
+ * Terminal
+ */
+
 function Term(cols, rows, handler) {
   this.cols = cols;
   this.rows = rows;
@@ -292,72 +305,22 @@ Term.prototype.scrollDisp = function(disp) {
 };
 
 Term.prototype.write = function(str) {
-  console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
-
-  function getRows(y) {
-    rows = Math.min(rows, y);
-    rowh = Math.max(rowh, y);
-  }
-
-  function eraseLine(self, x, y) {
-    var line, i, ch, row;
-    row = self.ybase + y;
-
-    if (row >= self.currentHeight) {
-      row -= self.currentHeight;
-    }
-
-    line = self.lines[row];
-    ch = 32 | (self.defAttr << 16);
-
-    for (i = x; i < self.cols; i++) {
-      line[i] = ch;
-    }
-
-    getRows(y);
-  }
-
-  function changeAttr(self, params) {
-    var i, p;
-    if (params.length === 0) {
-      self.curAttr = self.defAttr;
-    } else {
-      for (i = 0; i < params.length; i++) {
-        p = params[i];
-        if (p >= 30 && p <= 37) {
-          self.curAttr = (self.curAttr & ~(7 << 3)) | ((p - 30) << 3);
-        } else if (p >= 40 && p <= 47) {
-          self.curAttr = (self.curAttr & ~7) | (p - 40);
-        } else if (p === 0) {
-          self.curAttr = self.defAttr;
-        }
-      }
-    }
-  }
-
-  var normal = 0;
-  var escaped = 1;
-  var csi = 2;
-  var osc = 3;
+  //console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
 
   var l = str.length
     , i = 0
     , ch
-    , rows
-    , rowh
     , param
-    , j
-    , col
     , row;
 
-  rows = this.rows;
-  rowh = -1;
-  getRows(this.y);
+  this.refreshStart = this.rows;
+  this.refreshEnd = -1;
+  this.getRows(this.y);
 
   if (this.ybase !== this.ydisp) {
     this.ydisp = this.ybase;
-    rows = 0;
-    rowh = this.rows - 1;
+    this.refreshStart = 0;
+    this.refreshEnd = this.rows - 1;
   }
 
   for (; i < l; i++) {
@@ -374,20 +337,23 @@ Term.prototype.write = function(str) {
             if (this.y >= this.scrollBottom + 1) {
               this.y--;
               this.scroll();
-              rows = 0;
-              rowh = this.rows - 1;
+              this.refreshStart = 0;
+              this.refreshEnd = this.rows - 1;
             }
             break;
+
           // '\r'
           case 13:
             this.x = 0;
             break;
+
           // '\b'
           case 8:
             if (this.x > 0) {
               this.x--;
             }
             break;
+
           // '\t'
           case 9:
             param = (this.x + 8) & ~7;
@@ -395,10 +361,12 @@ Term.prototype.write = function(str) {
               this.x = param;
             }
             break;
+
           // '\e'
           case 27:
             this.state = escaped;
             break;
+
           default:
             // ' '
             if (ch >= 32) {
@@ -408,8 +376,8 @@ Term.prototype.write = function(str) {
                 if (this.y >= this.scrollBottom + 1) {
                   this.y--;
                   this.scroll();
-                  rows = 0;
-                  rowh = this.rows - 1;
+                  this.refreshStart = 0;
+                  this.refreshEnd = this.rows - 1;
                 }
               }
               row = this.y + this.ybase;
@@ -418,62 +386,40 @@ Term.prototype.write = function(str) {
               }
               this.lines[row][this.x] = (ch & 0xffff) | (this.curAttr << 16);
               this.x++;
-              getRows(this.y);
+              this.getRows(this.y);
             }
             break;
         }
         break;
       case escaped:
-        switch (String.fromCharCode(ch)) {
+        switch (str[i]) {
           case '[': // csi
             this.params = [];
             this.currentParam = 0;
             this.state = csi;
             break;
+
           case ']': // osc
             this.params = [];
             this.currentParam = 0;
             this.state = osc;
             break;
+
           case 'c': // full reset
-            this.x = 0;
-            this.y = 0;
-            j = this.rows - 1;
-            eraseLine(this, 0, -this.ybase);
-            this.lines = [ this.lines[0] ];
-            while (j--) {
-              this.lines.push(this.lines[0]);
-            }
-            this.ybase = 0;
-            this.ydisp = 0;
-            this.state = normal;
+            this.reset();
             break;
+
           case 'E': // next line
             this.x = 0;
             ; // FALL-THROUGH
           case 'D': // index
-            this.y++;
-            if (this.y >= this.scrollBottom + 1) {
-              this.y--;
-              this.scroll();
-              rows = 0;
-              rowh = this.rows - 1;
-            }
-            this.state = normal;
+            this.index();
             break;
+
           case 'M': // reverse index
-            this.y--;
-            if (this.y < this.scrollTop) {
-              this.y++;
-              this.lines.splice(this.y + this.ybase, 0, []);
-              eraseLine(this, this.x, this.y);
-              j = this.rows - 1 - this.scrollBottom;
-              // add an extra one because we just added a line
-              // maybe put this above
-              this.lines.splice(this.rows - 1 + this.ybase - j + 1, 1);
-            }
-            this.state = normal;
+            this.reverseIndex();
             break;
+
           case '%': // encoding changes
           case '(':
           case ')':
@@ -485,11 +431,13 @@ Term.prototype.write = function(str) {
             console.log('Serial port requested encoding change');
             this.state = normal;
             break;
+
           default:
             this.state = normal;
             break;
         }
         break;
+
       case osc:
         // '?' or '>'
         if (ch === 63 || ch === 62) {
@@ -497,6 +445,7 @@ Term.prototype.write = function(str) {
         } else {
           this.prefix = '';
         }
+
         // 0 - 9
         if (ch >= 48 && ch <= 57) {
           this.currentParam = this.currentParam * 10 + ch - 48;
@@ -512,14 +461,17 @@ Term.prototype.write = function(str) {
           console.log('Unknown OSC code: %s',
             String.fromCharCode(ch), this.params);
         }
+        break;
+
       case csi:
         // '?' or '>'
         if (ch === 63 || ch === 62) {
-          this.prefix = String.fromCharCode(ch);
+          this.prefix = str[i];
           break;
         } else {
           this.prefix = '';
         }
+
         // 0 - 9
         if (ch >= 48 && ch <= 57) {
           this.currentParam = this.currentParam * 10 + ch - 48;
@@ -536,65 +488,33 @@ Term.prototype.write = function(str) {
             // CSI Ps A
             // Cursor Up Ps Times (default = 1) (CUU).
             case 65:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              this.y -= param;
-              if (this.y < 0) this.y = 0;
+              this.cursorUp(this.params);
               break;
+
             // CSI Ps B
             // Cursor Down Ps Times (default = 1) (CUD).
             case 66:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              this.y += param;
-              if (this.y >= this.rows) {
-                this.y = this.rows - 1;
-              }
+              this.cursorDown(this.params);
               break;
+
             // CSI Ps C
             // Cursor Forward Ps Times (default = 1) (CUF).
             case 67:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              this.x += param;
-              if (this.x >= this.cols - 1) {
-                this.x = this.cols - 1;
-              }
+              this.cursorForward(this.params);
               break;
+
             // CSI Ps D
             // Cursor Backward Ps Times (default = 1) (CUB).
             case 68:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              this.x -= param;
-              if (this.x < 0) this.x = 0;
+              this.cursorBackward(this.params);
               break;
+
             // CSI Ps ; Ps H
             // Cursor Position [row;column] (default = [1,1]) (CUP).
             case 72:
-              row = this.params[0] - 1;
-
-              if (this.params.length >= 2) {
-                col = this.params[1] - 1;
-              } else {
-                col = 0;
-              }
-
-              if (row < 0) {
-                row = 0;
-              } else if (row >= this.rows) {
-                row = this.rows - 1;
-              }
-
-              if (col < 0) {
-                col = 0;
-              } else if (col >= this.cols) {
-                col = this.cols - 1;
-              }
-
-              this.x = col;
-              this.y = row;
+              this.cursorPos(this.params);
               break;
+
             // CSI Ps J  Erase in Display (ED).
             //   Ps = 0  -> Erase Below (default).
             //   Ps = 1  -> Erase Above.
@@ -602,31 +522,27 @@ Term.prototype.write = function(str) {
             //   Ps = 3  -> Erase Saved Lines (xterm).
             // Not fully implemented.
             case 74:
-              eraseLine(this, this.x, this.y);
-              for (j = this.y + 1; j < this.rows; j++) {
-                eraseLine(this, 0, j);
-              }
+              this.eraseInDisplay(this.params);
               break;
+
             // CSI Ps K  Erase in Line (EL).
             //   Ps = 0  -> Erase to Right (default).
             //   Ps = 1  -> Erase to Left.
             //   Ps = 2  -> Erase All.
             // Not fully implemented.
             case 75:
-              eraseLine(this, this.x, this.y);
+              this.eraseInLine(this.params);
               break;
+
             // CSI Pm m  Character Attributes (SGR).
             case 109:
-              changeAttr(this, this.params);
+              this.charAttributes(this.params);
               break;
+
             // CSI Ps n  Device Status Report (DSR).
             // Not fully implemented.
             case 110:
-              this.queueChars('\x1b['
-                + (this.y + 1)
-                + ';'
-                + (this.x + 1)
-                + 'R');
+              this.deviceStatus(this.params);
               break;
 
             // ADDITIONS:
@@ -635,257 +551,141 @@ Term.prototype.write = function(str) {
             // insert spaces at cursor, have it "push" other
             // characters forward
             case 64:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              row = this.y + this.ybase;
-              j = this.x;
-              while (param-- && j < this.cols) {
-                this.lines[row].splice(j++, 0, (this.defAttr << 16) | 32);
-                this.lines[row].pop();
-              }
+              this.insertChars(this.params);
               break;
+
             // CSI Ps E
             // Cursor Next Line Ps Times (default = 1) (CNL).
             case 69:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              this.y += param;
-              if (this.y >= this.rows) {
-                this.y = this.rows - 1;
-              }
-              // above is the same as CSI Ps B
-              this.x = 0;
+              this.cursorNextLine(this.params);
               break;
+
             // CSI Ps F
             // Cursor Preceding Line Ps Times (default = 1) (CNL).
-            case 69:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              this.y -= param;
-              if (this.y < 0) this.y = 0;
-              // above is the same as CSI Ps A
-              this.x = 0;
+            case 70:
+              this.cursorPrecedingLine(this.params);
               break;
+
             // CSI Ps G
             // Cursor Character Absolute  [column] (default = [row,1]) (CHA).
-            case 70:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              this.x = param;
+            case 71:
+              this.cursorCharAbsolute(this.params);
               break;
+
             // CSI Ps L
             // Insert Ps Line(s) (default = 1) (IL).
             // pushes the lines immediately after the
             // cursor down to make room for the inserted
             // lines
             case 76:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              row = this.y + this.ybase;
-              while (param--) {
-                this.lines.splice(row, 0, []);
-                eraseLine(this, 0, this.y);
-                j = this.rows - 1 - this.scrollBottom;
-                // add an extra one because we added one
-                // above
-                j = this.rows - 1 + this.ybase - j + 1;
-                this.lines.splice(j, 1);
-              }
-              //this.refresh(0, this.rows - 1);
-              rows = 0;
-              rowh = this.rows - 1;
+              this.insertLines(this.params);
               break;
+
             // CSI Ps M
             // Delete Ps Line(s) (default = 1) (DL).
             // deletes the lines after the cursor
             // the lines after the deleted ones get pulled
             // up to fill their place
             case 77:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              row = this.y + this.ybase;
-              while (param--) {
-                j = this.rows - 1 - this.scrollBottom;
-                j = this.rows - 1 + this.ybase - j;
-                this.lines.splice(j + 1, 0, []);
-                eraseLine(this, 0, j - this.ybase);
-                this.lines.splice(row, 1);
-              }
-              //this.refresh(0, this.rows - 1);
-              rows = 0;
-              rowh = this.rows - 1;
+              this.deleteLines(this.params);
               break;
+
             // CSI Ps P
             // Delete Ps Character(s) (default = 1) (DCH).
             // delete characters in front of cursor and
             // "pull" back characters after that to fill
             // their place
             case 80:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              row = this.y + this.ybase;
-              while (param--) {
-                this.lines[row].splice(this.x, 1);
-                this.lines.push((this.defAttr << 16) | 32);
-              }
+              this.deleteChars(this.params);
               break;
+
             // CSI Ps X
             // Erase Ps Character(s) (default = 1) (ECH).
             // erase characters in front of cursor, but
             // don't "pull" the next characters back (?)
             case 88:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              row = this.y + this.ybase;
-              j = this.x;
-              while (param-- && j < this.cols) {
-                this.lines[row][j++] = (this.defAttr << 16) | 32;
-              }
+              this.eraseChars(this.params);
               break;
+
             // CSI Pm `  Character Position Absolute
             //   [column] (default = [row,1]) (HPA).
             case 96:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              this.x = param - 1;
-              if (this.x >= this.cols) {
-                this.x = this.cols - 1;
-              }
+              this.charPosAbsolute(this.params);
               break;
+
             // 141 61 a * HPR -
             // Horizontal Position Relative
             case 97:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              this.x += param;
-              if (this.x >= this.cols - 1) {
-                this.x = this.cols - 1;
-              }
-              // above is the same as CSI Ps C
+              this.HPositionRelative(this.params);
               break;
+
             // CSI P s c
             // Send Device Attributes (Primary DA).
             // CSI > P s c
             // Send Device Attributes (Secondary DA)
             // vim always likes to spam it!
             case 99:
+              this.sendDeviceAttributes(this.params);
               break;
-              if (this.prefix !== '>') {
-                this.queueChars('\x1b[?1;2c');
-              } else {
-                // say we're a vt100 with
-                // firmware version 95
-                this.queueChars('\x1b[>0;95;0');
-              }
-              break;
+
             // CSI Pm d
             // Line Position Absolute  [row] (default = [1,column]) (VPA).
             case 100:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              this.y = param - 1;
-              if (this.y >= this.rows) {
-                this.y = this.rows - 1;
-              }
+              this.linePosAbsolute(this.params);
               break;
+
             // 145 65 e * VPR - Vertical Position Relative
             case 101:
-              param = this.params[0];
-              if (param < 1) param = 1;
-              this.y += param;
-              if (this.y >= this.rows) {
-                this.y = this.rows - 1;
-              }
-              // above is same as CSI Ps B
+              this.VPositionRelative(this.params);
               break;
+
             // CSI Ps ; Ps f
             //   Horizontal and Vertical Position [row;column] (default =
             //   [1,1]) (HVP).
             case 102:
-              if (this.params[0] < 1) this.params[0] = 1;
-              if (this.params[1] < 1) this.params[1] = 1;
-              this.y = this.params[0] - 1;
-              if (this.y >= this.rows) {
-                this.y = this.rows - 1;
-              }
-              this.x = this.params[1] - 1;
-              if (this.x >= this.cols) {
-                this.x = this.cols - 1;
-              }
+              this.HVPosition(this.params);
               break;
+
             // CSI Pm h  Set Mode (SM).
             // CSI ? Pm h - mouse escape codes, cursor escape codes
             case 104:
-              if (this.prefix !== '?') {
-                switch (this.params[0]) {
-                  case 20:
-                    //this.convertEol = true;
-                    break;
-                }
-              } else {
-                switch (this.params[0]) {
-                  case 25:
-                    // show cursor
-                    break;
-                }
-              }
+              this.setMode(this.params);
               break;
+
             // CSI Pm l  Reset Mode (RM).
             // CSI ? Pm l
             // opposite of Pm h
             case 108:
-              if (this.prefix !== '?') {
-                switch (this.params[0]) {
-                  case 20:
-                    //this.convertEol = false;
-                    break;
-                }
-              } else {
-                switch (this.params[0]) {
-                  case 25:
-                    // hide cursor
-                    break;
-                }
-              }
+              this.resetMode(this.params);
               break;
+
             // CSI Ps n  Device Status Report (DSR).
             case 110:
+              this.deviceStatusReport(this.params);
               break;
-              switch (this.params[0]) {
-                case 5:
-                  this.queueChars('\x1b[0n');
-                  break;
-                case 6:
-                  this.queueChars('\x1b['
-                    + (this.y+1)
-                    + ';'
-                    + (this.x+1)
-                    + 'R');
-                  break;
-              }
-              break;
+
             // CSI Ps ; Ps r
             //   Set Scrolling Region [top;bottom] (default = full size of win-
             //   dow) (DECSTBM).
             // CSI ? Pm r
             case 114:
-              if (this.prefix === '?') break;
-              this.scrollTop = (this.params[0] || 1) - 1;
-              this.scrollBottom = (this.params[1] || this.rows) - 1;
+              this.setScrollRegion(this.params);
               break;
+
             // CSI s     Save cursor (ANSI.SYS).
             case 115:
-              this.savedX = this.x;
-              this.savedY = this.y;
+              this.saveCursor(this.params);
               break;
+
             // CSI u     Restore cursor (ANSI.SYS).
             case 117:
-              this.x = this.savedX || 0;
-              this.y = this.savedY || 0;
+              this.restoreCursor(this.params);
               break;
+
             default:
-              console.log('Unknown CSI code: %s',
-                String.fromCharCode(ch), this.params);
+              console.log(
+                'Unknown CSI code: %s',
+                str[i], this.params);
               break;
           }
         }
@@ -893,9 +693,11 @@ Term.prototype.write = function(str) {
     }
   }
 
-  getRows(this.y);
+  this.getRows(this.y);
 
-  if (rowh >= rows) this.refresh(rows, rowh);
+  if (this.refreshEnd >= this.refreshStart) {
+    this.refresh(this.refreshStart, this.refreshEnd);
+  }
 };
 
 Term.prototype.writeln = function(str) {
@@ -1065,4 +867,510 @@ Term.prototype.outputHandler = function() {
     this.handler(this.outputQueue);
     this.outputQueue = '';
   }
+};
+
+Term.prototype.getRows = function(y) {
+  this.refreshStart = Math.min(this.refreshStart, y);
+  this.refreshEnd = Math.max(this.refreshEnd, y);
+};
+
+Term.prototype.eraseLine = function(x, y) {
+  var line, i, ch, row;
+
+  row = this.ybase + y;
+
+  if (row >= this.currentHeight) {
+    row -= this.currentHeight;
+  }
+
+  line = this.lines[row];
+  ch = 32 | (this.defAttr << 16);
+
+  for (i = x; i < this.cols; i++) {
+    line[i] = ch;
+  }
+
+  this.getRows(y);
+};
+
+Term.prototype.blankLine = function(x, y) {
+  var ch = 32 | (this.defAttr << 16)
+    , line = []
+    , i = 0;
+
+  for (; i < this.cols; i++) {
+    line[i] = ch;
+  }
+
+  return line;
+};
+
+/**
+ * ESC
+ */
+
+// ESC D
+Term.prototype.index = function() {
+  this.y++;
+  if (this.y >= this.scrollBottom + 1) {
+    this.y--;
+    this.scroll();
+    this.refreshStart = 0;
+    this.refreshEnd = this.rows - 1;
+  }
+  this.state = normal;
+};
+
+// ESC M
+Term.prototype.reverseIndex = function() {
+  var j;
+  this.y--;
+  if (this.y < this.scrollTop) {
+    this.y++;
+    this.lines.splice(this.y + this.ybase, 0, []);
+    this.eraseLine(this.x, this.y);
+    j = this.rows - 1 - this.scrollBottom;
+    // add an extra one because we just added a line
+    // maybe put this above
+    this.lines.splice(this.rows - 1 + this.ybase - j + 1, 1);
+  }
+  this.state = normal;
+};
+
+// ESC c
+Term.prototype.reset = function() {
+  this.currentHeight = this.rows;
+  this.ybase = 0;
+  this.ydisp = 0;
+  this.x = 0;
+  this.y = 0;
+  this.cursorState = 0;
+  this.convertEol = false;
+  this.state = 0;
+  this.outputQueue = '';
+  this.scrollTop = 0;
+  this.scrollBottom = this.rows - 1;
+
+  var j = this.rows - 1;
+  this.lines = [ this.blankLine() ];
+  while (j--) {
+    this.lines.push(this.lines[0]);
+  }
+};
+
+/**
+ * CSI
+ */
+
+// CSI Ps A
+// Cursor Up Ps Times (default = 1) (CUU).
+Term.prototype.cursorUp = function(params) {
+  var param, row;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  this.y -= param;
+  if (this.y < 0) this.y = 0;
+};
+
+// CSI Ps B
+// Cursor Down Ps Times (default = 1) (CUD).
+Term.prototype.cursorDown = function(params) {
+  var param, row;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  this.y += param;
+  if (this.y >= this.rows) {
+    this.y = this.rows - 1;
+  }
+};
+
+// CSI Ps C
+// Cursor Forward Ps Times (default = 1) (CUF).
+Term.prototype.cursorForward = function(params) {
+  var param, row;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  this.x += param;
+  if (this.x >= this.cols - 1) {
+    this.x = this.cols - 1;
+  }
+};
+
+// CSI Ps D
+// Cursor Backward Ps Times (default = 1) (CUB).
+Term.prototype.cursorBackward = function(params) {
+  var param, row;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  this.x -= param;
+  if (this.x < 0) this.x = 0;
+};
+
+// CSI Ps ; Ps H
+// Cursor Position [row;column] (default = [1,1]) (CUP).
+Term.prototype.cursorPos = function(params) {
+  var param, row, col;
+
+  row = this.params[0] - 1;
+
+  if (this.params.length >= 2) {
+    col = this.params[1] - 1;
+  } else {
+    col = 0;
+  }
+
+  if (row < 0) {
+    row = 0;
+  } else if (row >= this.rows) {
+    row = this.rows - 1;
+  }
+
+  if (col < 0) {
+    col = 0;
+  } else if (col >= this.cols) {
+    col = this.cols - 1;
+  }
+
+  this.x = col;
+  this.y = row;
+};
+
+// CSI Ps J  Erase in Display (ED).
+//   Ps = 0  -> Erase Below (default).
+//   Ps = 1  -> Erase Above.
+//   Ps = 2  -> Erase All.
+//   Ps = 3  -> Erase Saved Lines (xterm).
+// Not fully implemented.
+Term.prototype.eraseInDisplay = function(params) {
+  var param, row, j;
+  this.eraseLine(this.x, this.y);
+  for (j = this.y + 1; j < this.rows; j++) {
+    this.eraseLine(0, j);
+  }
+};
+
+// CSI Ps K  Erase in Line (EL).
+//   Ps = 0  -> Erase to Right (default).
+//   Ps = 1  -> Erase to Left.
+//   Ps = 2  -> Erase All.
+// Not fully implemented.
+Term.prototype.eraseInLine = function(params) {
+  this.eraseLine(this.x, this.y);
+};
+
+// CSI Pm m  Character Attributes (SGR).
+Term.prototype.charAttributes = function(params) {
+  var i, p;
+  if (params.length === 0) {
+    this.curAttr = this.defAttr;
+  } else {
+    for (i = 0; i < params.length; i++) {
+      p = params[i];
+      if (p >= 30 && p <= 37) {
+        this.curAttr = (this.curAttr & ~(7 << 3)) | ((p - 30) << 3);
+      } else if (p >= 40 && p <= 47) {
+        this.curAttr = (this.curAttr & ~7) | (p - 40);
+      } else if (p === 0) {
+        this.curAttr = this.defAttr;
+      }
+    }
+  }
+};
+
+// CSI Ps n  Device Status Report (DSR).
+// Not fully implemented.
+Term.prototype.deviceStatus = function(params) {
+  this.queueChars('\x1b['
+    + (this.y + 1)
+    + ';'
+    + (this.x + 1)
+    + 'R');
+};
+
+// ADDITIONS:
+// CSI Ps @
+// Insert Ps (Blank) Character(s) (default = 1) (ICH).
+// insert spaces at cursor, have it "push" other
+// characters forward
+Term.prototype.insertChars = function(params) {
+  var param, row, j;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  row = this.y + this.ybase;
+  j = this.x;
+  while (param-- && j < this.cols) {
+    this.lines[row].splice(j++, 0, (this.defAttr << 16) | 32);
+    this.lines[row].pop();
+  }
+};
+
+// CSI Ps E
+// Cursor Next Line Ps Times (default = 1) (CNL).
+Term.prototype.cursorNextLine = function(params) {
+  var param, row;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  this.y += param;
+  if (this.y >= this.rows) {
+    this.y = this.rows - 1;
+  }
+  // above is the same as CSI Ps B
+  this.x = 0;
+};
+
+// CSI Ps F
+// Cursor Preceding Line Ps Times (default = 1) (CNL).
+Term.prototype.cursorPrecedingLine = function(params) {
+  var param, row;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  this.y -= param;
+  if (this.y < 0) this.y = 0;
+  // above is the same as CSI Ps A
+  this.x = 0;
+};
+
+// CSI Ps G
+// Cursor Character Absolute  [column] (default = [row,1]) (CHA).
+Term.prototype.cursorCharAbsolute = function(params) {
+  var param, row;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  this.x = param;
+};
+
+// CSI Ps L
+// Insert Ps Line(s) (default = 1) (IL).
+// pushes the lines immediately after the
+// cursor down to make room for the inserted
+// lines
+Term.prototype.insertLines = function(params) {
+  var param, row, j;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  row = this.y + this.ybase;
+  while (param--) {
+    this.lines.splice(row, 0, []);
+    this.eraseLine(0, this.y);
+    j = this.rows - 1 - this.scrollBottom;
+    // add an extra one because we added one
+    // above
+    j = this.rows - 1 + this.ybase - j + 1;
+    this.lines.splice(j, 1);
+  }
+  //this.refresh(0, this.rows - 1);
+  this.refreshStart = 0;
+  this.refreshEnd = this.rows - 1;
+};
+
+// CSI Ps M
+// Delete Ps Line(s) (default = 1) (DL).
+// deletes the lines after the cursor
+// the lines after the deleted ones get pulled
+// up to fill their place
+Term.prototype.deleteLines = function(params) {
+  var param, row, j;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  row = this.y + this.ybase;
+  while (param--) {
+    j = this.rows - 1 - this.scrollBottom;
+    j = this.rows - 1 + this.ybase - j;
+    this.lines.splice(j + 1, 0, []);
+    this.eraseLine(0, j - this.ybase);
+    this.lines.splice(row, 1);
+  }
+  //this.refresh(0, this.rows - 1);
+  this.refreshStart = 0;
+  this.refreshEnd = this.rows - 1;
+};
+
+// CSI Ps P
+// Delete Ps Character(s) (default = 1) (DCH).
+// delete characters in front of cursor and
+// "pull" back characters after that to fill
+// their place
+Term.prototype.deleteChars = function(params) {
+  var param, row;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  row = this.y + this.ybase;
+  while (param--) {
+    this.lines[row].splice(this.x, 1);
+    this.lines.push((this.defAttr << 16) | 32);
+  }
+};
+
+// CSI Ps X
+// Erase Ps Character(s) (default = 1) (ECH).
+// erase characters in front of cursor, but
+// don't "pull" the next characters back (?)
+Term.prototype.eraseChars = function(params) {
+  var param, row, j;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  row = this.y + this.ybase;
+  j = this.x;
+  while (param-- && j < this.cols) {
+    this.lines[row][j++] = (this.defAttr << 16) | 32;
+  }
+};
+
+// CSI Pm `  Character Position Absolute
+//   [column] (default = [row,1]) (HPA).
+Term.prototype.charPosAbsolute = function(params) {
+  var param, row;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  this.x = param - 1;
+  if (this.x >= this.cols) {
+    this.x = this.cols - 1;
+  }
+};
+
+// 141 61 a * HPR -
+// Horizontal Position Relative
+Term.prototype.HPositionRelative = function(params) {
+  var param, row;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  this.x += param;
+  if (this.x >= this.cols - 1) {
+    this.x = this.cols - 1;
+  }
+  // above is the same as CSI Ps C
+};
+
+// CSI P s c
+// Send Device Attributes (Primary DA).
+// CSI > P s c
+// Send Device Attributes (Secondary DA)
+// vim always likes to spam it!
+Term.prototype.sendDeviceAttributes = function(params) {
+  // this breaks things currently
+  return;
+  if (this.prefix !== '>') {
+    this.queueChars('\x1b[?1;2c');
+  } else {
+    // say we're a vt100 with
+    // firmware version 95
+    this.queueChars('\x1b[>0;95;0');
+  }
+};
+
+// CSI Pm d
+// Line Position Absolute  [row] (default = [1,column]) (VPA).
+Term.prototype.linePosAbsolute = function(params) {
+  var param, row;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  this.y = param - 1;
+  if (this.y >= this.rows) {
+    this.y = this.rows - 1;
+  }
+};
+
+// 145 65 e * VPR - Vertical Position Relative
+Term.prototype.VPositionRelative = function(params) {
+  var param, row;
+  param = this.params[0];
+  if (param < 1) param = 1;
+  this.y += param;
+  if (this.y >= this.rows) {
+    this.y = this.rows - 1;
+  }
+  // above is same as CSI Ps B
+};
+
+// CSI Ps ; Ps f
+//   Horizontal and Vertical Position [row;column] (default =
+//   [1,1]) (HVP).
+Term.prototype.HVPosition = function(params) {
+  if (this.params[0] < 1) this.params[0] = 1;
+  if (this.params[1] < 1) this.params[1] = 1;
+
+  this.y = this.params[0] - 1;
+  if (this.y >= this.rows) {
+    this.y = this.rows - 1;
+  }
+
+  this.x = this.params[1] - 1;
+  if (this.x >= this.cols) {
+    this.x = this.cols - 1;
+  }
+};
+
+// CSI Pm h  Set Mode (SM).
+// CSI ? Pm h - mouse escape codes, cursor escape codes
+Term.prototype.setMode = function(params) {
+  if (this.prefix !== '?') {
+    switch (this.params[0]) {
+      case 20:
+        //this.convertEol = true;
+        break;
+    }
+  } else {
+    switch (this.params[0]) {
+      case 25:
+        // show cursor
+        break;
+    }
+  }
+};
+
+// CSI Pm l  Reset Mode (RM).
+// CSI ? Pm l
+// opposite of Pm h
+Term.prototype.resetMode = function(params) {
+  if (this.prefix !== '?') {
+    switch (this.params[0]) {
+      case 20:
+        //this.convertEol = false;
+        break;
+    }
+  } else {
+    switch (this.params[0]) {
+      case 25:
+        // hide cursor
+        break;
+    }
+  }
+};
+
+// CSI Ps n  Device Status Report (DSR).
+Term.prototype.deviceStatusReport = function(params) {
+  switch (this.params[0]) {
+    case 5:
+      this.queueChars('\x1b[0n');
+      break;
+    case 6:
+      this.queueChars('\x1b['
+        + (this.y+1)
+        + ';'
+        + (this.x+1)
+        + 'R');
+      break;
+  }
+};
+
+// CSI Ps ; Ps r
+//   Set Scrolling Region [top;bottom] (default = full size of win-
+//   dow) (DECSTBM).
+// CSI ? Pm r
+Term.prototype.setScrollRegion = function(params) {
+  if (this.prefix === '?') return;
+  this.scrollTop = (this.params[0] || 1) - 1;
+  this.scrollBottom = (this.params[1] || this.rows) - 1;
+};
+
+// CSI s     Save cursor (ANSI.SYS).
+Term.prototype.saveCursor = function(params) {
+  this.savedX = this.x;
+  this.savedY = this.y;
+};
+
+// CSI u     Restore cursor (ANSI.SYS).
+Term.prototype.restoreCursor = function(params) {
+  this.x = this.savedX || 0;
+  this.y = this.savedY || 0;
 };
