@@ -292,7 +292,7 @@ Term.prototype.scrollDisp = function(disp) {
 };
 
 Term.prototype.write = function(str) {
-  //console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
+  console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
 
   function getRows(y) {
     rows = Math.min(rows, y);
@@ -707,7 +707,7 @@ Term.prototype.write = function(str) {
               while (param--) {
                 j = this.rows - 1 - this.scrollBottom;
                 j = this.rows - 1 + this.ybase - j;
-                this.lines.splice(j, 0, []);
+                this.lines.splice(j + 1, 0, []);
                 eraseLine(this, 0, j - this.ybase);
                 this.lines.splice(row, 1);
               }
