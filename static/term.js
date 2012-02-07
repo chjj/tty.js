@@ -7,6 +7,8 @@
  * permission.
 */
 
+;(function() {
+
 /**
  * Originally taken from [http://bellard.org/jslinux/]
  * with the author's permission.
@@ -37,6 +39,7 @@ function Term(cols, rows, handler) {
   this.x = 0;
   this.y = 0;
   this.cursorState = 0;
+  this.cursorHidden = false;
   this.handler = handler;
   this.convertEol = false;
   this.state = 0;
@@ -146,7 +149,8 @@ Term.prototype.refresh = function(start, end) {
 
     if (y === this.y
         && this.cursorState
-        && this.ydisp === this.ybase) {
+        && this.ydisp === this.ybase
+        && !this.cursorHidden) {
       x = this.x;
     } else {
       x = -1;
@@ -441,9 +445,8 @@ Term.prototype.write = function(str) {
       case osc:
         // '?' or '>'
         if (ch === 63 || ch === 62) {
-          this.prefix = String.fromCharCode(ch);
-        } else {
-          this.prefix = '';
+          this.prefix = str[i];
+          break;
         }
 
         // 0 - 9
@@ -461,6 +464,9 @@ Term.prototype.write = function(str) {
           console.log('Unknown OSC code: %s',
             String.fromCharCode(ch), this.params);
         }
+
+        this.prefix = '';
+
         break;
 
       case csi:
@@ -468,8 +474,6 @@ Term.prototype.write = function(str) {
         if (ch === 63 || ch === 62) {
           this.prefix = str[i];
           break;
-        } else {
-          this.prefix = '';
         }
 
         // 0 - 9
@@ -688,6 +692,8 @@ Term.prototype.write = function(str) {
                 str[i], this.params);
               break;
           }
+
+          this.prefix = '';
         }
         break;
     }
@@ -1312,7 +1318,7 @@ Term.prototype.setMode = function(params) {
   } else {
     switch (this.params[0]) {
       case 25:
-        // show cursor
+        this.cursorHidden = false;
         break;
     }
   }
@@ -1331,7 +1337,7 @@ Term.prototype.resetMode = function(params) {
   } else {
     switch (this.params[0]) {
       case 25:
-        // hide cursor
+        this.cursorHidden = true;
         break;
     }
   }
@@ -1374,3 +1380,11 @@ Term.prototype.restoreCursor = function(params) {
   this.x = this.savedX || 0;
   this.y = this.savedY || 0;
 };
+
+/**
+ * Expose
+ */
+
+this.Term = Term;
+
+}).call(this);
