@@ -20,8 +20,7 @@ issues will be noticeable.
 The main goal of tty.js is to eventually write a full xterm emulator.
 
 Unfortunately, tty.js is rough around the edges right now. `$TERM` is
-set to vt100 by default, if you want color once you enter the shell you
-can try one of:
+set to vt100/linux by default. You could also try:
 
 ``` bash
 $ TERM=linux exec bash
@@ -29,8 +28,8 @@ $ TERM=xterm-color exec bash
 $ TERM=screen exec bash
 ```
 
-linux (or screen) is probably the safest TERM name to use, but you will still
-have compatibility issues.
+linux, vt100, or screen are probably the safest TERM names to use, but you will
+still have compatibility issues.
 
 Running screen directly seems to have good effects too. Beware though, there
 will be terminal compatibility issues abound.
