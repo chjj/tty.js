@@ -4,8 +4,7 @@ A terminal in your browser using node.js and socket.io. Based on Fabrice
 Bellard's vt100 for [jslinux](http://bellard.org/jslinux/).
 
 __WARNING__: tty.js is *not* secure. Make sure nobody has access to your
-terminal but you. tty.js is also unstable right now, terminal compatibility
-issues will be noticeable.
+terminal but you. tty.js is also unstable right now.
 
 ### bash
 
@@ -19,27 +18,15 @@ issues will be noticeable.
 
 The main goal of tty.js is to eventually write a full xterm emulator.
 
-Unfortunately, tty.js is rough around the edges right now. `$TERM` is
-set to vt100/linux by default. You could also try:
-
-``` bash
-$ TERM=vt100 exec bash
-$ TERM=linux exec bash
-$ TERM=xterm-color exec bash
-$ TERM=screen exec bash
-```
-
-linux and vt100 are probably the safest TERM names to use, but you will
-still have compatibility issues.
-
-Running screen directly seems to have good effects too. Beware though, there
-will be terminal compatibility issues abound.
+tty.js is rough around the edges right now. Terminal compatibility issues
+may be slightly noticeable. `$TERM` is best set to `linux` or `vt100`.
 
 ## Portability
 
 tty.js should ultimately be able to work on any unix that implements unix98
-tty's and `forkpty(3)`, but it was written for linux. If you get `pty` to
-compile on any other unix, pull requests are welcome.
+tty's and `forkpty(3)`. tty.js builds on linux and osx, and it *should* build
+on NetBSD, FreeBSD, and OpenBSD as well. If you have trouble building, please
+post an issue.
 
 ## License
 
