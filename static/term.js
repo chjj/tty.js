@@ -332,8 +332,19 @@ Term.prototype.write = function(str) {
     switch (this.state) {
       case normal:
         switch (ch) {
-          // '\n'
+          // '\0'
+          case 0:
+            break;
+
+          // '\a'
+          case 7:
+            this.bell();
+            break;
+
+          // '\n', '\v', '\f'
           case 10:
+          case 11:
+          case 12:
             if (this.convertEol) {
               this.x = 0;
             }
@@ -360,6 +371,7 @@ Term.prototype.write = function(str) {
 
           // '\t'
           case 9:
+            // should check tabstops
             param = (this.x + 8) & ~7;
             if (param <= this.cols) {
               this.x = param;
@@ -433,6 +445,25 @@ Term.prototype.write = function(str) {
           case '.':
           case '/':
             console.log('Serial port requested encoding change');
+            this.state = normal;
+            break;
+
+          case '7': // save cursor pos
+            this.saveCursor();
+            this.state = normal;
+            break;
+
+          case '8': // restore cursor pos
+            this.restoreCursor();
+            this.state = normal;
+            break;
+
+          case '#': // line height/width
+            this.state = normal;
+            break;
+
+          case 'H': // tab set
+            // this.tabSet(this.x);
             this.state = normal;
             break;
 
@@ -520,20 +551,11 @@ Term.prototype.write = function(str) {
               break;
 
             // CSI Ps J  Erase in Display (ED).
-            //   Ps = 0  -> Erase Below (default).
-            //   Ps = 1  -> Erase Above.
-            //   Ps = 2  -> Erase All.
-            //   Ps = 3  -> Erase Saved Lines (xterm).
-            // Not fully implemented.
             case 74:
               this.eraseInDisplay(this.params);
               break;
 
             // CSI Ps K  Erase in Line (EL).
-            //   Ps = 0  -> Erase to Right (default).
-            //   Ps = 1  -> Erase to Left.
-            //   Ps = 2  -> Erase All.
-            // Not fully implemented.
             case 75:
               this.eraseInLine(this.params);
               break;
@@ -544,7 +566,6 @@ Term.prototype.write = function(str) {
               break;
 
             // CSI Ps n  Device Status Report (DSR).
-            // Not fully implemented.
             case 110:
               this.deviceStatus(this.params);
               break;
