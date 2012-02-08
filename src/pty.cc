@@ -19,6 +19,7 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <pwd.h>
+#include <grp.h>
 
 /* forkpty */
 /* http://www.gnu.org/software/gnulib/manual/html_node/forkpty.html */
@@ -93,7 +94,13 @@ static Handle<Value> ForkPty(const Arguments& args) {
 
   if (pid == 0) {
     setgid(pwd->pw_gid);
+    setegid(pwd->pw_gid);
+
+    gid_t newgid = getgid();
+    setgroups(1, &newgid);
+
     setuid(pwd->pw_uid);
+    seteuid(pwd->pw_uid);
 
     if (args.Length() > 2 && args[2]->IsString()) {
       String::Utf8Value term(args[2]->ToString());
