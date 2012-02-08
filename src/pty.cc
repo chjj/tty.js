@@ -16,6 +16,9 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#if defined(__APPLE__)
+  #include <sys/ioctl.h>
+#endif
 #include <fcntl.h>
 
 /* forkpty */
