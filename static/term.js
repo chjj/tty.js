@@ -59,30 +59,6 @@ function Term(cols, rows, handler) {
   this.scrollTop = 0;
   this.scrollBottom = this.rows - 1;
 
-  // vga
-  this.bgColors = [
-    '#000000',
-    '#A80000',
-    '#00A800',
-    '#A8A800',
-    '#0000A8',
-    '#A800A8',
-    '#00A8A8',
-    '#A8A8A8'
-  ];
-
-  this.fgColors = [
-    '#000054',
-    '#FF0054',
-    '#00FF54',
-    '#FFFF54',
-    '#0000FF',
-    '#FF00FF',
-    '#00FFFF',
-    '#FFFFFF'
-  ];
-
-  // tango
   this.bgColors = [
     '#2e3436',
     '#cc0000',
