@@ -186,6 +186,12 @@ Term.prototype.refresh = function(start, end) {
                 + this.bgColors[bgColor]
                 + ';';
             }
+            if ((data >> 8) & 1) {
+              out += 'font-weight:bold;';
+            }
+            if ((data >> 8) & 4) {
+              out += 'text-decoration:underline;';
+            }
             out += '">';
           }
         }
@@ -1079,6 +1085,12 @@ Term.prototype.charAttributes = function(params) {
         this.curAttr = (this.curAttr & ~7) | (p - 40);
       } else if (p === 0) {
         this.curAttr = this.defAttr;
+      } else if (p === 1) {
+        // bold text
+        this.curAttr = this.curAttr | (1 << 8);
+      } else if (p === 4) {
+        // underlined text
+        this.curAttr = this.curAttr | (4 << 8);
       }
     }
   }
