@@ -151,5 +151,5 @@ static Handle<Value> ForkPty(const Arguments& args) {
 
 extern "C" void init(Handle<Object> target) {
   HandleScope scope;
-  NODE_SET_METHOD(target, "forkPty", ForkPty);
+  NODE_SET_METHOD(target, "fork", ForkPty);
 }

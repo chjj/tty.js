@@ -31,13 +31,14 @@
 #endif
 
 #include <utmp.h> /* login_tty */
-#include <termios.h> /* tcgetattr */
+#include <termios.h> /* tcgetattr, tty_ioctl */
 
 using namespace std;
 using namespace node;
 using namespace v8;
 
 static Handle<Value> ForkPty(const Arguments&);
+static Handle<Value> ResizePty(const Arguments&);
 extern "C" void init(Handle<Object>);
 
 static Handle<Value> ForkPty(const Arguments& args) {
@@ -102,7 +103,47 @@ static Handle<Value> ForkPty(const Arguments& args) {
   return scope.Close(obj);
 }
 
+/**
+ * Expose Resize Functionality
+ */
+
+static Handle<Value> ResizePty(const Arguments& args) {
+  HandleScope scope;
+
+  if (args.Length() > 0 && !args[0]->IsNumber()) {
+    return ThrowException(Exception::Error(
+      String::New("First argument must be a string.")));
+  }
+
+  struct winsize winp = {};
+  winp.ws_col = 80;
+  winp.ws_row = 30;
+
+  int fd = args[0]->ToInteger()->Value();
+
+  if (args.Length() == 3) {
+    if (args[1]->IsNumber() && args[2]->IsNumber()) {
+      Local<Integer> cols = args[1]->ToInteger();
+      Local<Integer> rows = args[2]->ToInteger();
+
+      winp.ws_col = cols->Value();
+      winp.ws_row = rows->Value();
+    } else {
+      return ThrowException(Exception::Error(
+        String::New("cols and rows need to be numbers.")));
+    }
+  }
+
+  if (ioctl(fd, TIOCSWINSZ, &winp) == -1) {
+    return ThrowException(Exception::Error(
+      String::New("ioctl failed.")));
+  }
+
+  return Undefined();
+}
+
 extern "C" void init(Handle<Object> target) {
   HandleScope scope;
-  NODE_SET_METHOD(target, "forkPty", ForkPty);
+  NODE_SET_METHOD(target, "fork", ForkPty);
+  NODE_SET_METHOD(target, "resize", ResizePty);
 }
