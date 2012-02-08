@@ -46,19 +46,21 @@ static Handle<Value> ForkPty(const Arguments& args) {
 
   char *argv[] = { "sh", NULL };
 
-  if (args.Length() < 2) {
-    if (!args[0]->IsString() || !args[1]->IsString()) {
+  if (args.Length() < 2) 
+    {
       return ThrowException(Exception::Error(
-        String::New("First two arguments must be strings.")));
+	      String::New("Not enough arguments to ForkPty.")));
+    }
+  if (!args[0]->IsString() || !args[1]->IsString()) 
+    {
+      return ThrowException(Exception::Error(
+	      String::New("First two arguments must be strings.")));
     }
     String::Utf8Value file(args[0]->ToString());
     argv[0] = strdup(*file);
-  }
 
   String::Utf8Value username(args[1]->ToString());
-  printf("finding: %s\n", *username);
   struct passwd *pwd = getpwnam(*username);
-  printf("uid: %d \t gid: %d\n", pwd->pw_uid, pwd->pw_gid);
 
   struct winsize winp = {};
   winp.ws_col = 80;
@@ -98,12 +100,8 @@ static Handle<Value> ForkPty(const Arguments& args) {
       setenv("TERM", "vt100", 1);
     }
 
-    chdir(getenv("HOME"));
-
+    chdir(pwd->pw_dir);
     execvp(argv[0], argv);
-
-    setgid(0);
-    setuid(0);
 
     perror("execvp failed");
     _exit(1);
