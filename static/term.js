@@ -1,17 +1,29 @@
 /**
- * Javascript Terminal
+ * tty.js - an xterm emulator
  *
+ * Originally forked from (with the author's permission):
+ *
+ * Fabrice Bellard's javascript vt100 for jslinux:
+ * http://bellard.org/jslinux/
  * Copyright (c) 2011 Fabrice Bellard
+ * (Redistribution or commercial use is prohibited
+ *  without the author's permission.)
  *
- * Redistribution or commercial use is prohibited without the author's
- * permission.
+ * The original design remains. The terminal itself
+ * has been extended to include xterm CSI codes, among
+ * other features.
 */
 
 ;(function() {
 
 /**
- * Originally taken from [http://bellard.org/jslinux/]
- * with the author's permission.
+ * Terminal Emulation References:
+ * Xterm:
+ *   http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+ * Linux Console:
+ *   http://linux.die.net/man/4/console_codes
+ * URXVT:
+ *   http://linux.die.net/man/7/urxvt
  */
 
 'use strict';
@@ -415,46 +427,57 @@ Term.prototype.write = function(str) {
         break;
       case escaped:
         switch (str[i]) {
-          case '[': // csi
+          // ESC [ Control Sequence Introducer ( CSI is 0x9b).
+          case '[':
             this.params = [];
             this.currentParam = 0;
             this.state = csi;
             break;
 
-          case ']': // osc
+          // ESC ] Operating System Command ( OSC is 0x9d).
+          case ']':
             this.params = [];
             this.currentParam = 0;
             this.state = osc;
             break;
 
-          case 'P': // dcs
+          // ESC P Device Control String ( DCS is 0x90).
+          case 'P':
             this.state = osc;
             break;
 
-          case '_': // apc
+          // ESC _ Application Program Command ( APC is 0x9f).
+          case '_':
             this.state = osc;
             break;
 
-          case '^': // pm
+          // ESC ^ Privacy Message ( PM is 0x9e).
+          case '^':
             this.state = osc;
             break;
 
-          case 'c': // full reset
+          // ESC c Full Reset (RIS).
+          case 'c':
             this.reset();
             break;
 
-          case 'E': // next line
+          // ESC E Next Line ( NEL is 0x85).
+          // ESC D Index ( IND is 0x84).
+          case 'E':
             this.x = 0;
-            ; // FALL-THROUGH
-          case 'D': // index
+            ;
+          case 'D':
             this.index();
             break;
 
-          case 'M': // reverse index
+          // ESC M Reverse Index ( RI is 0x8d).
+          case 'M':
             this.reverseIndex();
             break;
 
-          case '%': // encoding changes
+          // ESC % Select character set.
+          // ESC (,),*,+,-,.,/ Designate G0-G3 Character Set.
+          case '%':
           case '(':
           case ')':
           case '*':
@@ -462,31 +485,36 @@ Term.prototype.write = function(str) {
           case '-':
           case '.':
           case '/':
-            console.log('Serial port requested encoding change');
+            console.log('Serial port requested charset change');
             this.state = normal;
             break;
 
-          case '7': // save cursor pos
+          // ESC 7 Save Cursor (DECSC).
+          case '7':
             this.saveCursor();
             this.state = normal;
             break;
 
-          case '8': // restore cursor pos
+          // ESC 8 Restore Cursor (DECRC).
+          case '8':
             this.restoreCursor();
             this.state = normal;
             break;
 
-          case '#': // line height/width
+          // ESC # 3 DEC line height/width
+          case '#':
             this.state = normal;
             break;
 
-          case 'H': // tab set
+          // ESC H Tab Set ( HTS is 0x88).
+          case 'H':
             // this.tabSet(this.x);
             this.state = normal;
             break;
 
           default:
             this.state = normal;
+            console.log('Unknown ESC control: ' + str[i] + '.');
             break;
         }
         break;

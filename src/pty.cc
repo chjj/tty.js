@@ -112,7 +112,7 @@ static Handle<Value> ResizePty(const Arguments& args) {
 
   if (args.Length() > 0 && !args[0]->IsNumber()) {
     return ThrowException(Exception::Error(
-      String::New("First argument must be a string.")));
+      String::New("First argument must be a number.")));
   }
 
   struct winsize winp = {};
