@@ -882,6 +882,15 @@ Term.prototype.outputHandler = function() {
   }
 };
 
+Term.prototype.bell = function() {
+  if (!this.useBell) return;
+  var self = this;
+  this.element.style.borderColor = 'white';
+  setTimeout(function() {
+    self.element.style.borderColor = '';
+  }, 10);
+};
+
 Term.prototype.getRows = function(y) {
   this.refreshStart = Math.min(this.refreshStart, y);
   this.refreshEnd = Math.max(this.refreshEnd, y);
