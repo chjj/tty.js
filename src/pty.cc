@@ -17,6 +17,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <pwd.h>
 
 /* forkpty */
 /* http://www.gnu.org/software/gnulib/manual/html_node/forkpty.html */
@@ -45,23 +46,28 @@ static Handle<Value> ForkPty(const Arguments& args) {
 
   char *argv[] = { "sh", NULL };
 
-  if (args.Length() > 0) {
-    if (!args[0]->IsString()) {
+  if (args.Length() < 2) {
+    if (!args[0]->IsString() || !args[1]->IsString()) {
       return ThrowException(Exception::Error(
-        String::New("First argument must be a string.")));
+        String::New("First two arguments must be strings.")));
     }
     String::Utf8Value file(args[0]->ToString());
     argv[0] = strdup(*file);
   }
 
+  String::Utf8Value username(args[1]->ToString());
+  printf("finding: %s\n", *username);
+  struct passwd *pwd = getpwnam(*username);
+  printf("uid: %d \t gid: %d\n", pwd->pw_uid, pwd->pw_gid);
+
   struct winsize winp = {};
   winp.ws_col = 80;
   winp.ws_row = 30;
 
-  if (args.Length() == 4) {
-    if (args[2]->IsNumber() && args[3]->IsNumber()) {
-      Local<Integer> cols = args[2]->ToInteger();
-      Local<Integer> rows = args[3]->ToInteger();
+  if (args.Length() == 5) {
+    if (args[3]->IsNumber() && args[4]->IsNumber()) {
+      Local<Integer> cols = args[3]->ToInteger();
+      Local<Integer> rows = args[4]->ToInteger();
 
       winp.ws_col = cols->Value();
       winp.ws_row = rows->Value();
@@ -82,8 +88,11 @@ static Handle<Value> ForkPty(const Arguments& args) {
   }
 
   if (pid == 0) {
-    if (args.Length() > 1 && args[1]->IsString()) {
-      String::Utf8Value term(args[1]->ToString());
+    setgid(pwd->pw_gid);
+    setuid(pwd->pw_uid);
+
+    if (args.Length() > 2 && args[2]->IsString()) {
+      String::Utf8Value term(args[2]->ToString());
       setenv("TERM", strdup(*term), 1);
     } else {
       setenv("TERM", "vt100", 1);
@@ -92,6 +101,9 @@ static Handle<Value> ForkPty(const Arguments& args) {
     chdir(getenv("HOME"));
 
     execvp(argv[0], argv);
+
+    setgid(0);
+    setuid(0);
 
     perror("execvp failed");
     _exit(1);
