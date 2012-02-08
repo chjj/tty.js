@@ -59,26 +59,50 @@ function Term(cols, rows, handler) {
   this.scrollTop = 0;
   this.scrollBottom = this.rows - 1;
 
+  // vga
   this.bgColors = [
     '#000000',
-    '#ff0000',
-    '#00ff00',
-    '#ffff00',
-    '#0000ff',
-    '#ff00ff',
-    '#00ffff',
-    '#ffffff'
+    '#A80000',
+    '#00A800',
+    '#A8A800',
+    '#0000A8',
+    '#A800A8',
+    '#00A8A8',
+    '#A8A8A8'
   ];
 
   this.fgColors = [
-    '#000000',
-    '#ff0000',
-    '#00ff00',
-    '#ffff00',
-    '#0000ff',
-    '#ff00ff',
-    '#00ffff',
-    '#ffffff'
+    '#000054',
+    '#FF0054',
+    '#00FF54',
+    '#FFFF54',
+    '#0000FF',
+    '#FF00FF',
+    '#00FFFF',
+    '#FFFFFF'
+  ];
+
+  // tango
+  this.bgColors = [
+    '#2e3436',
+    '#cc0000',
+    '#4e9a06',
+    '#c4a000',
+    '#3465a4',
+    '#75507b',
+    '#06989a',
+    '#d3d7cf'
+  ];
+
+  this.fgColors = [
+    '#555753',
+    '#ef2929',
+    '#8ae234',
+    '#fce94f',
+    '#729fcf',
+    '#ad7fa8',
+    '#34e2e2',
+    '#eeeeec'
   ];
 
   this.defAttr = (7 << 3) | 0;
@@ -943,6 +967,22 @@ Term.prototype.write = function(str) {
             // case 124:
             //   if (this.postfix === '\'') {
             //     this.requestLocatorPosition(this.params);
+            //   }
+            //   break;
+
+            // CSI P m SP }
+            // Insert P s Column(s) (default = 1) (DECIC), VT420 and up.
+            // case 125:
+            //   if (this.postfix === ' ') {
+            //     this.insertColumns(this.params);
+            //   }
+            //   break;
+
+            // CSI P m SP ~
+            // Delete P s Column(s) (default = 1) (DECDC), VT420 and up
+            // case 126:
+            //   if (this.postfix === ' ') {
+            //     this.deleteColumns(this.params);
             //   }
             //   break;
 
@@ -2396,6 +2436,15 @@ Term.prototype.selectiveEraseRectangle = function(params) {
 Term.prototype.requestLocatorPosition = function(params) {
 };
 
+// CSI P m SP }
+// Insert P s Column(s) (default = 1) (DECIC), VT420 and up.
+Term.prototype.insertColumns = function() {
+};
+
+// CSI P m SP ~
+// Delete P s Column(s) (default = 1) (DECDC), VT420 and up
+Term.prototype.deleteColumns = function() {
+};
 
 /**
  * Expose
