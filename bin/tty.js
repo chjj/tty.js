@@ -16,8 +16,6 @@ if [ -z "$node" ]; then
   fi
 fi
 
-killall tty.js > /dev/null 2>&1 && sleep 2
-
 case "$1" in
   production | --production)
     export NODE_ENV=production
