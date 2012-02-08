@@ -509,8 +509,9 @@ Term.prototype.write = function(str) {
           case '-':
           case '.':
           case '/':
-            console.log('Serial port requested charset change');
+            // console.log('Serial port requested charset change');
             this.state = normal;
+            i++;
             break;
 
           // ESC 7 Save Cursor (DECSC).
@@ -528,11 +529,26 @@ Term.prototype.write = function(str) {
           // ESC # 3 DEC line height/width
           case '#':
             this.state = normal;
+            i++;
             break;
 
           // ESC H Tab Set ( HTS is 0x88).
           case 'H':
             // this.tabSet(this.x);
+            this.state = normal;
+            break;
+
+          // ESC = Application Keypad (DECPAM).
+          case '=':
+            console.log('Serial port requested application keypad.');
+            this.applicationKeypad = true;
+            this.state = normal;
+            break;
+
+          // ESC > Normal Keypad (DECPNM).
+          case '>':
+            console.log('Switching back to normal keypad.');
+            this.applicationKeypad = false;
             this.state = normal;
             break;
 
