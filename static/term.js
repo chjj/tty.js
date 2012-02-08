@@ -421,6 +421,18 @@ Term.prototype.write = function(str) {
             this.state = osc;
             break;
 
+          case 'P': // dcs
+            this.state = osc;
+            break;
+
+          case '_': // apc
+            this.state = osc;
+            break;
+
+          case '^': // pm
+            this.state = osc;
+            break;
+
           case 'c': // full reset
             this.reset();
             break;
@@ -474,30 +486,11 @@ Term.prototype.write = function(str) {
         break;
 
       case osc:
-        // '?' or '>'
-        if (ch === 63 || ch === 62) {
-          this.prefix = str[i];
-          break;
-        }
-
-        // 0 - 9
-        if (ch >= 48 && ch <= 57) {
-          this.currentParam = this.currentParam * 10 + ch - 48;
-        } else {
-          this.params[this.params.length] = this.currentParam;
-          this.currentParam = 0;
-
-          // ';'
-          if (ch === 59) break;
-
-          this.state = normal;
-
-          console.log('Unknown OSC code: %s',
-            String.fromCharCode(ch), this.params);
-        }
-
-        this.prefix = '';
-
+        if (ch !== 27 && ch !== 7) break;
+        console.log('Unknown OSC code.');
+        this.state = normal;
+        // increment for the trailing slash in ST
+        if (ch === 27) i++;
         break;
 
       case csi:
@@ -516,6 +509,12 @@ Term.prototype.write = function(str) {
 
           // ';'
           if (ch === 59) break;
+
+          // '$', '"', ' ', '\''
+          if (ch === 36 || ch === 34 || ch === 32 || ch === 39) {
+            this.postfix = str[i];
+            break;
+          }
 
           this.state = normal;
 
@@ -695,6 +694,7 @@ Term.prototype.write = function(str) {
           }
 
           this.prefix = '';
+          this.postfix = '';
         }
         break;
     }
