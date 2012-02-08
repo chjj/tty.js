@@ -538,17 +538,17 @@ Term.prototype.write = function(str) {
         if (ch >= 48 && ch <= 57) {
           this.currentParam = this.currentParam * 10 + ch - 48;
         } else {
-          this.params[this.params.length] = this.currentParam;
-          this.currentParam = 0;
-
-          // ';'
-          if (ch === 59) break;
-
           // '$', '"', ' ', '\''
           if (ch === 36 || ch === 34 || ch === 32 || ch === 39) {
             this.postfix = str[i];
             break;
           }
+
+          this.params[this.params.length] = this.currentParam;
+          this.currentParam = 0;
+
+          // ';'
+          if (ch === 59) break;
 
           this.state = normal;
 
