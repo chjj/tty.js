@@ -1687,7 +1687,7 @@ Term.prototype.deleteLines = function(params) {
     j = this.rows - 1 - this.scrollBottom;
     j = this.rows - 1 + this.ybase - j;
     this.lines.splice(j + 1, 0, []);
-    this.eraseLine(0, j - this.ybase);
+    this.eraseLine(0, j + 1 - this.ybase);
     this.lines.splice(row, 1);
   }
   //this.refresh(0, this.rows - 1);
