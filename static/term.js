@@ -328,7 +328,7 @@ Term.prototype.scrollDisp = function(disp) {
 };
 
 Term.prototype.write = function(str) {
-  //console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
+  console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
 
   var l = str.length
     , i = 0
@@ -2108,12 +2108,29 @@ Term.prototype.cursorForwardTab = function(params) {
 
 // CSI Ps S  Scroll up Ps lines (default = 1) (SU).
 Term.prototype.scrollUp = function(params) {
-  this.scrollDisp(-params[0] || -1);
+  var param = params[0] || 1;
+  while (param--) {
+    //this.lines.shift();
+    //this.lines.push(this.blankLine());
+    this.lines.splice(this.ybase + this.scrollTop, 1);
+    // no need to add 1 here, because we removed a line
+    this.lines.splice(this.ybase + this.scrollBottom, 0, this.blankLine());
+  }
+  this.refreshStart = 0;
+  this.refreshEnd = this.rows - 1;
 };
 
 // CSI Ps T  Scroll down Ps lines (default = 1) (SD).
 Term.prototype.scrollDown = function(params) {
-  this.scrollDisp(params[0] || 1);
+  var param = params[0] || 1;
+  while (param--) {
+    //this.lines.pop();
+    //this.lines.unshift(this.blankLine());
+    this.lines.splice(this.ybase + this.scrollBottom, 1);
+    this.lines.splice(this.ybase + this.scrollTop, 0, this.blankLine());
+  }
+  this.refreshStart = 0;
+  this.refreshEnd = this.rows - 1;
 };
 
 // CSI Ps ; Ps ; Ps ; Ps ; Ps T
