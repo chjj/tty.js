@@ -35,7 +35,8 @@
 var normal = 0
   , escaped = 1
   , csi = 2
-  , osc = 3;
+  , osc = 3
+  , charset = 4;
 
 /**
  * Terminal
@@ -327,7 +328,7 @@ Term.prototype.scrollDisp = function(disp) {
 };
 
 Term.prototype.write = function(str) {
-  //console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
+  // console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
 
   var l = str.length
     , i = 0
@@ -404,6 +405,9 @@ Term.prototype.write = function(str) {
           default:
             // ' '
             if (ch >= 32) {
+              if (this.charset && this.charset[ch]) {
+                ch = this.charset[ch];
+              }
               if (this.x >= this.cols) {
                 this.x = 0;
                 this.y++;
@@ -475,17 +479,29 @@ Term.prototype.write = function(str) {
             this.reverseIndex();
             break;
 
-          // ESC % Select character set.
-          // ESC (,),*,+,-,.,/ Designate G0-G3 Character Set.
+          // ESC % Select default/utf-8 character set.
+          // @ = default, G = utf-8
           case '%':
-          case '(':
+            this.charset = null;
+            this.state = normal;
+            i++;
+            break;
+
+          // ESC (,),*,+,-,. Designate G0-G2 Character Set.
+          case '(': // <-- this seems to get all the attention
           case ')':
           case '*':
           case '+':
           case '-':
           case '.':
+            this.state = charset;
+            break;
+
+          // Designate G3 Character Set (VT300).
+          // A = ISO Latin-1 Supplemental.
+          // Not implemented.
           case '/':
-            // console.log('Serial port requested charset change');
+            this.charset = null;
             this.state = normal;
             i++;
             break;
@@ -533,6 +549,21 @@ Term.prototype.write = function(str) {
             console.log('Unknown ESC control: ' + str[i] + '.');
             break;
         }
+        break;
+
+      case charset:
+        switch (str[i]) {
+          // DEC Special Character and Line Drawing Set.
+          case '0':
+            this.charset = SCLD;
+            break;
+          // United States (USASCII).
+          case 'B':
+          default:
+            this.charset = null;
+            break;
+        }
+        this.state = normal;
         break;
 
       case osc:
@@ -758,14 +789,14 @@ Term.prototype.write = function(str) {
             // CSI Ps ; Ps ; Ps ; Ps ; Ps T
             // CSI > Ps; Ps T
             case 84:
-              if (this.prefix === '>') {
-                this.resetTitleModes(this.params);
-                break;
-              }
-              if (this.params.length > 1) {
-                this.initMouseTracking(this.params);
-                break;
-              }
+              // if (this.prefix === '>') {
+              //   this.resetTitleModes(this.params);
+              //   break;
+              // }
+              // if (this.params.length > 1) {
+              //   this.initMouseTracking(this.params);
+              //   break;
+              // }
               this.scrollDown(this.params);
               break;
 
@@ -1025,14 +1056,27 @@ Term.prototype.keyDownHandler = function(ev) {
       break;
     // left-arrow
     case 37:
+      if (this.applicationKeypad) {
+        str = '\x1bOD'; // SS3 as ^O for 7-bit
+        //str = '\x8fD'; // SS3 as 0x8f for 8-bit
+        break;
+      }
       str = '\x1b[D';
       break;
     // right-arrow
     case 39:
+      if (this.applicationKeypad) {
+        str = '\x1bOC';
+        break;
+      }
       str = '\x1b[C';
       break;
     // up-arrow
     case 38:
+      if (this.applicationKeypad) {
+        str = '\x1bOA';
+        break;
+      }
       if (ev.ctrlKey) {
         this.scrollDisp(-1);
       } else {
@@ -1041,6 +1085,10 @@ Term.prototype.keyDownHandler = function(ev) {
       break;
     // down-arrow
     case 40:
+      if (this.applicationKeypad) {
+        str = '\x1bOB';
+        break;
+      }
       if (ev.ctrlKey) {
         this.scrollDisp(1);
       } else {
@@ -1057,10 +1105,18 @@ Term.prototype.keyDownHandler = function(ev) {
       break;
     // home
     case 36:
+      if (this.applicationKeypad) {
+        str = '\x1bOH';
+        break;
+      }
       str = '\x1bOH';
       break;
     // end
     case 35:
+      if (this.applicationKeypad) {
+        str = '\x1bOF';
+        break;
+      }
       str = '\x1bOF';
       break;
     // page up
@@ -1078,6 +1134,54 @@ Term.prototype.keyDownHandler = function(ev) {
       } else {
         str = '\x1b[6~';
       }
+      break;
+    // F1
+    case 112:
+      str = '\x1bOP';
+      break;
+    // F2
+    case 113:
+      str = '\x1bOQ';
+      break;
+    // F3
+    case 114:
+      str = '\x1bOR';
+      break;
+    // F4
+    case 115:
+      str = '\x1bOS';
+      break;
+    // F5
+    case 116:
+      str = '\x1b[15~';
+      break;
+    // F6
+    case 117:
+      str = '\x1b[17~';
+      break;
+    // F7
+    case 118:
+      str = '\x1b[18~';
+      break;
+    // F8
+    case 119:
+      str = '\x1b[19~';
+      break;
+    // F9
+    case 120:
+      str = '\x1b[20~';
+      break;
+    // F10
+    case 121:
+      str = '\x1b[21~';
+      break;
+    // F11
+    case 122:
+      str = '\x1b[23~';
+      break;
+    // F12
+    case 123:
+      str = '\x1b[24~';
       break;
     default:
       // a-z and space
@@ -1192,7 +1296,10 @@ Term.prototype.eraseLine = function(x, y) {
   }
 
   line = this.lines[row];
-  ch = 32 | (this.defAttr << 16);
+  // screen:
+  // ch = 32 | (this.defAttr << 16);
+  // xterm, linux:
+  ch = 32 | (this.curAttr << 16);
 
   for (i = x; i < this.cols; i++) {
     line[i] = ch;
@@ -1373,7 +1480,29 @@ Term.prototype.eraseInDisplay = function(params) {
 //     Ps = 2  -> Selective Erase All.
 // Not fully implemented.
 Term.prototype.eraseInLine = function(params) {
-  this.eraseLine(this.x, this.y);
+  switch (params[0] || 0) {
+    case 0:
+      this.eraseLine(this.x, this.y);
+      break;
+    case 1:
+      var x = this.x + 1;
+      var line = this.lines[this.ybase + this.y];
+      // screen:
+      //var ch = (this.defAttr << 16) | 32;
+      // xterm, linux:
+      var ch = (this.curAttr << 16) | 32;
+      while (x--) line[x] = ch;
+      break;
+    case 2:
+      var x = this.cols;
+      var line = this.lines[this.ybase + this.y];
+      // screen:
+      //var ch = (this.defAttr << 16) | 32;
+      // xterm, linux:
+      var ch = (this.curAttr << 16) | 32;
+      while (x--) line[x] = ch;
+      break;
+  }
 };
 
 // CSI Pm m  Character Attributes (SGR).
@@ -1511,7 +1640,10 @@ Term.prototype.insertChars = function(params) {
   row = this.y + this.ybase;
   j = this.x;
   while (param-- && j < this.cols) {
-    this.lines[row].splice(j++, 0, (this.defAttr << 16) | 32);
+    // screen:
+    //this.lines[row].splice(j++, 0, (this.defAttr << 16) | 32);
+    // xterm, linux:
+    this.lines[row].splice(j++, 0, (this.curAttr << 16) | 32);
     this.lines[row].pop();
   }
 };
@@ -1548,7 +1680,7 @@ Term.prototype.cursorCharAbsolute = function(params) {
   var param, row;
   param = this.params[0];
   if (param < 1) param = 1;
-  this.x = param;
+  this.x = param - 1;
 };
 
 // CSI Ps L
@@ -1583,7 +1715,7 @@ Term.prototype.deleteLines = function(params) {
     j = this.rows - 1 - this.scrollBottom;
     j = this.rows - 1 + this.ybase - j;
     this.lines.splice(j + 1, 0, []);
-    this.eraseLine(0, j - this.ybase);
+    this.eraseLine(0, j + 1 - this.ybase);
     this.lines.splice(row, 1);
   }
   //this.refresh(0, this.rows - 1);
@@ -1600,7 +1732,10 @@ Term.prototype.deleteChars = function(params) {
   row = this.y + this.ybase;
   while (param--) {
     this.lines[row].splice(this.x, 1);
-    this.lines.push((this.defAttr << 16) | 32);
+    // screen:
+    //this.lines.push((this.defAttr << 16) | 32);
+    // xterm, linux:
+    this.lines.push((this.curAttr << 16) | 32);
   }
 };
 
@@ -1613,7 +1748,10 @@ Term.prototype.eraseChars = function(params) {
   row = this.y + this.ybase;
   j = this.x;
   while (param-- && j < this.cols) {
-    this.lines[row][j++] = (this.defAttr << 16) | 32;
+    // screen:
+    // this.lines[row][j++] = (this.defAttr << 16) | 32;
+    // xterm, linux:
+    this.lines[row][j++] = (this.curAttr << 16) | 32;
   }
 };
 
@@ -1999,17 +2137,49 @@ Term.prototype.restoreCursor = function(params) {
 
 // CSI Ps I  Cursor Forward Tabulation Ps tab stops (default = 1) (CHT).
 Term.prototype.cursorForwardTab = function(params) {
-  this.insertChars([param * 8]);
+  var row, param, line, ch;
+
+  param = params[0] || 1;
+  param = param * 8;
+  row = this.y + this.ybase;
+  line = this.lines[row];
+  ch = (this.defAttr << 16) | 32;
+
+  while (param--) {
+    line.splice(this.x++, 0, ch);
+    line.pop();
+    if (this.x === this.cols) {
+      this.x--;
+      break;
+    }
+  }
 };
 
 // CSI Ps S  Scroll up Ps lines (default = 1) (SU).
 Term.prototype.scrollUp = function(params) {
-  this.scrollDisp(-params[0] || -1);
+  var param = params[0] || 1;
+  while (param--) {
+    //this.lines.shift();
+    //this.lines.push(this.blankLine());
+    this.lines.splice(this.ybase + this.scrollTop, 1);
+    // no need to add 1 here, because we removed a line
+    this.lines.splice(this.ybase + this.scrollBottom, 0, this.blankLine());
+  }
+  this.refreshStart = 0;
+  this.refreshEnd = this.rows - 1;
 };
 
 // CSI Ps T  Scroll down Ps lines (default = 1) (SD).
 Term.prototype.scrollDown = function(params) {
-  this.scrollDisp(params[0] || 1);
+  var param = params[0] || 1;
+  while (param--) {
+    //this.lines.pop();
+    //this.lines.unshift(this.blankLine());
+    this.lines.splice(this.ybase + this.scrollBottom, 1);
+    this.lines.splice(this.ybase + this.scrollTop, 0, this.blankLine());
+  }
+  this.refreshStart = 0;
+  this.refreshEnd = this.rows - 1;
 };
 
 // CSI Ps ; Ps ; Ps ; Ps ; Ps T
@@ -2044,12 +2214,9 @@ Term.prototype.cursorBackwardTab = function(params) {
   ch = (this.defAttr << 16) | 32;
 
   while (param--) {
-    if (this.x !== 0) {
-      line.splice(--this.x, 1);
-      line.push(ch);
-    } else {
-      //line.shift();
-      //line.push(ch);
+    line.splice(--this.x, 1);
+    line.push(ch);
+    if (this.x === 0) {
       break;
     }
   }
@@ -2436,6 +2603,52 @@ Term.prototype.insertColumns = function() {
 // CSI P m SP ~
 // Delete P s Column(s) (default = 1) (DECDC), VT420 and up
 Term.prototype.deleteColumns = function() {
+};
+
+/**
+ * Character Sets
+ */
+
+// DEC Special Character and Line Drawing Set.
+// http://vt100.net/docs/vt102-ug/table5-13.html
+// A lot of curses apps use this if they see TERM=xterm.
+// testing: echo -e '\e(0a\e(B'
+// The real xterm output seems to conflict with the
+// reference above. The table below uses the exact
+// the exact same charset xterm outputs.
+var SCLD = {
+  95: 0x005f, // '_' - blank ? should this be ' ' ?
+  96: 0x25c6, // '◆'
+  97: 0x2592, // '▒'
+  98: 0x0062, // 'b' - should this be: '\t' ?
+  99: 0x0063, // 'c' - should this be: '\f' ?
+  100: 0x0064, // 'd' - should this be: '\r' ?
+  101: 0x0065, // 'e' - should this be: '\n' ?
+  102: 0x00b0, // '°'
+  103: 0x00b1, // '±'
+  104: 0x2592, // '▒' - NL ? should this be '\n' ?
+  105: 0x2603, // '☃' - VT ? should this be '\v' ?
+  106: 0x2518, // '┘'
+  107: 0x2510, // '┐'
+  108: 0x250c, // '┌'
+  109: 0x2514, // '└'
+  110: 0x253c, // '┼'
+  111: 0x23ba, // '⎺'
+  112: 0x23bb, // '⎻'
+  113: 0x2500, // '─'
+  114: 0x23bc, // '⎼'
+  115: 0x23bd, // '⎽'
+  116: 0x251c, // '├'
+  117: 0x2524, // '┤'
+  118: 0x2534, // '┴'
+  119: 0x252c, // '┬'
+  120: 0x2502, // '│'
+  121: 0x2264, // '≤'
+  122: 0x2265, // '≥'
+  123: 0x03c0, // 'π'
+  124: 0x2260, // '≠'
+  125: 0x00a3, // '£'
+  126: 0x00b7  // '·'
 };
 
 /**
