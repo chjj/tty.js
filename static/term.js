@@ -328,7 +328,7 @@ Term.prototype.scrollDisp = function(disp) {
 };
 
 Term.prototype.write = function(str) {
-  console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
+  // console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
 
   var l = str.length
     , i = 0
@@ -789,14 +789,14 @@ Term.prototype.write = function(str) {
             // CSI Ps ; Ps ; Ps ; Ps ; Ps T
             // CSI > Ps; Ps T
             case 84:
-              if (this.prefix === '>') {
-                this.resetTitleModes(this.params);
-                break;
-              }
-              if (this.params.length > 1) {
-                this.initMouseTracking(this.params);
-                break;
-              }
+              // if (this.prefix === '>') {
+              //   this.resetTitleModes(this.params);
+              //   break;
+              // }
+              // if (this.params.length > 1) {
+              //   this.initMouseTracking(this.params);
+              //   break;
+              // }
               this.scrollDown(this.params);
               break;
 
