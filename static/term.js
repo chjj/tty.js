@@ -1640,7 +1640,10 @@ Term.prototype.insertChars = function(params) {
   row = this.y + this.ybase;
   j = this.x;
   while (param-- && j < this.cols) {
-    this.lines[row].splice(j++, 0, (this.defAttr << 16) | 32);
+    // screen:
+    //this.lines[row].splice(j++, 0, (this.defAttr << 16) | 32);
+    // xterm, linux:
+    this.lines[row].splice(j++, 0, (this.curAttr << 16) | 32);
     this.lines[row].pop();
   }
 };
@@ -1729,7 +1732,10 @@ Term.prototype.deleteChars = function(params) {
   row = this.y + this.ybase;
   while (param--) {
     this.lines[row].splice(this.x, 1);
-    this.lines.push((this.defAttr << 16) | 32);
+    // screen:
+    //this.lines.push((this.defAttr << 16) | 32);
+    // xterm, linux:
+    this.lines.push((this.curAttr << 16) | 32);
   }
 };
 
@@ -2131,7 +2137,22 @@ Term.prototype.restoreCursor = function(params) {
 
 // CSI Ps I  Cursor Forward Tabulation Ps tab stops (default = 1) (CHT).
 Term.prototype.cursorForwardTab = function(params) {
-  this.insertChars([param * 8]);
+  var row, param, line, ch;
+
+  param = params[0] || 1;
+  param = param * 8;
+  row = this.y + this.ybase;
+  line = this.lines[row];
+  ch = (this.defAttr << 16) | 32;
+
+  while (param--) {
+    line.splice(this.x++, 0, ch);
+    line.pop();
+    if (this.x === this.cols) {
+      this.x--;
+      break;
+    }
+  }
 };
 
 // CSI Ps S  Scroll up Ps lines (default = 1) (SU).
@@ -2193,12 +2214,9 @@ Term.prototype.cursorBackwardTab = function(params) {
   ch = (this.defAttr << 16) | 32;
 
   while (param--) {
-    if (this.x !== 0) {
-      line.splice(--this.x, 1);
-      line.push(ch);
-    } else {
-      //line.shift();
-      //line.push(ch);
+    line.splice(--this.x, 1);
+    line.push(ch);
+    if (this.x === 0) {
       break;
     }
   }
