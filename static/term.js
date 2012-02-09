@@ -35,7 +35,8 @@
 var normal = 0
   , escaped = 1
   , csi = 2
-  , osc = 3;
+  , osc = 3
+  , charset = 4;
 
 /**
  * Terminal
@@ -404,6 +405,9 @@ Term.prototype.write = function(str) {
           default:
             // ' '
             if (ch >= 32) {
+              if (this.charset && this.charset[ch]) {
+                ch = this.charset[ch];
+              }
               if (this.x >= this.cols) {
                 this.x = 0;
                 this.y++;
@@ -475,17 +479,29 @@ Term.prototype.write = function(str) {
             this.reverseIndex();
             break;
 
-          // ESC % Select character set.
-          // ESC (,),*,+,-,.,/ Designate G0-G3 Character Set.
+          // ESC % Select default/utf-8 character set.
+          // @ = default, G = utf-8
           case '%':
-          case '(':
+            this.charset = null;
+            this.state = normal;
+            i++;
+            break;
+
+          // ESC (,),*,+,-,. Designate G0-G2 Character Set.
+          case '(': // <-- this seems to get all the attention
           case ')':
           case '*':
           case '+':
           case '-':
           case '.':
+            this.state = charset;
+            break;
+
+          // Designate G3 Character Set (VT300).
+          // A = ISO Latin-1 Supplemental.
+          // Not implemented.
           case '/':
-            // console.log('Serial port requested charset change');
+            this.charset = null;
             this.state = normal;
             i++;
             break;
@@ -533,6 +549,21 @@ Term.prototype.write = function(str) {
             console.log('Unknown ESC control: ' + str[i] + '.');
             break;
         }
+        break;
+
+      case charset:
+        switch (str[i]) {
+          // DEC Special Character and Line Drawing Set.
+          case '0':
+            this.charset = SCLD;
+            break;
+          // United States (USASCII).
+          case 'B':
+          default:
+            this.charset = null;
+            break;
+        }
+        this.state = normal;
         break;
 
       case osc:
@@ -2509,6 +2540,52 @@ Term.prototype.insertColumns = function() {
 // CSI P m SP ~
 // Delete P s Column(s) (default = 1) (DECDC), VT420 and up
 Term.prototype.deleteColumns = function() {
+};
+
+/**
+ * Character Sets
+ */
+
+// DEC Special Character and Line Drawing Set.
+// http://vt100.net/docs/vt102-ug/table5-13.html
+// A lot of curses apps use this if they see TERM=xterm.
+// testing: echo -e '\e(0a\e(B'
+// The real xterm output seems to conflict with the
+// reference above. The table below uses the exact
+// the exact same charset xterm outputs.
+var SCLD = {
+  95: 0x005f, // '_' - blank ? should this be ' ' ?
+  96: 0x25c6, // '◆'
+  97: 0x2592, // '▒'
+  98: 0x0062, // 'b' - should this be: '\t' ?
+  99: 0x0063, // 'c' - should this be: '\f' ?
+  100: 0x0064, // 'd' - should this be: '\r' ?
+  101: 0x0065, // 'e' - should this be: '\n' ?
+  102: 0x00b0, // '°'
+  103: 0x00b1, // '±'
+  104: 0x2592, // '▒' - NL ? should this be '\n' ?
+  105: 0x2603, // '☃' - VT ? should this be '\v' ?
+  106: 0x2518, // '┘'
+  107: 0x2510, // '┐'
+  108: 0x250c, // '┌'
+  109: 0x2514, // '└'
+  110: 0x253c, // '┼'
+  111: 0x23ba, // '⎺'
+  112: 0x23bb, // '⎻'
+  113: 0x2500, // '─'
+  114: 0x23bc, // '⎼'
+  115: 0x23bd, // '⎽'
+  116: 0x251c, // '├'
+  117: 0x2524, // '┤'
+  118: 0x2534, // '┴'
+  119: 0x252c, // '┬'
+  120: 0x2502, // '│'
+  121: 0x2264, // '≤'
+  122: 0x2265, // '≥'
+  123: 0x03c0, // 'π'
+  124: 0x2260, // '≠'
+  125: 0x00a3, // '£'
+  126: 0x00b7  // '·'
 };
 
 /**
