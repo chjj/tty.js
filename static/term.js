@@ -1025,14 +1025,27 @@ Term.prototype.keyDownHandler = function(ev) {
       break;
     // left-arrow
     case 37:
+      if (this.applicationKeypad) {
+        str = '\x1bOD'; // SS3 as ^O for 7-bit
+        //str = '\x8fD'; // SS3 as 0x8f for 8-bit
+        break;
+      }
       str = '\x1b[D';
       break;
     // right-arrow
     case 39:
+      if (this.applicationKeypad) {
+        str = '\x1bOC';
+        break;
+      }
       str = '\x1b[C';
       break;
     // up-arrow
     case 38:
+      if (this.applicationKeypad) {
+        str = '\x1bOA';
+        break;
+      }
       if (ev.ctrlKey) {
         this.scrollDisp(-1);
       } else {
@@ -1041,6 +1054,10 @@ Term.prototype.keyDownHandler = function(ev) {
       break;
     // down-arrow
     case 40:
+      if (this.applicationKeypad) {
+        str = '\x1bOB';
+        break;
+      }
       if (ev.ctrlKey) {
         this.scrollDisp(1);
       } else {
@@ -1057,10 +1074,18 @@ Term.prototype.keyDownHandler = function(ev) {
       break;
     // home
     case 36:
+      if (this.applicationKeypad) {
+        str = '\x1bOH';
+        break;
+      }
       str = '\x1bOH';
       break;
     // end
     case 35:
+      if (this.applicationKeypad) {
+        str = '\x1bOF';
+        break;
+      }
       str = '\x1bOF';
       break;
     // page up
