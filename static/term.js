@@ -575,8 +575,8 @@ Term.prototype.write = function(str) {
         break;
 
       case csi:
-        // '?' or '>'
-        if (ch === 63 || ch === 62) {
+        // '?', '>', '!'
+        if (ch === 63 || ch === 62 || ch === 33) {
           this.prefix = str[i];
           break;
         }
@@ -807,9 +807,9 @@ Term.prototype.write = function(str) {
               break;
 
             // CSI Ps b  Repeat the preceding graphic character Ps times (REP).
-            // case 98:
-            //   this.repeatPrecedingCharacter(this.params);
-            //   break;
+            case 98:
+              this.repeatPrecedingCharacter(this.params);
+              break;
 
             // CSI Ps g  Tab Clear (TBC).
             // case 103:
@@ -1460,12 +1460,29 @@ Term.prototype.cursorPos = function(params) {
 //     Ps = 0  -> Selective Erase Below (default).
 //     Ps = 1  -> Selective Erase Above.
 //     Ps = 2  -> Selective Erase All.
-// Not fully implemented.
 Term.prototype.eraseInDisplay = function(params) {
   var param, row, j;
-  this.eraseLine(this.x, this.y);
-  for (j = this.y + 1; j < this.rows; j++) {
-    this.eraseLine(0, j);
+  switch (params[0] || 0) {
+    case 0:
+      this.eraseLine(this.x, this.y);
+      for (j = this.y + 1; j < this.rows; j++) {
+        this.eraseLine(0, j);
+      }
+      break;
+    case 1:
+      this.eraseInLine([1]);
+      j = this.y;
+      while (j--) {
+        this.eraseLine(0, j);
+      }
+      break;
+    case 2:
+      this.eraseInDisplay([0]);
+      this.eraseInDisplay([1]);
+      break;
+    case 3:
+      ; // no saved lines
+      break;
   }
 };
 
@@ -2224,6 +2241,10 @@ Term.prototype.cursorBackwardTab = function(params) {
 
 // CSI Ps b  Repeat the preceding graphic character Ps times (REP).
 Term.prototype.repeatPrecedingCharacter = function(params) {
+  var param = this.params[0] || 1;
+  var line = this.lines[this.ybase + this.y];
+  var ch = line[this.x - 1] || ((this.defAttr << 16) | 32);
+  while (param--) line[this.x++] = ch;
 };
 
 // CSI Ps g  Tab Clear (TBC).
