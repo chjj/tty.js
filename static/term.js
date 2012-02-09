@@ -1621,7 +1621,7 @@ Term.prototype.cursorCharAbsolute = function(params) {
   var param, row;
   param = this.params[0];
   if (param < 1) param = 1;
-  this.x = param;
+  this.x = param - 1;
 };
 
 // CSI Ps L
