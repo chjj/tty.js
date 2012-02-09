@@ -1104,6 +1104,54 @@ Term.prototype.keyDownHandler = function(ev) {
         str = '\x1b[6~';
       }
       break;
+    // F1
+    case 112:
+      str = '\x1bOP';
+      break;
+    // F2
+    case 113:
+      str = '\x1bOQ';
+      break;
+    // F3
+    case 114:
+      str = '\x1bOR';
+      break;
+    // F4
+    case 115:
+      str = '\x1bOS';
+      break;
+    // F5
+    case 116:
+      str = '\x1b[15~';
+      break;
+    // F6
+    case 117:
+      str = '\x1b[17~';
+      break;
+    // F7
+    case 118:
+      str = '\x1b[18~';
+      break;
+    // F8
+    case 119:
+      str = '\x1b[19~';
+      break;
+    // F9
+    case 120:
+      str = '\x1b[20~';
+      break;
+    // F10
+    case 121:
+      str = '\x1b[21~';
+      break;
+    // F11
+    case 122:
+      str = '\x1b[23~';
+      break;
+    // F12
+    case 123:
+      str = '\x1b[24~';
+      break;
     default:
       // a-z and space
       if (ev.ctrlKey) {
