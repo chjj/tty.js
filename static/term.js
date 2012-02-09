@@ -1296,7 +1296,10 @@ Term.prototype.eraseLine = function(x, y) {
   }
 
   line = this.lines[row];
-  ch = 32 | (this.defAttr << 16);
+  // screen:
+  // ch = 32 | (this.defAttr << 16);
+  // xterm, linux:
+  ch = 32 | (this.curAttr << 16);
 
   for (i = x; i < this.cols; i++) {
     line[i] = ch;
@@ -1477,7 +1480,29 @@ Term.prototype.eraseInDisplay = function(params) {
 //     Ps = 2  -> Selective Erase All.
 // Not fully implemented.
 Term.prototype.eraseInLine = function(params) {
-  this.eraseLine(this.x, this.y);
+  switch (params[0] || 0) {
+    case 0:
+      this.eraseLine(this.x, this.y);
+      break;
+    case 1:
+      var x = this.x + 1;
+      var line = this.lines[this.ybase + this.y];
+      // screen:
+      //var ch = (this.defAttr << 16) | 32;
+      // xterm, linux:
+      var ch = (this.curAttr << 16) | 32;
+      while (x--) line[x] = ch;
+      break;
+    case 2:
+      var x = this.cols;
+      var line = this.lines[this.ybase + this.y];
+      // screen:
+      //var ch = (this.defAttr << 16) | 32;
+      // xterm, linux:
+      var ch = (this.curAttr << 16) | 32;
+      while (x--) line[x] = ch;
+      break;
+  }
 };
 
 // CSI Pm m  Character Attributes (SGR).
@@ -1717,7 +1742,10 @@ Term.prototype.eraseChars = function(params) {
   row = this.y + this.ybase;
   j = this.x;
   while (param-- && j < this.cols) {
-    this.lines[row][j++] = (this.defAttr << 16) | 32;
+    // screen:
+    // this.lines[row][j++] = (this.defAttr << 16) | 32;
+    // xterm, linux:
+    this.lines[row][j++] = (this.curAttr << 16) | 32;
   }
 };
 
