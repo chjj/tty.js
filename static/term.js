@@ -1627,15 +1627,42 @@ Term.prototype.charAttributes = function(params) {
 //   CSI ? 5 3  n  Locator available, if compiled-in, or
 //   CSI ? 5 0  n  No Locator, if not.
 Term.prototype.deviceStatus = function(params) {
+  if (this.prefix === '?') {
+    switch (params[0]) {
+      case 6:
+        this.queueChars('\x1b['
+          + (this.y + 1)
+          + ';'
+          + (this.x + 1)
+          + 'R');
+        break;
+      case 15:
+        // no printer
+        this.queueChars('\x1b[?11n');
+        break;
+      case 25:
+        // dont support user defined keys
+        this.queueChars('\x1b[?21n');
+        break;
+      case 26:
+        this.queueChars('\x1b[?27;1;0;0n');
+        break;
+      case 53:
+        // no dec locator/mouse
+        this.queueChars('\x1b[?50n');
+        break;
+    }
+    return;
+  }
   switch (this.params[0]) {
     case 5:
       this.queueChars('\x1b[0n');
       break;
     case 6:
       this.queueChars('\x1b['
-        + (this.y+1)
+        + (this.y + 1)
         + ';'
-        + (this.x+1)
+        + (this.x + 1)
         + 'R');
       break;
   }
@@ -2423,7 +2450,23 @@ Term.prototype.restorePrivateValues = function(params) {
 //   Change Attributes in Rectangular Area (DECCARA), VT400 and up.
 //     Pt; Pl; Pb; Pr denotes the rectangle.
 //     Ps denotes the SGR attributes to change: 0, 1, 4, 5, 7.
+// NOTE: xterm doesn't enable this code by default.
 Term.prototype.setAttrInRectangle = function(params) {
+  var t = params[0]
+    , l = params[1]
+    , b = params[2]
+    , r = params[3]
+    , attr = params[4];
+
+  var line
+    , i;
+
+  for (; t < b + 1; t++) {
+    line = this.lines[this.ybase + t];
+    for (i = l; i < r; i++) {
+      line[i] = (attr << 16) | (line[i] & 0xFFFF);
+    }
+  }
 };
 
 // CSI ? Pm s
@@ -2486,6 +2529,7 @@ Term.prototype.manipulateWindow = function(params) {
 //   up.
 //     Pt; Pl; Pb; Pr denotes the rectangle.
 //     Ps denotes the attributes to reverse, i.e.,  1, 4, 5, 7.
+// NOTE: xterm doesn't enable this code by default.
 Term.prototype.reverseAttrInRectangle = function(params) {
 };
 
@@ -2522,6 +2566,7 @@ Term.prototype.setMarginBellVolume = function(params) {
 //     Pp denotes the source page.
 //     Pt; Pl denotes the target location.
 //     Pp denotes the target page.
+// NOTE: xterm doesn't enable this code by default.
 Term.prototype.copyRectangle = function(params) {
 };
 
@@ -2564,7 +2609,23 @@ Term.prototype.__ = function(params) {
 //   Fill Rectangular Area (DECFRA), VT420 and up.
 //     Pc is the character to use.
 //     Pt; Pl; Pb; Pr denotes the rectangle.
+// NOTE: xterm doesn't enable this code by default.
 Term.prototype.fillRectangle = function(params) {
+  var ch = params[0]
+    , t = params[1]
+    , l = params[2]
+    , b = params[3]
+    , r = params[4];
+
+  var line
+    , i;
+
+  for (; t < b + 1; t++) {
+    line = this.lines[this.ybase + t];
+    for (i = l; i < r; i++) {
+      line[i] = ((line[i] >> 16) << 16) | ch;
+    }
+  }
 };
 
 // CSI Ps ; Pu ' z
@@ -2585,7 +2646,23 @@ Term.prototype.enableLocatorReporting = function(params) {
 // CSI Pt; Pl; Pb; Pr$ z
 //   Erase Rectangular Area (DECERA), VT400 and up.
 //     Pt; Pl; Pb; Pr denotes the rectangle.
+// NOTE: xterm doesn't enable this code by default.
 Term.prototype.eraseRectangle = function(params) {
+  var t = params[0]
+    , l = params[1]
+    , b = params[2]
+    , r = params[3];
+
+  var line
+    , i;
+
+  for (; t < b + 1; t++) {
+    line = this.lines[this.ybase + t];
+    for (i = l; i < r; i++) {
+      // curAttr for xterm behavior?
+      line[i] = (this.curAttr << 16) | 32;
+    }
+  }
 };
 
 // CSI Pm ' {
@@ -2653,12 +2730,38 @@ Term.prototype.requestLocatorPosition = function(params) {
 
 // CSI P m SP }
 // Insert P s Column(s) (default = 1) (DECIC), VT420 and up.
+// NOTE: xterm doesn't enable this code by default.
 Term.prototype.insertColumns = function() {
+  param = params[0];
+
+  var l = this.ybase + this.rows
+    , i;
+
+  while (param--) {
+    for (i = this.ybase; i < l; i++) {
+      // xterm behavior uses curAttr?
+      this.lines[i].splice(this.x + 1, 0, (this.defAttr << 16) | 32);
+      this.lines[i].pop();
+    }
+  }
 };
 
 // CSI P m SP ~
 // Delete P s Column(s) (default = 1) (DECDC), VT420 and up
+// NOTE: xterm doesn't enable this code by default.
 Term.prototype.deleteColumns = function() {
+  param = params[0];
+
+  var l = this.ybase + this.rows
+    , i;
+
+  while (param--) {
+    for (i = this.ybase; i < l; i++) {
+      this.lines[i].splice(this.x, 1);
+      // xterm behavior uses curAttr?
+      this.lines[i].push((this.defAttr << 16) | 32);
+    }
+  }
 };
 
 /**
