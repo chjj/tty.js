@@ -290,8 +290,10 @@ Term.prototype.scroll = function() {
   }
 
   if (this.scrollTop !== 0) {
-    this.ybase--;
-    this.ydisp = this.ybase;
+    if (this.ybase !== 0) {
+      this.ybase--;
+      this.ydisp = this.ybase;
+    }
     this.lines.splice(this.ybase + this.scrollTop, 1);
   }
 };
@@ -1308,8 +1310,12 @@ Term.prototype.eraseLine = function(x, y) {
   this.getRows(y);
 };
 
-Term.prototype.blankLine = function() {
-  var ch = 32 | (this.defAttr << 16)
+Term.prototype.blankLine = function(cur) {
+  var attr = cur
+    ? this.curAttr
+    : this.defAttr;
+
+  var ch = 32 | (attr << 16)
     , line = []
     , i = 0;
 
@@ -1342,8 +1348,9 @@ Term.prototype.reverseIndex = function() {
   this.y--;
   if (this.y < this.scrollTop) {
     this.y++;
-    this.lines.splice(this.y + this.ybase, 0, []);
-    this.eraseLine(this.x, this.y);
+    // echo -ne '\e[1;1H\e[44m\eM\e[0m'
+    // use this.blankLine(false) for screen behavior
+    this.lines.splice(this.y + this.ybase, 0, this.blankLine(true));
     j = this.rows - 1 - this.scrollBottom;
     // add an extra one because we just added a line
     // maybe put this above
@@ -1707,15 +1714,19 @@ Term.prototype.insertLines = function(params) {
   param = this.params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
+
+  j = this.rows - 1 - this.scrollBottom;
+  // add an extra one because we added one
+  // above
+  j = this.rows - 1 + this.ybase - j + 1;
+
   while (param--) {
-    this.lines.splice(row, 0, []);
-    this.eraseLine(0, this.y);
-    j = this.rows - 1 - this.scrollBottom;
-    // add an extra one because we added one
-    // above
-    j = this.rows - 1 + this.ybase - j + 1;
+    // this.blankLine(false) for screen behavior
+    // test: echo -e '\e[44m\e[1L\e[0m'
+    this.lines.splice(row, 0, this.blankLine(true));
     this.lines.splice(j, 1);
   }
+
   //this.refresh(0, this.rows - 1);
   this.refreshStart = 0;
   this.refreshEnd = this.rows - 1;
@@ -1728,13 +1739,17 @@ Term.prototype.deleteLines = function(params) {
   param = this.params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
+
+  j = this.rows - 1 - this.scrollBottom;
+  j = this.rows - 1 + this.ybase - j;
+
   while (param--) {
-    j = this.rows - 1 - this.scrollBottom;
-    j = this.rows - 1 + this.ybase - j;
-    this.lines.splice(j + 1, 0, []);
-    this.eraseLine(0, j + 1 - this.ybase);
+    // this.blankLine(false) for screen behavior
+    // test: echo -e '\e[44m\e[1M\e[0m'
+    this.lines.splice(j + 1, 0, this.blankLine(true));
     this.lines.splice(row, 1);
   }
+
   //this.refresh(0, this.rows - 1);
   this.refreshStart = 0;
   this.refreshEnd = this.rows - 1;
@@ -2134,6 +2149,8 @@ Term.prototype.setScrollRegion = function(params) {
   if (this.prefix === '?') return;
   this.scrollTop = (this.params[0] || 1) - 1;
   this.scrollBottom = (this.params[1] || this.rows) - 1;
+  this.x = 0;
+  this.y = 0;
 };
 
 // CSI s     Save cursor (ANSI.SYS).
