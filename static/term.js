@@ -136,6 +136,122 @@ Term.prototype.open = function() {
   setInterval(function() {
     self.cursorBlink();
   }, 500);
+
+  this.bindMouse();
+};
+
+Term.prototype.bindMouse = function() {
+  var self = this;
+
+  function click(type) {
+    return function(ev) {
+      if (!self.mouseEvents) return;
+
+      var el = ev.target
+        , button
+        , x
+        , y
+        , w
+        , h;
+
+      var shift
+        , meta
+        , ctrl
+        , mod;
+
+      if (el === document.documentElement
+          || el === self.element
+          || el.parentNode === self.element
+          || el.parentNode.parentNode === self.element) return;
+
+      if (type !== 'wheel') {
+        button = ev.button != null
+          ? +ev.button
+          : ev.which != null
+            ? ev.which - 1
+            : null;
+
+        if (~navigator.userAgent.indexOf('MSIE')) {
+          button = button === 1 ? 0 : button === 4 ? 1 : button;
+        }
+      } else {
+        // 1, and 2 - with 64 added
+        if (ev.wheelDeltaY > 0) button = 66;
+        else if (ev.wheelDeltaY < 0) button = 65;
+      }
+
+      // ignore browsers without pageX for now
+      if (ev.pageX == null) return;
+
+      x = ev.pageX - self.element.offsetLeft;
+      y = ev.pageY - self.element.offsetTop;
+
+      // convert to cols/rows
+      w = self.element.clientWidth;
+      h = self.element.clientHeight;
+
+      x = ((x / w) * self.cols) | 0;
+      y = ((y / h) * self.rows) | 0;
+
+      // xterm sends raw bytes and
+      // starts at 32 (SP) for each.
+      x += 32;
+      y += 32;
+
+      // two low bits
+      // 0 = left
+      // 1 = middle
+      // 2 = right
+      // 3 = release
+      if (type === 'up') {
+        button = 3;
+      } else {
+        button = button;
+      }
+
+      // next three bits are the modifiers
+      // 4 = shift, 8 = meta, 16 = control
+      shift = ev.shiftKey ? 4 : 0;
+      meta = ev.metaKey ? 8 : 0;
+      ctrl = ev.ctrlKey ? 16 : 0;
+      mod = shift | meta | ctrl;
+      button = button | (mod << 2);
+
+      // add 32
+      button += 32;
+
+      self.queueChars('\x1b[M' + String.fromCharCode(button, x, y));
+
+      if (ev.preventDefault) {
+        ev.preventDefault();
+      }
+      ev.returnValue = false;
+
+      if (ev.stopPropagation) {
+        ev.stopPropagation();
+      }
+      ev.cancelBubble = true;
+    };
+  }
+
+  var el = this.element;
+  el.addEventListener('mousedown', click('down'), true);
+  el.addEventListener('mouseup', click('up'), true);
+  el.addEventListener('mousewheel', click('wheel'), true);
+
+  function wheel(ev) {
+    if (self.mouseEvents) return;
+    if (self.applicationKeypad) return;
+    if (ev.wheelDeltaY > 0) {
+      // up
+      self.scrollDisp(-5);
+    } else if (ev.wheelDeltaY < 0) {
+      // down
+      self.scrollDisp(5);
+    }
+  }
+
+  el.addEventListener('mousewheel', wheel, true);
 };
 
 Term.prototype.refresh = function(start, end) {
@@ -2032,6 +2148,16 @@ Term.prototype.setMode = function(params) {
       case 7:
         this.wraparoundMode = true;
         break;
+      case 9: // only mousedown
+      case 1000:
+      case 1001:
+      case 1002: // mousedown and mouseup
+      case 1003:
+      case 1004:
+      case 1005:
+        console.log('binding to mouse events - warning: experimental!');
+        this.mouseEvents = true;
+        break;
       case 25: // show cursor
         this.cursorHidden = false;
         break;
@@ -2165,6 +2291,15 @@ Term.prototype.resetMode = function(params) {
       case 7:
         this.wraparoundMode = false;
         break;
+      case 9:
+      case 1000:
+      case 1001:
+      case 1002:
+      case 1003:
+      case 1004:
+      case 1005:
+        this.mouseEvents = false;
+        break;
       case 25: // hide cursor
         this.cursorHidden = true;
         break;
@@ -2273,6 +2408,7 @@ Term.prototype.scrollDown = function(params) {
 //   [func;startx;starty;firstrow;lastrow].  See the section Mouse
 //   Tracking.
 Term.prototype.initMouseTracking = function(params) {
+  console.log('mouse tracking');
 };
 
 // CSI > Ps; Ps T
