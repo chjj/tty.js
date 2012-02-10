@@ -42,10 +42,11 @@ var normal = 0
  * Terminal
  */
 
-function Term(cols, rows, handler) {
+var Term = function(cols, rows, handler) {
   this.cols = cols;
   this.rows = rows;
-  this.currentHeight = rows;
+  this.handler = handler;
+  this.currentHeight = this.rows;
   this.totalHeight = 1000;
   this.ybase = 0;
   this.ydisp = 0;
@@ -53,12 +54,19 @@ function Term(cols, rows, handler) {
   this.y = 0;
   this.cursorState = 0;
   this.cursorHidden = false;
-  this.handler = handler;
   this.convertEol = false;
   this.state = 0;
   this.outputQueue = '';
   this.scrollTop = 0;
   this.scrollBottom = this.rows - 1;
+
+  this.applicationKeypad = false;
+  this.originMode = false;
+  this.insertMode = false;
+  this.wraparoundMode = false;
+  this.tabs = [];
+  this.charset = null;
+  this.normal = null;
 
   this.bgColors = [
     '#2e3436',
@@ -91,30 +99,23 @@ function Term(cols, rows, handler) {
   this.params = [];
   this.currentParam = 0;
 
-  this.element = document.createElement('table');
-}
+  var i = this.rows - 1;
+  this.lines = [ this.blankLine() ];
+  while (i--) {
+    this.lines.push(this.lines[0].slice());
+  }
+};
 
 Term.prototype.open = function() {
   var self = this
     , html = ''
-    , line
-    , y
-    , i
+    , i = 0
     , ch;
 
-  this.lines = [];
-  ch = 32 | (this.defAttr << 16);
+  this.element = document.createElement('table');
 
-  for (y = 0; y < this.currentHeight; y++) {
-    line = [];
-    for (i = 0; i < this.cols; i++) {
-      line[i] = ch;
-    }
-    this.lines[y] = line;
-  }
-
-  for (y = 0; y < this.rows; y++) {
-    html += '<tr><td class="term" id="tline' + y + '"></td></tr>';
+  for (; i < this.rows; i++) {
+    html += '<tr><td class="term" id="tline' + i + '"></td></tr>';
   }
 
   this.element.innerHTML = html;
@@ -1361,23 +1362,7 @@ Term.prototype.reverseIndex = function() {
 
 // ESC c Full Reset (RIS).
 Term.prototype.reset = function() {
-  this.currentHeight = this.rows;
-  this.ybase = 0;
-  this.ydisp = 0;
-  this.x = 0;
-  this.y = 0;
-  this.cursorState = 0;
-  this.convertEol = false;
-  this.state = 0;
-  this.outputQueue = '';
-  this.scrollTop = 0;
-  this.scrollBottom = this.rows - 1;
-
-  var j = this.rows - 1;
-  this.lines = [ this.blankLine() ];
-  while (j--) {
-    this.lines.push(this.lines[0].slice());
-  }
+  Term.call(this, this.cols, this.rows, this.handler);
 };
 
 /**
@@ -2015,16 +2000,18 @@ Term.prototype.setMode = function(params) {
       case 47: // alt screen buffer
       case 1047: // alt screen buffer
         if (!this.normal) {
-          this.normal = {};
-          this.normal.lines = this.lines;
-          this.normal.currentHeight = this.currentHeight;
-          this.normal.ybase = this.ybase;
-          this.normal.ydisp = this.ydisp;
-          this.normal.x = this.x;
-          this.normal.y = this.y;
-          this.normal.scrollTop = this.scrollTop;
-          this.normal.scrollBottom = this.scrollBottom;
+          var normal = {
+            lines: this.lines,
+            currentHeight: this.currentHeight,
+            ybase: this.ybase,
+            ydisp: this.ydisp,
+            x: this.x,
+            y: this.y,
+            scrollTop: this.scrollTop,
+            scrollBottom: this.scrollBottom
+          };
           this.reset();
+          this.normal = normal;
         }
         break;
     }
