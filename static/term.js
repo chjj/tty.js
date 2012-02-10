@@ -1587,6 +1587,10 @@ Term.prototype.charAttributes = function(params) {
         this.curAttr = (this.curAttr & ~(7 << 3)) | ((p - 30) << 3);
       } else if (p >= 40 && p <= 47) {
         this.curAttr = (this.curAttr & ~7) | (p - 40);
+      } else if (p >= 90 && p <= 97) {
+        this.curAttr = (this.curAttr & ~(7 << 3)) | ((p - 90) << 3);
+      } else if (p >= 100 && p <= 107) {
+        this.curAttr = (this.curAttr & ~7) | (p - 100);
       } else if (p === 0) {
         this.curAttr = this.defAttr;
       } else if (p === 1) {
