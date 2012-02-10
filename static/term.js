@@ -1628,6 +1628,8 @@ Term.prototype.charAttributes = function(params) {
 //   CSI ? 5 0  n  No Locator, if not.
 Term.prototype.deviceStatus = function(params) {
   if (this.prefix === '?') {
+    // modern xterm doesnt seem to
+    // respond to any of these except ?6, 6, and 5
     switch (params[0]) {
       case 6:
         this.queueChars('\x1b['
@@ -1638,18 +1640,18 @@ Term.prototype.deviceStatus = function(params) {
         break;
       case 15:
         // no printer
-        this.queueChars('\x1b[?11n');
+        // this.queueChars('\x1b[?11n');
         break;
       case 25:
         // dont support user defined keys
-        this.queueChars('\x1b[?21n');
+        // this.queueChars('\x1b[?21n');
         break;
       case 26:
-        this.queueChars('\x1b[?27;1;0;0n');
+        // this.queueChars('\x1b[?27;1;0;0n');
         break;
       case 53:
         // no dec locator/mouse
-        this.queueChars('\x1b[?50n');
+        // this.queueChars('\x1b[?50n');
         break;
     }
     return;
@@ -1862,14 +1864,19 @@ Term.prototype.HPositionRelative = function(params) {
 //   nal, Pc indicates the ROM cartridge registration number and is
 //   always zero.
 Term.prototype.sendDeviceAttributes = function(params) {
-  // this breaks things currently
+  // This severely breaks things if
+  // TERM is set to `linux`. xterm
+  // is fine.
   return;
+
   if (this.prefix !== '>') {
     this.queueChars('\x1b[?1;2c');
   } else {
     // say we're a vt100 with
     // firmware version 95
-    this.queueChars('\x1b[>0;95;0');
+    // this.queueChars('\x1b[>0;95;0c');
+    // modern xterm responds with:
+    this.queueChars('\x1b[>0;276;0c');
   }
 };
 
