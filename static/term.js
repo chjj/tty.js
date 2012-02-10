@@ -1,5 +1,6 @@
 /**
  * tty.js - an xterm emulator
+ * Christopher Jeffrey (https://github.com/chjj/tty.js)
  *
  * Originally forked from (with the author's permission):
  *
@@ -18,11 +19,12 @@
 
 /**
  * Terminal Emulation References:
- * Xterm:
+ *   http://vt100.net/
+ *   http://invisible-island.net/xterm/ctlseqs/ctlseqs.txt
  *   http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
- * Linux Console:
+ *   http://invisible-island.net/vttest/
+ *   http://www.inwap.com/pdp10/ansicode.txt
  *   http://linux.die.net/man/4/console_codes
- * URXVT:
  *   http://linux.die.net/man/7/urxvt
  */
 
@@ -42,10 +44,11 @@ var normal = 0
  * Terminal
  */
 
-function Term(cols, rows, handler) {
+var Term = function(cols, rows, handler) {
   this.cols = cols;
   this.rows = rows;
-  this.currentHeight = rows;
+  this.handler = handler;
+  this.currentHeight = this.rows;
   this.totalHeight = 1000;
   this.ybase = 0;
   this.ydisp = 0;
@@ -53,12 +56,19 @@ function Term(cols, rows, handler) {
   this.y = 0;
   this.cursorState = 0;
   this.cursorHidden = false;
-  this.handler = handler;
   this.convertEol = false;
   this.state = 0;
   this.outputQueue = '';
   this.scrollTop = 0;
   this.scrollBottom = this.rows - 1;
+
+  this.applicationKeypad = false;
+  this.originMode = false;
+  this.insertMode = false;
+  this.wraparoundMode = false;
+  this.tabs = [];
+  this.charset = null;
+  this.normal = null;
 
   this.bgColors = [
     '#2e3436',
@@ -91,30 +101,23 @@ function Term(cols, rows, handler) {
   this.params = [];
   this.currentParam = 0;
 
-  this.element = document.createElement('table');
-}
+  var i = this.rows - 1;
+  this.lines = [ this.blankLine() ];
+  while (i--) {
+    this.lines.push(this.lines[0].slice());
+  }
+};
 
 Term.prototype.open = function() {
   var self = this
     , html = ''
-    , line
-    , y
-    , i
+    , i = 0
     , ch;
 
-  this.lines = [];
-  ch = 32 | (this.defAttr << 16);
+  this.element = document.createElement('table');
 
-  for (y = 0; y < this.currentHeight; y++) {
-    line = [];
-    for (i = 0; i < this.cols; i++) {
-      line[i] = ch;
-    }
-    this.lines[y] = line;
-  }
-
-  for (y = 0; y < this.rows; y++) {
-    html += '<tr><td class="term" id="tline' + y + '"></td></tr>';
+  for (; i < this.rows; i++) {
+    html += '<tr><td class="term" id="tline' + i + '"></td></tr>';
   }
 
   this.element.innerHTML = html;
@@ -133,6 +136,122 @@ Term.prototype.open = function() {
   setInterval(function() {
     self.cursorBlink();
   }, 500);
+
+  this.bindMouse();
+};
+
+Term.prototype.bindMouse = function() {
+  var self = this;
+
+  function click(type) {
+    return function(ev) {
+      if (!self.mouseEvents) return;
+
+      var el = ev.target
+        , button
+        , x
+        , y
+        , w
+        , h;
+
+      var shift
+        , meta
+        , ctrl
+        , mod;
+
+      if (el === document.documentElement
+          || el === self.element
+          || el.parentNode === self.element
+          || el.parentNode.parentNode === self.element) return;
+
+      if (type !== 'wheel') {
+        button = ev.button != null
+          ? +ev.button
+          : ev.which != null
+            ? ev.which - 1
+            : null;
+
+        if (~navigator.userAgent.indexOf('MSIE')) {
+          button = button === 1 ? 0 : button === 4 ? 1 : button;
+        }
+      } else {
+        // 1, and 2 - with 64 added
+        if (ev.wheelDeltaY > 0) button = 66;
+        else if (ev.wheelDeltaY < 0) button = 65;
+      }
+
+      // ignore browsers without pageX for now
+      if (ev.pageX == null) return;
+
+      x = ev.pageX - self.element.offsetLeft;
+      y = ev.pageY - self.element.offsetTop;
+
+      // convert to cols/rows
+      w = self.element.clientWidth;
+      h = self.element.clientHeight;
+
+      x = ((x / w) * self.cols) | 0;
+      y = ((y / h) * self.rows) | 0;
+
+      // xterm sends raw bytes and
+      // starts at 32 (SP) for each.
+      x += 32;
+      y += 32;
+
+      // two low bits
+      // 0 = left
+      // 1 = middle
+      // 2 = right
+      // 3 = release
+      if (type === 'up') {
+        button = 3;
+      } else {
+        button = button;
+      }
+
+      // next three bits are the modifiers
+      // 4 = shift, 8 = meta, 16 = control
+      shift = ev.shiftKey ? 4 : 0;
+      meta = ev.metaKey ? 8 : 0;
+      ctrl = ev.ctrlKey ? 16 : 0;
+      mod = shift | meta | ctrl;
+      button = button | (mod << 2);
+
+      // add 32
+      button += 32;
+
+      self.queueChars('\x1b[M' + String.fromCharCode(button, x, y));
+
+      if (ev.preventDefault) {
+        ev.preventDefault();
+      }
+      ev.returnValue = false;
+
+      if (ev.stopPropagation) {
+        ev.stopPropagation();
+      }
+      ev.cancelBubble = true;
+    };
+  }
+
+  var el = this.element;
+  el.addEventListener('mousedown', click('down'), true);
+  el.addEventListener('mouseup', click('up'), true);
+  el.addEventListener('mousewheel', click('wheel'), true);
+
+  function wheel(ev) {
+    if (self.mouseEvents) return;
+    if (self.applicationKeypad) return;
+    if (ev.wheelDeltaY > 0) {
+      // up
+      self.scrollDisp(-5);
+    } else if (ev.wheelDeltaY < 0) {
+      // down
+      self.scrollDisp(5);
+    }
+  }
+
+  el.addEventListener('mousewheel', wheel, true);
 };
 
 Term.prototype.refresh = function(start, end) {
@@ -290,8 +409,10 @@ Term.prototype.scroll = function() {
   }
 
   if (this.scrollTop !== 0) {
-    this.ybase--;
-    this.ydisp = this.ybase;
+    if (this.ybase !== 0) {
+      this.ybase--;
+      this.ydisp = this.ybase;
+    }
     this.lines.splice(this.ybase + this.scrollTop, 1);
   }
 };
@@ -575,8 +696,8 @@ Term.prototype.write = function(str) {
         break;
 
       case csi:
-        // '?' or '>'
-        if (ch === 63 || ch === 62) {
+        // '?', '>', '!'
+        if (ch === 63 || ch === 62 || ch === 33) {
           this.prefix = str[i];
           break;
         }
@@ -807,9 +928,9 @@ Term.prototype.write = function(str) {
               break;
 
             // CSI Ps b  Repeat the preceding graphic character Ps times (REP).
-            // case 98:
-            //   this.repeatPrecedingCharacter(this.params);
-            //   break;
+            case 98:
+              this.repeatPrecedingCharacter(this.params);
+              break;
 
             // CSI Ps g  Tab Clear (TBC).
             // case 103:
@@ -1308,8 +1429,12 @@ Term.prototype.eraseLine = function(x, y) {
   this.getRows(y);
 };
 
-Term.prototype.blankLine = function() {
-  var ch = 32 | (this.defAttr << 16)
+Term.prototype.blankLine = function(cur) {
+  var attr = cur
+    ? this.curAttr
+    : this.defAttr;
+
+  var ch = 32 | (attr << 16)
     , line = []
     , i = 0;
 
@@ -1342,8 +1467,9 @@ Term.prototype.reverseIndex = function() {
   this.y--;
   if (this.y < this.scrollTop) {
     this.y++;
-    this.lines.splice(this.y + this.ybase, 0, []);
-    this.eraseLine(this.x, this.y);
+    // echo -ne '\e[1;1H\e[44m\eM\e[0m'
+    // use this.blankLine(false) for screen behavior
+    this.lines.splice(this.y + this.ybase, 0, this.blankLine(true));
     j = this.rows - 1 - this.scrollBottom;
     // add an extra one because we just added a line
     // maybe put this above
@@ -1354,23 +1480,7 @@ Term.prototype.reverseIndex = function() {
 
 // ESC c Full Reset (RIS).
 Term.prototype.reset = function() {
-  this.currentHeight = this.rows;
-  this.ybase = 0;
-  this.ydisp = 0;
-  this.x = 0;
-  this.y = 0;
-  this.cursorState = 0;
-  this.convertEol = false;
-  this.state = 0;
-  this.outputQueue = '';
-  this.scrollTop = 0;
-  this.scrollBottom = this.rows - 1;
-
-  var j = this.rows - 1;
-  this.lines = [ this.blankLine() ];
-  while (j--) {
-    this.lines.push(this.lines[0].slice());
-  }
+  Term.call(this, this.cols, this.rows, this.handler);
 };
 
 /**
@@ -1460,12 +1570,29 @@ Term.prototype.cursorPos = function(params) {
 //     Ps = 0  -> Selective Erase Below (default).
 //     Ps = 1  -> Selective Erase Above.
 //     Ps = 2  -> Selective Erase All.
-// Not fully implemented.
 Term.prototype.eraseInDisplay = function(params) {
   var param, row, j;
-  this.eraseLine(this.x, this.y);
-  for (j = this.y + 1; j < this.rows; j++) {
-    this.eraseLine(0, j);
+  switch (params[0] || 0) {
+    case 0:
+      this.eraseLine(this.x, this.y);
+      for (j = this.y + 1; j < this.rows; j++) {
+        this.eraseLine(0, j);
+      }
+      break;
+    case 1:
+      this.eraseInLine([1]);
+      j = this.y;
+      while (j--) {
+        this.eraseLine(0, j);
+      }
+      break;
+    case 2:
+      this.eraseInDisplay([0]);
+      this.eraseInDisplay([1]);
+      break;
+    case 3:
+      ; // no saved lines
+      break;
   }
 };
 
@@ -1478,7 +1605,6 @@ Term.prototype.eraseInDisplay = function(params) {
 //     Ps = 0  -> Selective Erase to Right (default).
 //     Ps = 1  -> Selective Erase to Left.
 //     Ps = 2  -> Selective Erase All.
-// Not fully implemented.
 Term.prototype.eraseInLine = function(params) {
   switch (params[0] || 0) {
     case 0:
@@ -1578,6 +1704,10 @@ Term.prototype.charAttributes = function(params) {
         this.curAttr = (this.curAttr & ~(7 << 3)) | ((p - 30) << 3);
       } else if (p >= 40 && p <= 47) {
         this.curAttr = (this.curAttr & ~7) | (p - 40);
+      } else if (p >= 90 && p <= 97) {
+        this.curAttr = (this.curAttr & ~(7 << 3)) | ((p - 90) << 3);
+      } else if (p >= 100 && p <= 107) {
+        this.curAttr = (this.curAttr & ~7) | (p - 100);
       } else if (p === 0) {
         this.curAttr = this.defAttr;
       } else if (p === 1) {
@@ -1613,15 +1743,44 @@ Term.prototype.charAttributes = function(params) {
 //   CSI ? 5 3  n  Locator available, if compiled-in, or
 //   CSI ? 5 0  n  No Locator, if not.
 Term.prototype.deviceStatus = function(params) {
+  if (this.prefix === '?') {
+    // modern xterm doesnt seem to
+    // respond to any of these except ?6, 6, and 5
+    switch (params[0]) {
+      case 6:
+        this.queueChars('\x1b['
+          + (this.y + 1)
+          + ';'
+          + (this.x + 1)
+          + 'R');
+        break;
+      case 15:
+        // no printer
+        // this.queueChars('\x1b[?11n');
+        break;
+      case 25:
+        // dont support user defined keys
+        // this.queueChars('\x1b[?21n');
+        break;
+      case 26:
+        // this.queueChars('\x1b[?27;1;0;0n');
+        break;
+      case 53:
+        // no dec locator/mouse
+        // this.queueChars('\x1b[?50n');
+        break;
+    }
+    return;
+  }
   switch (this.params[0]) {
     case 5:
       this.queueChars('\x1b[0n');
       break;
     case 6:
       this.queueChars('\x1b['
-        + (this.y+1)
+        + (this.y + 1)
         + ';'
-        + (this.x+1)
+        + (this.x + 1)
         + 'R');
       break;
   }
@@ -1690,15 +1849,19 @@ Term.prototype.insertLines = function(params) {
   param = this.params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
+
+  j = this.rows - 1 - this.scrollBottom;
+  // add an extra one because we added one
+  // above
+  j = this.rows - 1 + this.ybase - j + 1;
+
   while (param--) {
-    this.lines.splice(row, 0, []);
-    this.eraseLine(0, this.y);
-    j = this.rows - 1 - this.scrollBottom;
-    // add an extra one because we added one
-    // above
-    j = this.rows - 1 + this.ybase - j + 1;
+    // this.blankLine(false) for screen behavior
+    // test: echo -e '\e[44m\e[1L\e[0m'
+    this.lines.splice(row, 0, this.blankLine(true));
     this.lines.splice(j, 1);
   }
+
   //this.refresh(0, this.rows - 1);
   this.refreshStart = 0;
   this.refreshEnd = this.rows - 1;
@@ -1711,13 +1874,17 @@ Term.prototype.deleteLines = function(params) {
   param = this.params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
+
+  j = this.rows - 1 - this.scrollBottom;
+  j = this.rows - 1 + this.ybase - j;
+
   while (param--) {
-    j = this.rows - 1 - this.scrollBottom;
-    j = this.rows - 1 + this.ybase - j;
-    this.lines.splice(j + 1, 0, []);
-    this.eraseLine(0, j + 1 - this.ybase);
+    // this.blankLine(false) for screen behavior
+    // test: echo -e '\e[44m\e[1M\e[0m'
+    this.lines.splice(j + 1, 0, this.blankLine(true));
     this.lines.splice(row, 1);
   }
+
   //this.refresh(0, this.rows - 1);
   this.refreshStart = 0;
   this.refreshEnd = this.rows - 1;
@@ -1813,14 +1980,19 @@ Term.prototype.HPositionRelative = function(params) {
 //   nal, Pc indicates the ROM cartridge registration number and is
 //   always zero.
 Term.prototype.sendDeviceAttributes = function(params) {
-  // this breaks things currently
+  // This severely breaks things if
+  // TERM is set to `linux`. xterm
+  // is fine.
   return;
+
   if (this.prefix !== '>') {
     this.queueChars('\x1b[?1;2c');
   } else {
     // say we're a vt100 with
     // firmware version 95
-    this.queueChars('\x1b[>0;95;0');
+    // this.queueChars('\x1b[>0;95;0c');
+    // modern xterm responds with:
+    this.queueChars('\x1b[>0;276;0c');
   }
 };
 
@@ -1948,6 +2120,8 @@ Term.prototype.HVPosition = function(params) {
 //     Ps = 1 0 6 0  -> Set legacy keyboard emulation (X11R6).
 //     Ps = 1 0 6 1  -> Set VT220 keyboard emulation.
 //     Ps = 2 0 0 4  -> Set bracketed paste mode.
+// Modes:
+//   http://vt100.net/docs/vt220-rm/chapter4.html
 Term.prototype.setMode = function(params) {
   if (typeof params === 'object') {
     while (params.length) this.setMode(params.shift());
@@ -1956,12 +2130,34 @@ Term.prototype.setMode = function(params) {
 
   if (this.prefix !== '?') {
     switch (params) {
+      case 4:
+        this.insertMode = true;
+        break;
       case 20:
         //this.convertEol = true;
         break;
     }
   } else {
     switch (params) {
+      case 1:
+        this.applicationKeypad = true;
+        break;
+      case 6:
+        this.originMode = true;
+        break;
+      case 7:
+        this.wraparoundMode = true;
+        break;
+      case 9: // only mousedown
+      case 1000:
+      case 1001:
+      case 1002: // mousedown and mouseup
+      case 1003:
+      case 1004:
+      case 1005:
+        console.log('binding to mouse events - warning: experimental!');
+        this.mouseEvents = true;
+        break;
       case 25: // show cursor
         this.cursorHidden = false;
         break;
@@ -1971,16 +2167,18 @@ Term.prototype.setMode = function(params) {
       case 47: // alt screen buffer
       case 1047: // alt screen buffer
         if (!this.normal) {
-          this.normal = {};
-          this.normal.lines = this.lines;
-          this.normal.currentHeight = this.currentHeight;
-          this.normal.ybase = this.ybase;
-          this.normal.ydisp = this.ydisp;
-          this.normal.x = this.x;
-          this.normal.y = this.y;
-          this.normal.scrollTop = this.scrollTop;
-          this.normal.scrollBottom = this.scrollBottom;
+          var normal = {
+            lines: this.lines,
+            currentHeight: this.currentHeight,
+            ybase: this.ybase,
+            ydisp: this.ydisp,
+            x: this.x,
+            y: this.y,
+            scrollTop: this.scrollTop,
+            scrollBottom: this.scrollBottom
+          };
           this.reset();
+          this.normal = normal;
         }
         break;
     }
@@ -2075,12 +2273,33 @@ Term.prototype.resetMode = function(params) {
 
   if (this.prefix !== '?') {
     switch (params) {
+      case 4:
+        this.insertMode = false;
+        break;
       case 20:
         //this.convertEol = false;
         break;
     }
   } else {
     switch (params) {
+      case 1:
+        this.applicationKeypad = false;
+        break;
+      case 6:
+        this.originMode = false;
+        break;
+      case 7:
+        this.wraparoundMode = false;
+        break;
+      case 9:
+      case 1000:
+      case 1001:
+      case 1002:
+      case 1003:
+      case 1004:
+      case 1005:
+        this.mouseEvents = false;
+        break;
       case 25: // hide cursor
         this.cursorHidden = true;
         break;
@@ -2117,6 +2336,8 @@ Term.prototype.setScrollRegion = function(params) {
   if (this.prefix === '?') return;
   this.scrollTop = (this.params[0] || 1) - 1;
   this.scrollBottom = (this.params[1] || this.rows) - 1;
+  this.x = 0;
+  this.y = 0;
 };
 
 // CSI s     Save cursor (ANSI.SYS).
@@ -2187,6 +2408,7 @@ Term.prototype.scrollDown = function(params) {
 //   [func;startx;starty;firstrow;lastrow].  See the section Mouse
 //   Tracking.
 Term.prototype.initMouseTracking = function(params) {
+  console.log('mouse tracking');
 };
 
 // CSI > Ps; Ps T
@@ -2224,6 +2446,10 @@ Term.prototype.cursorBackwardTab = function(params) {
 
 // CSI Ps b  Repeat the preceding graphic character Ps times (REP).
 Term.prototype.repeatPrecedingCharacter = function(params) {
+  var param = this.params[0] || 1;
+  var line = this.lines[this.ybase + this.y];
+  var ch = line[this.x - 1] || ((this.defAttr << 16) | 32);
+  while (param--) line[this.x++] = ch;
 };
 
 // CSI Ps g  Tab Clear (TBC).
@@ -2367,7 +2593,23 @@ Term.prototype.restorePrivateValues = function(params) {
 //   Change Attributes in Rectangular Area (DECCARA), VT400 and up.
 //     Pt; Pl; Pb; Pr denotes the rectangle.
 //     Ps denotes the SGR attributes to change: 0, 1, 4, 5, 7.
+// NOTE: xterm doesn't enable this code by default.
 Term.prototype.setAttrInRectangle = function(params) {
+  var t = params[0]
+    , l = params[1]
+    , b = params[2]
+    , r = params[3]
+    , attr = params[4];
+
+  var line
+    , i;
+
+  for (; t < b + 1; t++) {
+    line = this.lines[this.ybase + t];
+    for (i = l; i < r; i++) {
+      line[i] = (attr << 16) | (line[i] & 0xFFFF);
+    }
+  }
 };
 
 // CSI ? Pm s
@@ -2430,6 +2672,7 @@ Term.prototype.manipulateWindow = function(params) {
 //   up.
 //     Pt; Pl; Pb; Pr denotes the rectangle.
 //     Ps denotes the attributes to reverse, i.e.,  1, 4, 5, 7.
+// NOTE: xterm doesn't enable this code by default.
 Term.prototype.reverseAttrInRectangle = function(params) {
 };
 
@@ -2466,6 +2709,7 @@ Term.prototype.setMarginBellVolume = function(params) {
 //     Pp denotes the source page.
 //     Pt; Pl denotes the target location.
 //     Pp denotes the target page.
+// NOTE: xterm doesn't enable this code by default.
 Term.prototype.copyRectangle = function(params) {
 };
 
@@ -2508,7 +2752,23 @@ Term.prototype.__ = function(params) {
 //   Fill Rectangular Area (DECFRA), VT420 and up.
 //     Pc is the character to use.
 //     Pt; Pl; Pb; Pr denotes the rectangle.
+// NOTE: xterm doesn't enable this code by default.
 Term.prototype.fillRectangle = function(params) {
+  var ch = params[0]
+    , t = params[1]
+    , l = params[2]
+    , b = params[3]
+    , r = params[4];
+
+  var line
+    , i;
+
+  for (; t < b + 1; t++) {
+    line = this.lines[this.ybase + t];
+    for (i = l; i < r; i++) {
+      line[i] = ((line[i] >> 16) << 16) | ch;
+    }
+  }
 };
 
 // CSI Ps ; Pu ' z
@@ -2529,7 +2789,23 @@ Term.prototype.enableLocatorReporting = function(params) {
 // CSI Pt; Pl; Pb; Pr$ z
 //   Erase Rectangular Area (DECERA), VT400 and up.
 //     Pt; Pl; Pb; Pr denotes the rectangle.
+// NOTE: xterm doesn't enable this code by default.
 Term.prototype.eraseRectangle = function(params) {
+  var t = params[0]
+    , l = params[1]
+    , b = params[2]
+    , r = params[3];
+
+  var line
+    , i;
+
+  for (; t < b + 1; t++) {
+    line = this.lines[this.ybase + t];
+    for (i = l; i < r; i++) {
+      // curAttr for xterm behavior?
+      line[i] = (this.curAttr << 16) | 32;
+    }
+  }
 };
 
 // CSI Pm ' {
@@ -2597,12 +2873,38 @@ Term.prototype.requestLocatorPosition = function(params) {
 
 // CSI P m SP }
 // Insert P s Column(s) (default = 1) (DECIC), VT420 and up.
+// NOTE: xterm doesn't enable this code by default.
 Term.prototype.insertColumns = function() {
+  param = params[0];
+
+  var l = this.ybase + this.rows
+    , i;
+
+  while (param--) {
+    for (i = this.ybase; i < l; i++) {
+      // xterm behavior uses curAttr?
+      this.lines[i].splice(this.x + 1, 0, (this.defAttr << 16) | 32);
+      this.lines[i].pop();
+    }
+  }
 };
 
 // CSI P m SP ~
 // Delete P s Column(s) (default = 1) (DECDC), VT420 and up
+// NOTE: xterm doesn't enable this code by default.
 Term.prototype.deleteColumns = function() {
+  param = params[0];
+
+  var l = this.ybase + this.rows
+    , i;
+
+  while (param--) {
+    for (i = this.ybase; i < l; i++) {
+      this.lines[i].splice(this.x, 1);
+      // xterm behavior uses curAttr?
+      this.lines[i].push((this.defAttr << 16) | 32);
+    }
+  }
 };
 
 /**
