@@ -1988,12 +1988,24 @@ Term.prototype.setMode = function(params) {
 
   if (this.prefix !== '?') {
     switch (params) {
+      case 4:
+        this.insertMode = true;
+        break;
       case 20:
         //this.convertEol = true;
         break;
     }
   } else {
     switch (params) {
+      case 1:
+        this.applicationKeypad = true;
+        break;
+      case 6:
+        this.originMode = true;
+        break;
+      case 7:
+        this.wraparoundMode = true;
+        break;
       case 25: // show cursor
         this.cursorHidden = false;
         break;
@@ -2107,12 +2119,24 @@ Term.prototype.resetMode = function(params) {
 
   if (this.prefix !== '?') {
     switch (params) {
+      case 4:
+        this.insertMode = false;
+        break;
       case 20:
         //this.convertEol = false;
         break;
     }
   } else {
     switch (params) {
+      case 1:
+        this.applicationKeypad = false;
+        break;
+      case 6:
+        this.originMode = false;
+        break;
+      case 7:
+        this.wraparoundMode = false;
+        break;
       case 25: // hide cursor
         this.cursorHidden = true;
         break;
