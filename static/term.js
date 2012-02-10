@@ -1,5 +1,6 @@
 /**
  * tty.js - an xterm emulator
+ * Christopher Jeffrey (https://github.com/chjj/tty.js)
  *
  * Originally forked from (with the author's permission):
  *
@@ -18,11 +19,12 @@
 
 /**
  * Terminal Emulation References:
- * Xterm:
+ *   http://vt100.net/
+ *   http://invisible-island.net/xterm/ctlseqs/ctlseqs.txt
  *   http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
- * Linux Console:
+ *   http://invisible-island.net/vttest/
+ *   http://www.inwap.com/pdp10/ansicode.txt
  *   http://linux.die.net/man/4/console_codes
- * URXVT:
  *   http://linux.die.net/man/7/urxvt
  */
 
@@ -1487,7 +1489,6 @@ Term.prototype.eraseInDisplay = function(params) {
 //     Ps = 0  -> Selective Erase to Right (default).
 //     Ps = 1  -> Selective Erase to Left.
 //     Ps = 2  -> Selective Erase All.
-// Not fully implemented.
 Term.prototype.eraseInLine = function(params) {
   switch (params[0] || 0) {
     case 0:
@@ -1969,6 +1970,8 @@ Term.prototype.HVPosition = function(params) {
 //     Ps = 1 0 6 0  -> Set legacy keyboard emulation (X11R6).
 //     Ps = 1 0 6 1  -> Set VT220 keyboard emulation.
 //     Ps = 2 0 0 4  -> Set bracketed paste mode.
+// Modes:
+//   http://vt100.net/docs/vt220-rm/chapter4.html
 Term.prototype.setMode = function(params) {
   if (typeof params === 'object') {
     while (params.length) this.setMode(params.shift());
