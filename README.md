@@ -1,5 +1,9 @@
 # tty.js
 
+__Update__: tty.js now includes experimental support for
+[xterm mouse csi codes][1]. This feature is slightly unstable right now. If
+you have problems with it, switch your `TERM` to `linux`.
+
 A terminal in your browser using node.js and socket.io. Based on Fabrice
 Bellard's vt100 for [jslinux](http://bellard.org/jslinux/).
 
@@ -18,8 +22,8 @@ terminal but you. tty.js is also unstable right now.
 
 The main goal of tty.js is to eventually write a full xterm emulator.
 
-tty.js is rough around the edges right now. Terminal compatibility issues
-may be slightly noticeable. `$TERM` is best set to `linux` or `vt100`.
+`TERM` is now set to `xterm` by default, if you experience any compatibility
+issues, try setting it to `linux`.
 
 ## Portability
 
@@ -28,6 +32,20 @@ tty's and `forkpty(3)`. tty.js builds on linux and osx, and it *should* build
 on NetBSD, FreeBSD, and OpenBSD as well. If you have trouble building, please
 post an issue.
 
+## Todo
+
+The distance to go before full xterm compatibility.
+
+- VT52 codes for compatibility
+- All vt400 rectangle sequences
+- Remaining DEC private modes
+- Better (realtime) mouse tracking
+- Miscellaneous sequences: cursor shape, window title
+- Origin Mode, Insert Mode
+- Proper Tab Setting
+
 ## License
 
 Copyright (c) 2012, Christopher Jeffrey (MIT License)
+
+[1]: http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking
