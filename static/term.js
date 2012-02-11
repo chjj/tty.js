@@ -66,6 +66,7 @@ var Term = function(cols, rows, handler) {
   this.originMode = false;
   this.insertMode = false;
   this.wraparoundMode = false;
+  this.mouseEvents = false;
   this.tabs = [];
   this.charset = null;
   this.normal = null;
@@ -189,7 +190,6 @@ Term.prototype.bindMouse = function() {
       // convert to cols/rows
       w = self.element.clientWidth;
       h = self.element.clientHeight;
-
       x = ((x / w) * self.cols) | 0;
       y = ((y / h) * self.rows) | 0;
 
@@ -217,7 +217,7 @@ Term.prototype.bindMouse = function() {
       mod = shift | meta | ctrl;
       button = button | (mod << 2);
 
-      // add 32
+      // offset to SP
       button += 32;
 
       self.queueChars('\x1b[M' + String.fromCharCode(button, x, y));
