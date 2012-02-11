@@ -239,9 +239,15 @@ Term.prototype.bindMouse = function() {
       case 'mouseup':
         button = 3;
         break;
+      case 'DOMMouseScroll':
+        button = ev.detail < 0
+          ? 64
+          : 65;
+        break;
       case 'mousewheel':
-        if (ev.wheelDeltaY > 0) button = 64;
-        else if (ev.wheelDeltaY < 0) button = 65;
+        button = ev.wheelDeltaY > 0
+          ? 64
+          : 65;
         break;
     }
 
@@ -298,7 +304,13 @@ Term.prototype.bindMouse = function() {
 
   el.addEventListener('mousedown', click, true);
   el.addEventListener('mouseup', click, true);
-  el.addEventListener('mousewheel', click, true);
+
+  if ('onmousewheel' in window) {
+    el.addEventListener('mousewheel', click, true);
+  } else {
+    el.addEventListener('DOMMouseScroll', click, true);
+  }
+
   el.addEventListener('mousemove', move, true);
 
   // allow mousewheel scrolling in
@@ -306,16 +318,18 @@ Term.prototype.bindMouse = function() {
   function wheel(ev) {
     if (self.mouseEvents) return;
     if (self.applicationKeypad) return;
-    if (ev.wheelDeltaY > 0) {
-      // up
-      self.scrollDisp(-5);
-    } else if (ev.wheelDeltaY < 0) {
-      // down
-      self.scrollDisp(5);
+    if (ev.type === 'DOMMouseScroll') {
+      self.scrollDisp(ev.detail < 0 ? -5 : 5);
+    } else {
+      self.scrollDisp(ev.wheelDeltaY > 0 ? -5 : 5);
     }
   }
 
-  el.addEventListener('mousewheel', wheel, true);
+  if ('onmousewheel' in window) {
+    el.addEventListener('mousewheel', wheel, true);
+  } else {
+    el.addEventListener('DOMMouseScroll', wheel, true);
+  }
 };
 
 Term.prototype.refresh = function(start, end) {
