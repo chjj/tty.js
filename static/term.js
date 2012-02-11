@@ -66,7 +66,7 @@ var Term = function(cols, rows, handler) {
   this.originMode = false;
   this.insertMode = false;
   this.wraparoundMode = false;
-  this.mouseEvents = false;
+  this.mouseEvents;
   this.tabs = [];
   this.charset = null;
   this.normal = null;
@@ -141,31 +141,91 @@ Term.prototype.open = function() {
   this.bindMouse();
 };
 
+// XTerm mouse events
+// http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking
+// To better understand these
+// the xterm code is very helpful:
+// Relevant files:
+//   button.c, charproc.c, misc.c
+// Relevant functions in xterm/button.c:
+//   BtnCode, EmitButtonCode, EditorButton, SendMousePosition
 Term.prototype.bindMouse = function() {
-  var self = this;
+  var el = this.element
+    , self = this
+    , pressed;
 
-  function click(type) {
-    return function(ev) {
-      if (!self.mouseEvents) return;
+  // mouseup, mousedown, mousewheel
+  // left click: ^[[M 3<^[[M#3<
+  // mousewheel up: ^[[M`3>
+  function click(ev) {
+    if (!self.mouseEvents) return;
 
-      var el = ev.target
-        , button
-        , x
-        , y
-        , w
-        , h;
+    var el = ev.target
+      , button
+      , pos;
 
-      var shift
-        , meta
-        , ctrl
-        , mod;
+    //if (el === self.element) return;
 
-      if (el === document.documentElement
-          || el === self.element
-          || el.parentNode === self.element
-          || el.parentNode.parentNode === self.element) return;
+    // get the xterm-style button
+    button = getButton(ev);
 
-      if (type !== 'wheel') {
+    // get mouse coordinates
+    pos = getCoords(ev);
+    if (!pos) return;
+
+    sendEvent(button, pos);
+
+    pressed = ev.type === 'mousedown'
+      ? button
+      : false;
+
+    if (ev.preventDefault) ev.preventDefault();
+    ev.returnValue = false;
+    if (ev.stopPropagation) ev.stopPropagation();
+    ev.cancelBubble = true;
+  }
+
+  // motion example of a left click:
+  // ^[[M 3<^[[M@4<^[[M@5<^[[M@6<^[[M@7<^[[M#7<
+  function move(ev) {
+    if (!self.mouseEvents) return;
+    if (!pressed) return;
+
+    var button = pressed
+      , pos;
+
+    pos = getCoords(ev);
+    if (!pos) return;
+
+    // buttons marked as motions
+    // are incremented by 32
+    button += 32;
+
+    sendEvent(button, pos);
+  }
+
+  // send a mouse event:
+  // ^[[M Cb Cx Cy
+  function sendEvent(button, pos) {
+    self.queueChars('\x1b[M' + String.fromCharCode(button, pos.x, pos.y));
+  }
+
+  function getButton(ev) {
+    var button
+      , shift
+      , meta
+      , ctrl
+      , mod;
+
+    // two low bits:
+    // 0 = left
+    // 1 = middle
+    // 2 = right
+    // 3 = release
+    // wheel up/down:
+    // 1, and 2 - with 64 added
+    switch (ev.type) {
+      case 'mousedown':
         button = ev.button != null
           ? +ev.button
           : ev.which != null
@@ -175,70 +235,74 @@ Term.prototype.bindMouse = function() {
         if (~navigator.userAgent.indexOf('MSIE')) {
           button = button === 1 ? 0 : button === 4 ? 1 : button;
         }
-      } else {
-        // 1, and 2 - with 64 added
-        if (ev.wheelDeltaY > 0) button = 66;
-        else if (ev.wheelDeltaY < 0) button = 65;
-      }
-
-      // ignore browsers without pageX for now
-      if (ev.pageX == null) return;
-
-      x = ev.pageX - self.element.offsetLeft;
-      y = ev.pageY - self.element.offsetTop;
-
-      // convert to cols/rows
-      w = self.element.clientWidth;
-      h = self.element.clientHeight;
-      x = ((x / w) * self.cols) | 0;
-      y = ((y / h) * self.rows) | 0;
-
-      // xterm sends raw bytes and
-      // starts at 32 (SP) for each.
-      x += 32;
-      y += 32;
-
-      // two low bits
-      // 0 = left
-      // 1 = middle
-      // 2 = right
-      // 3 = release
-      if (type === 'up') {
+        break;
+      case 'mouseup':
         button = 3;
-      } else {
-        button = button;
-      }
+        break;
+      case 'mousewheel':
+        if (ev.wheelDeltaY > 0) button = 64;
+        else if (ev.wheelDeltaY < 0) button = 65;
+        break;
+    }
 
-      // next three bits are the modifiers
-      // 4 = shift, 8 = meta, 16 = control
-      shift = ev.shiftKey ? 4 : 0;
-      meta = ev.metaKey ? 8 : 0;
-      ctrl = ev.ctrlKey ? 16 : 0;
-      mod = shift | meta | ctrl;
-      button = button | (mod << 2);
+    // next three bits are the modifiers:
+    // 4 = shift, 8 = meta, 16 = control
+    shift = ev.shiftKey ? 4 : 0;
+    meta = ev.metaKey ? 8 : 0;
+    ctrl = ev.ctrlKey ? 16 : 0;
+    mod = shift | meta | ctrl;
 
-      // offset to SP
-      button += 32;
+    // final button value
+    button = (32 + (mod << 2)) + button;
 
-      self.queueChars('\x1b[M' + String.fromCharCode(button, x, y));
+    // if wheel movement cant
+    // have a modifier:
 
-      if (ev.preventDefault) {
-        ev.preventDefault();
-      }
-      ev.returnValue = false;
+    // modifier on button
+    //button = button | (mod << 2);
 
-      if (ev.stopPropagation) {
-        ev.stopPropagation();
-      }
-      ev.cancelBubble = true;
-    };
+    // offset to SP
+    //button += 32;
+
+    return button;
   }
 
-  var el = this.element;
-  el.addEventListener('mousedown', click('down'), true);
-  el.addEventListener('mouseup', click('up'), true);
-  el.addEventListener('mousewheel', click('wheel'), true);
+  // mouse coordinates measured in cols/rows
+  function getCoords(ev) {
+    var x, y, w, h;
 
+    // ignore browsers without pageX for now
+    if (ev.pageX == null) return;
+
+    x = ev.pageX - self.element.offsetLeft;
+    y = ev.pageY - self.element.offsetTop;
+
+    // convert to cols/rows
+    w = self.element.clientWidth;
+    h = self.element.clientHeight;
+    x = ((x / w) * self.cols) | 0;
+    y = ((y / h) * self.rows) | 0;
+
+    // be sure to avoid sending
+    // bad positions to the program
+    if (x < 0 || x > self.cols) return;
+    if (y < 0 || y > self.rows) return;
+
+    // xterm sends raw bytes and
+    // starts at 32 (SP) for each.
+    x += 32;
+    y += 32;
+
+    return { x: x, y: y };
+  }
+
+  el.addEventListener('mousedown', click, true);
+  el.addEventListener('mouseup', click, true);
+  el.addEventListener('mousewheel', click, true);
+  el.addEventListener('mousemove', move, true);
+
+  // allow mousewheel scrolling in
+  // the shell for example
   function wheel(ev) {
     if (self.mouseEvents) return;
     if (self.applicationKeypad) return;
@@ -2148,15 +2212,46 @@ Term.prototype.setMode = function(params) {
       case 7:
         this.wraparoundMode = true;
         break;
-      case 9: // only mousedown
-      case 1000:
-      case 1001:
-      case 1002: // mousedown and mouseup
-      case 1003:
-      case 1004:
-      case 1005:
+      case 9: // X10 Mouse
+        // button press only.
+        break;
+      case 1000: // vt200 mouse
+        // no wheel events, no motion.
+        // no modifiers except control.
+        // button press, release.
+        break;
+      case 1001: // vt200 highlight mouse
+        // no wheel events, no motion.
+        // first event is to send tracking instead
+        // of button press, *then* button release.
+        break;
+      case 1002: // button event mouse
+      case 1003: // any event mouse
+        // button press, release, wheel, and motion.
+        // no modifiers except control.
         console.log('binding to mouse events - warning: experimental!');
         this.mouseEvents = true;
+        this.element.style.cursor = 'default';
+        break;
+      case 1004: // send focusin/focusout events
+        // focusin: ^[[>I
+        // focusout: ^[[>O
+        break;
+      case 1005: // utf8 ext mode mouse
+        // for wide terminals
+        // simply encodes large values as utf8 characters
+        break;
+      case 1006: // sgr ext mode mouse
+        // for wide terminals
+        // does not add 32 to fields
+        // press: ^[[<b;x;yM
+        // release: ^[[<b;x;ym
+        break;
+      case 1015: // urxvt ext mode mouse
+        // for wide terminals
+        // numbers for fields
+        // press: ^[[b;x;yM
+        // motion: ^[[b;x;yT
         break;
       case 25: // show cursor
         this.cursorHidden = false;
@@ -2299,6 +2394,7 @@ Term.prototype.resetMode = function(params) {
       case 1004:
       case 1005:
         this.mouseEvents = false;
+        this.element.style.cursor = '';
         break;
       case 25: // hide cursor
         this.cursorHidden = true;

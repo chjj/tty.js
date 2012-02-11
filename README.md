@@ -39,7 +39,6 @@ The distance to go before full xterm compatibility.
 - VT52 codes for compatibility
 - All vt400 rectangle sequences
 - Remaining DEC private modes
-- Better (realtime) mouse tracking
 - Miscellaneous sequences: cursor shape, window title
 - Origin Mode, Insert Mode
 - Proper Tab Setting
