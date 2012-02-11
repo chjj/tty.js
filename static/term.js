@@ -1780,6 +1780,14 @@ Term.prototype.charAttributes = function(params) {
       } else if (p === 4) {
         // underlined text
         this.curAttr = this.curAttr | (4 << 8);
+      } else if (p === 39) {
+        // reset fg
+        p = this.curAttr & 7;
+        this.curAttr = (this.defAttr & ~7) | p;
+      } else if (p === 49) {
+        // reset bg
+        p = (this.curAttr >> 3) & 7;
+        this.curAttr = (this.defAttr & ~(7 << 3)) | (p << 3);
       }
     }
   }
