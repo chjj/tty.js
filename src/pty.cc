@@ -18,6 +18,8 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <pwd.h>
+#include <grp.h>
 
 /* forkpty */
 /* http://www.gnu.org/software/gnulib/manual/html_node/forkpty.html */
@@ -47,23 +49,30 @@ static Handle<Value> ForkPty(const Arguments& args) {
 
   char *argv[] = { "sh", NULL };
 
-  if (args.Length() > 0) {
-    if (!args[0]->IsString()) {
+  if (args.Length() < 2) 
+    {
       return ThrowException(Exception::Error(
-        String::New("First argument must be a string.")));
+	      String::New("Not enough arguments to ForkPty.")));
+    }
+  if (!args[0]->IsString() || !args[1]->IsString()) 
+    {
+      return ThrowException(Exception::Error(
+	      String::New("First two arguments must be strings.")));
     }
     String::Utf8Value file(args[0]->ToString());
     argv[0] = strdup(*file);
-  }
+
+  String::Utf8Value username(args[1]->ToString());
+  struct passwd *pwd = getpwnam(*username);
 
   struct winsize winp = {};
   winp.ws_col = 80;
   winp.ws_row = 30;
 
-  if (args.Length() == 4) {
-    if (args[2]->IsNumber() && args[3]->IsNumber()) {
-      Local<Integer> cols = args[2]->ToInteger();
-      Local<Integer> rows = args[3]->ToInteger();
+  if (args.Length() == 5) {
+    if (args[3]->IsNumber() && args[4]->IsNumber()) {
+      Local<Integer> cols = args[3]->ToInteger();
+      Local<Integer> rows = args[4]->ToInteger();
 
       winp.ws_col = cols->Value();
       winp.ws_row = rows->Value();
@@ -74,6 +83,8 @@ static Handle<Value> ForkPty(const Arguments& args) {
   }
 
   int master;
+  signal(SIGCHLD, SIG_IGN);
+
   pid_t pid = forkpty(&master, NULL, NULL, &winp);
 
   if (pid == -1) {
@@ -82,15 +93,23 @@ static Handle<Value> ForkPty(const Arguments& args) {
   }
 
   if (pid == 0) {
-    if (args.Length() > 1 && args[1]->IsString()) {
-      String::Utf8Value term(args[1]->ToString());
+    setgid(pwd->pw_gid);
+    setegid(pwd->pw_gid);
+
+    gid_t newgid = getgid();
+    setgroups(1, &newgid);
+
+    setuid(pwd->pw_uid);
+    seteuid(pwd->pw_uid);
+
+    if (args.Length() > 2 && args[2]->IsString()) {
+      String::Utf8Value term(args[2]->ToString());
       setenv("TERM", strdup(*term), 1);
     } else {
       setenv("TERM", "vt100", 1);
     }
 
-    chdir(getenv("HOME"));
-
+    chdir(pwd->pw_dir);
     execvp(argv[0], argv);
 
     perror("execvp failed");
