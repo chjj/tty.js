@@ -109,28 +109,57 @@ var Term = function(cols, rows, handler) {
   }
 };
 
+/**
+ * Focused Terminal
+ */
+
+Term.focus = null;
+
+/**
+ * Open Terminal
+ */
+
 Term.prototype.open = function() {
   var self = this
-    , html = ''
     , i = 0
-    , ch;
+    , tb
+    , tr
+    , td;
 
   this.element = document.createElement('table');
+  this.element.className = 'terminal';
+  this.children = [];
 
+  tb = document.createElement('tbody');
   for (; i < this.rows; i++) {
-    html += '<tr><td class="term" id="tline' + i + '"></td></tr>';
+    tr = document.createElement('tr');
+    td = document.createElement('td');
+    td.className = 'term';
+    tr.appendChild(td);
+    tb.appendChild(tr);
+    this.children.push(td);
   }
 
-  this.element.innerHTML = html;
+  this.element.appendChild(tb);
   document.body.appendChild(this.element);
 
   this.refresh(0, this.rows - 1);
 
+  Term.focus = this;
+  this.element.addEventListener('click', function() {
+    if (Term.focus) Term.focus.cursorHidden = true;
+    self.cursorHidden = false;
+    Term.focus = self;
+  });
+
+  // should probably move these elsewhere
   document.addEventListener('keydown', function(key) {
+    if (Term.focus !== self) return;
     return self.keyDownHandler(key);
   }, true);
 
   document.addEventListener('keypress', function(key) {
+    if (Term.focus !== self) return;
     return self.keyPressHandler(key);
   }, true);
 
@@ -280,13 +309,23 @@ Term.prototype.bindMouse = function() {
 
   // mouse coordinates measured in cols/rows
   function getCoords(ev) {
-    var x, y, w, h;
+    var x, y, w, h, el;
 
     // ignore browsers without pageX for now
     if (ev.pageX == null) return;
 
-    x = ev.pageX - self.element.offsetLeft;
-    y = ev.pageY - self.element.offsetTop;
+    x = ev.pageX;
+    y = ev.pageY;
+    el = self.element;
+
+    while (el !== document.body) {
+      x -= el.offsetLeft;
+      y -= el.offsetTop;
+      el = el.parentNode;
+    }
+
+    //x = ev.pageX - self.element.parentNode.offsetLeft;
+    //y = ev.pageY - self.element.parentNode.offsetTop;
 
     // convert to cols/rows
     w = self.element.clientWidth;
@@ -441,7 +480,7 @@ Term.prototype.refresh = function(start, end) {
       out += '</span>';
     }
 
-    element = document.getElementById('tline' + y);
+    element = this.children[y];
     element.innerHTML = out;
   }
 };

@@ -7,6 +7,13 @@
     padding: 0;
   }
 
+  table, tr, td {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    border-spacing: 0;
+  }
+
   .term {
     font-family: "DejaVu Sans Mono", monospace;
     font-size: 11px;
@@ -20,27 +27,72 @@
     background: #f0f0f0;
   }
 
-  table, tr, td {
-    border: 0;
-    padding: 0;
-    margin: 0;
-    border-spacing: 0;
-  }
-
   body {
     margin: 25px;
     background: #fff;
   }
 
   table {
-    border: #000 solid 10px;
-    /*box-shadow: rgba(0, 0, 0, 0.5) 5px 5px 15px;*/
+    border: #000 solid 5px; /* 10px */
   }
 
-  h1 { font: 20px/1.5 sans; }
+  h1 {
+    font: 20px/1.5 sans;
+  }
+
+  #open {
+    font: 20px/1.5 sans-serif;
+    position: fixed;
+    top: 0;
+    right: 0;
+    padding: 10px;
+    background: slategrey;
+    color: white;
+    border-radius: 0 0 0 5px;
+    cursor: pointer;
+    margin: 0;
+    -webkit-appearance: none;
+    border: none;
+  }
+
+  #open:hover {
+    border: 2px #333 solid;
+    border-top: none;
+    border-right: none;
+  }
+
+  .wrapper {
+    border: 6px solid;
+    color: slategrey;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    z-index: 1000;
+  }
+
+  .wrapper > .grip {
+    background: slategrey;
+    position: absolute;
+    bottom: -12px;
+    right: -12px;
+    width: 20px;
+    height: 20px;
+    border-radiusz: 20px;
+    cursor: se-resize;
+  }
+
+  .grip:hover {
+    border: #333 solid 1px;
+  }
 </style>
 
 <h1>tty.js</h1>
+<p>Click the border to drag.</p>
+<p>Click the lower-right corner to resize.</p>
+<p>Click the lower-right corner with any modifier to close.</p>
+
+<button id="open">Open Terminal</div>
+
 <script src="/io.js"></script>
 <script src="/term.js"></script>
 <script src="/tty.js"></script>
