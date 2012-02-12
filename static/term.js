@@ -122,25 +122,19 @@ Term.focus = null;
 Term.prototype.open = function() {
   var self = this
     , i = 0
-    , tb
-    , tr
-    , td;
+    , div;
 
-  this.element = document.createElement('table');
+  this.element = document.createElement('div');
   this.element.className = 'terminal';
   this.children = [];
 
-  tb = document.createElement('tbody');
   for (; i < this.rows; i++) {
-    tr = document.createElement('tr');
-    td = document.createElement('td');
-    td.className = 'term';
-    tr.appendChild(td);
-    tb.appendChild(tr);
-    this.children.push(td);
+    div = document.createElement('div');
+    div.className = 'term';
+    this.element.appendChild(div);
+    this.children.push(div);
   }
 
-  this.element.appendChild(tb);
   document.body.appendChild(this.element);
 
   this.refresh(0, this.rows - 1);

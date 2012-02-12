@@ -201,7 +201,8 @@ function swapIndex(el, term) {
     , i = e.length;
 
   while (i--) {
-    if (e[i] !== el) e[i].style.zIndex = '0';
+    if (e[i].className === 'wrapper'
+        && e[i] !== el) e[i].style.zIndex = '0';
   }
 }
 
@@ -259,17 +260,16 @@ Term.prototype.resize = function(x, y) {
 
   j = this.rows;
   if (j < y) {
-    el = this.element.getElementsByTagName('tbody');
-    el = el ? el[0] : this.element;
+    el = this.element;
     while (j++ < y) {
       if (this.lines.length < y + this.ybase) {
         this.lines.push(this.blankLine());
       }
       if (this.children.length < y) {
-        line = document.createElement('tr');
-        line.innerHTML = '<td class="term"></td>';
+        line = document.createElement('div');
+        line.className = 'term';
         el.appendChild(line);
-        this.children.push(line.getElementsByTagName('td')[0]);
+        this.children.push(line);
       }
     }
   } else if (j > y) {
@@ -280,7 +280,7 @@ Term.prototype.resize = function(x, y) {
       if (this.children.length > y) {
         el = this.children.pop();
         if (!el) continue;
-        el.parentNode.parentNode.removeChild(el.parentNode);
+        el.parentNode.removeChild(el);
       }
     }
   }
