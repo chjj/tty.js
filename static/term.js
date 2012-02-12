@@ -138,6 +138,11 @@ Term.prototype.open = function() {
     self.cursorBlink();
   }, 500);
 
+  this.element.addEventListener('paste', function(ev) {
+    if (!ev.clipboardData) return;
+    self.queueChars(ev.clipboardData.getData('text/plain'));
+  }, false);
+
   this.bindMouse();
 };
 
