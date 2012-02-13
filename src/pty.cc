@@ -76,39 +76,42 @@ static Handle<Value> PtyFork(const Arguments& args) {
   }
 
   int master;
-  pid_t pid = forkpty(&master, NULL, NULL, &winp);
+  char name[80]; // this should be more than enough
+  pid_t pid = forkpty(&master, name, NULL, &winp);
 
-  if (pid == -1) {
-    return ThrowException(Exception::Error(
-      String::New("forkpty failed.")));
+  switch (pid) {
+    case -1:
+      return ThrowException(Exception::Error(
+        String::New("forkpty failed.")));
+    case 0:
+      if (args.Length() > 1 && args[1]->IsString()) {
+        String::Utf8Value term(args[1]->ToString());
+        setenv("TERM", strdup(*term), 1);
+      } else {
+        setenv("TERM", "vt100", 1);
+      }
+
+      chdir(getenv("HOME"));
+
+      execvp(argv[0], argv);
+
+      perror("execvp failed");
+      _exit(1);
+    default:
+      if (pty_nonblock(master) == -1) {
+        return ThrowException(Exception::Error(
+          String::New("Could not set master fd to nonblocking.")));
+      }
+
+      Local<Object> obj = Object::New();
+      obj->Set(String::New("fd"), Number::New(master));
+      obj->Set(String::New("pid"), Number::New(pid));
+      obj->Set(String::New("name"), String::New(name));
+
+      return scope.Close(obj);
   }
 
-  if (pid == 0) {
-    if (args.Length() > 1 && args[1]->IsString()) {
-      String::Utf8Value term(args[1]->ToString());
-      setenv("TERM", strdup(*term), 1);
-    } else {
-      setenv("TERM", "vt100", 1);
-    }
-
-    chdir(getenv("HOME"));
-
-    execvp(argv[0], argv);
-
-    perror("execvp failed");
-    _exit(1);
-  }
-
-  if (pty_nonblock(master) == -1) {
-    return ThrowException(Exception::Error(
-      String::New("Could not set master fd to nonblocking.")));
-  }
-
-  Local<Object> obj = Object::New();
-  obj->Set(String::New("fd"), Number::New(master));
-  obj->Set(String::New("pid"), Number::New(pid));
-
-  return scope.Close(obj);
+  return Undefined();
 }
 
 /**
