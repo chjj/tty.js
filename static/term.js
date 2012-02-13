@@ -115,6 +115,30 @@ var Term = function(cols, rows, handler) {
 
 Term.focus = null;
 
+Term.prototype.focus = function() {
+  if (Term.focus) Term.focus.cursorHidden = true;
+  this.cursorHidden = false;
+  Term.focus = this;
+};
+
+/**
+ * Global Events for key handling
+ */
+
+Term.bindKeys = function() {
+  if (Term.focus) return;
+
+  // We could put an "if (Term.focus)" check
+  // here, but it shouldn't be necessary.
+  document.addEventListener('keydown', function(key) {
+    return Term.focus.keyDownHandler(key);
+  }, true);
+
+  document.addEventListener('keypress', function(key) {
+    return Term.focus.keyPressHandler(key);
+  }, true);
+};
+
 /**
  * Open Terminal
  */
@@ -139,31 +163,24 @@ Term.prototype.open = function() {
 
   this.refresh(0, this.rows - 1);
 
+  Term.bindKeys();
   Term.focus = this;
-  this.element.addEventListener('click', function() {
-    if (Term.focus) Term.focus.cursorHidden = true;
-    self.cursorHidden = false;
-    Term.focus = self;
-  });
-
-  // should probably move these elsewhere
-  document.addEventListener('keydown', function(key) {
-    if (Term.focus !== self) return;
-    return self.keyDownHandler(key);
-  }, true);
-
-  document.addEventListener('keypress', function(key) {
-    if (Term.focus !== self) return;
-    return self.keyPressHandler(key);
-  }, true);
 
   setInterval(function() {
     self.cursorBlink();
   }, 500);
 
+  this.element.addEventListener('click', function() {
+    self.focus();
+  }, false);
+
   this.element.addEventListener('paste', function(ev) {
-    if (!ev.clipboardData) return;
-    self.queueChars(ev.clipboardData.getData('text/plain'));
+    if (ev.clipboardData) {
+      self.queueChars(ev.clipboardData.getData('text/plain'));
+    } else if (window.clipboardData) {
+      // does ie9 do this?
+      self.queueChars(window.clipboardData.getData('Text'));
+    }
   }, false);
 
   this.bindMouse();

@@ -190,10 +190,8 @@ function resize(el, ev, term, socket) {
 }
 
 function swapIndex(el, term) {
-  // focus the terminal, hacky
-  if (Term.focus) Term.focus.cursorHidden = true;
-  Term.focus = term;
-  term.cursorHidden = false;
+  // focus the terminal
+  term.focus();
 
   el.style.zIndex = '1000';
 
