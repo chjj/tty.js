@@ -63,7 +63,7 @@ function killTerminal(term) {
  * Resize & Drag
  */
 
-function bindMouse(term, socket) {
+function bindMouse(term) {
   var grip
     , el;
 
@@ -80,26 +80,35 @@ function bindMouse(term, socket) {
   el.appendChild(term.element);
   body.appendChild(el);
 
+  term.wrapper = el;
+  term.grip = grip;
+
   grip.addEventListener('mousedown', function(ev) {
-    swapIndex(el, term);
+    swapIndex(term);
+
+    cancel(ev);
 
     if (ev.ctrlKey || ev.altKey || ev.metaKey) {
       killTerminal(term);
     } else {
-      resize(el, ev, term, socket);
+      resize(ev, term);
     }
   }, false);
 
   el.addEventListener('mousedown', function(ev) {
-    swapIndex(el, term);
+    swapIndex(term);
 
     if (ev.target !== el) return;
 
-    drag(el, ev, term, socket);
+    cancel(ev);
+
+    drag(ev, term);
   }, false);
 }
 
-function drag(el, ev, term, socket) {
+function drag(ev, term) {
+  var el = term.wrapper;
+
   var drag = {
     left: el.offsetLeft,
     top: el.offsetTop,
@@ -113,8 +122,6 @@ function drag(el, ev, term, socket) {
   el.style.cursor = 'move';
   root.style.cursor = 'move';
 
-  selectDisable();
-
   var move = function(ev) {
     el.style.left =
       (drag.left + ev.pageX - drag.pageX) + 'px';
@@ -127,8 +134,6 @@ function drag(el, ev, term, socket) {
     el.style.cursor = '';
     root.style.cursor = '';
 
-    selectEnable();
-
     doc.removeEventListener('mousemove', move, false);
     doc.removeEventListener('mouseup', up, false);
   };
@@ -137,7 +142,9 @@ function drag(el, ev, term, socket) {
   doc.addEventListener('mouseup', up, false);
 }
 
-function resize(el, ev, term, socket) {
+function resize(ev, term) {
+  var el = term.wrapper;
+
   var resize = {
     x: ev.pageX,
     y: ev.pageY
@@ -147,8 +154,6 @@ function resize(el, ev, term, socket) {
   el.style.opacity = '0.70';
   el.style.cursor = 'se-resize';
   root.style.cursor = 'se-resize';
-
-  selectDisable();
 
   var move = function(ev) {
     var x, y;
@@ -179,8 +184,6 @@ function resize(el, ev, term, socket) {
     el.style.cursor = '';
     root.style.cursor = '';
 
-    selectEnable();
-
     doc.removeEventListener('mousemove', move, false);
     doc.removeEventListener('mouseup', up, false);
   };
@@ -189,7 +192,9 @@ function resize(el, ev, term, socket) {
   doc.addEventListener('mouseup', up, false);
 }
 
-function swapIndex(el, term) {
+function swapIndex(term) {
+  var el = term.wrapper;
+
   // focus the terminal
   term.focus();
 
@@ -204,17 +209,7 @@ function swapIndex(el, term) {
   }
 }
 
-function selectEnable() {
-  root.removeEventListener('selectstart', noop, false);
-  win.removeEventListener('select', noop, false);
-}
-
-function selectDisable() {
-  root.addEventListener('selectstart', noop, false);
-  win.addEventListener('select', noop, false);
-}
-
-function noop(ev) {
+function cancel(ev) {
   if (ev.preventDefault) ev.preventDefault();
   ev.returnValue = false;
   if (ev.stopPropagation) ev.stopPropagation();
