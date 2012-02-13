@@ -3,6 +3,7 @@
  * This file is responsible for starting processes
  * with pseudo-terminal file descriptors.
  *
+ * man pty
  * man tty_ioctl
  * man tcsetattr
  * man forkpty
@@ -38,11 +39,12 @@ using namespace std;
 using namespace node;
 using namespace v8;
 
-static Handle<Value> ForkPty(const Arguments&);
-static Handle<Value> ResizePty(const Arguments&);
+static Handle<Value> PtyFork(const Arguments&);
+static Handle<Value> PtyResize(const Arguments&);
+static int pty_nonblock(int fd);
 extern "C" void init(Handle<Object>);
 
-static Handle<Value> ForkPty(const Arguments& args) {
+static Handle<Value> PtyFork(const Arguments& args) {
   HandleScope scope;
 
   char *argv[] = { "sh", NULL };
@@ -97,6 +99,11 @@ static Handle<Value> ForkPty(const Arguments& args) {
     _exit(1);
   }
 
+  if (pty_nonblock(master) == -1) {
+    return ThrowException(Exception::Error(
+      String::New("Could not set master fd to nonblocking.")));
+  }
+
   Local<Object> obj = Object::New();
   obj->Set(String::New("fd"), Number::New(master));
   obj->Set(String::New("pid"), Number::New(pid));
@@ -108,7 +115,7 @@ static Handle<Value> ForkPty(const Arguments& args) {
  * Expose Resize Functionality
  */
 
-static Handle<Value> ResizePty(const Arguments& args) {
+static Handle<Value> PtyResize(const Arguments& args) {
   HandleScope scope;
 
   if (args.Length() > 0 && !args[0]->IsNumber()) {
@@ -143,8 +150,23 @@ static Handle<Value> ResizePty(const Arguments& args) {
   return Undefined();
 }
 
+/**
+ * FD to nonblocking
+ */
+
+static int pty_nonblock(int fd) {
+  int flags = fcntl(fd, F_GETFL, 0);
+  if (flags & O_NONBLOCK) return 0;
+  if (flags == -1) return -1;
+  return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
+
+/**
+ * Init
+ */
+
 extern "C" void init(Handle<Object> target) {
   HandleScope scope;
-  NODE_SET_METHOD(target, "fork", ForkPty);
-  NODE_SET_METHOD(target, "resize", ResizePty);
+  NODE_SET_METHOD(target, "fork", PtyFork);
+  NODE_SET_METHOD(target, "resize", PtyResize);
 }
