@@ -303,17 +303,8 @@ Term.prototype.bindMouse = function() {
     ctrl = ev.ctrlKey ? 16 : 0;
     mod = shift | meta | ctrl;
 
-    // final button value
+    // increment to SP
     button = (32 + (mod << 2)) + button;
-
-    // if wheel movement cant
-    // have a modifier:
-
-    // modifier on button
-    //button = button | (mod << 2);
-
-    // offset to SP
-    //button += 32;
 
     return button;
   }
@@ -335,9 +326,6 @@ Term.prototype.bindMouse = function() {
       el = el.parentNode;
     }
 
-    //x = ev.pageX - self.element.parentNode.offsetLeft;
-    //y = ev.pageY - self.element.parentNode.offsetTop;
-
     // convert to cols/rows
     w = self.element.clientWidth;
     h = self.element.clientHeight;
@@ -357,16 +345,16 @@ Term.prototype.bindMouse = function() {
     return { x: x, y: y };
   }
 
-  el.addEventListener('mousedown', click, true);
-  el.addEventListener('mouseup', click, true);
+  el.addEventListener('mousedown', click, false);
+  el.addEventListener('mouseup', click, false);
 
   if ('onmousewheel' in window) {
-    el.addEventListener('mousewheel', click, true);
+    el.addEventListener('mousewheel', click, false);
   } else {
-    el.addEventListener('DOMMouseScroll', click, true);
+    el.addEventListener('DOMMouseScroll', click, false);
   }
 
-  el.addEventListener('mousemove', move, true);
+  el.addEventListener('mousemove', move, false);
 
   // allow mousewheel scrolling in
   // the shell for example
@@ -381,9 +369,9 @@ Term.prototype.bindMouse = function() {
   }
 
   if ('onmousewheel' in window) {
-    el.addEventListener('mousewheel', wheel, true);
+    el.addEventListener('mousewheel', wheel, false);
   } else {
-    el.addEventListener('DOMMouseScroll', wheel, true);
+    el.addEventListener('DOMMouseScroll', wheel, false);
   }
 };
 
