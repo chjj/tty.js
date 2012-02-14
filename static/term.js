@@ -1619,7 +1619,7 @@ Term.prototype.reset = function() {
 // Cursor Up Ps Times (default = 1) (CUU).
 Term.prototype.cursorUp = function(params) {
   var param, row;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   this.y -= param;
   if (this.y < 0) this.y = 0;
@@ -1629,7 +1629,7 @@ Term.prototype.cursorUp = function(params) {
 // Cursor Down Ps Times (default = 1) (CUD).
 Term.prototype.cursorDown = function(params) {
   var param, row;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   this.y += param;
   if (this.y >= this.rows) {
@@ -1641,7 +1641,7 @@ Term.prototype.cursorDown = function(params) {
 // Cursor Forward Ps Times (default = 1) (CUF).
 Term.prototype.cursorForward = function(params) {
   var param, row;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   this.x += param;
   if (this.x >= this.cols - 1) {
@@ -1653,7 +1653,7 @@ Term.prototype.cursorForward = function(params) {
 // Cursor Backward Ps Times (default = 1) (CUB).
 Term.prototype.cursorBackward = function(params) {
   var param, row;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   this.x -= param;
   if (this.x < 0) this.x = 0;
@@ -1664,10 +1664,10 @@ Term.prototype.cursorBackward = function(params) {
 Term.prototype.cursorPos = function(params) {
   var param, row, col;
 
-  row = this.params[0] - 1;
+  row = params[0] - 1;
 
-  if (this.params.length >= 2) {
-    col = this.params[1] - 1;
+  if (params.length >= 2) {
+    col = params[1] - 1;
   } else {
     col = 0;
   }
@@ -1908,7 +1908,7 @@ Term.prototype.deviceStatus = function(params) {
     }
     return;
   }
-  switch (this.params[0]) {
+  switch (params[0]) {
     case 5:
       this.queueChars('\x1b[0n');
       break;
@@ -1930,7 +1930,7 @@ Term.prototype.deviceStatus = function(params) {
 // Insert Ps (Blank) Character(s) (default = 1) (ICH).
 Term.prototype.insertChars = function(params) {
   var param, row, j;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
   j = this.x;
@@ -1947,7 +1947,7 @@ Term.prototype.insertChars = function(params) {
 // Cursor Next Line Ps Times (default = 1) (CNL).
 Term.prototype.cursorNextLine = function(params) {
   var param, row;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   this.y += param;
   if (this.y >= this.rows) {
@@ -1961,7 +1961,7 @@ Term.prototype.cursorNextLine = function(params) {
 // Cursor Preceding Line Ps Times (default = 1) (CNL).
 Term.prototype.cursorPrecedingLine = function(params) {
   var param, row;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   this.y -= param;
   if (this.y < 0) this.y = 0;
@@ -1973,7 +1973,7 @@ Term.prototype.cursorPrecedingLine = function(params) {
 // Cursor Character Absolute  [column] (default = [row,1]) (CHA).
 Term.prototype.cursorCharAbsolute = function(params) {
   var param, row;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   this.x = param - 1;
 };
@@ -1982,7 +1982,7 @@ Term.prototype.cursorCharAbsolute = function(params) {
 // Insert Ps Line(s) (default = 1) (IL).
 Term.prototype.insertLines = function(params) {
   var param, row, j;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
 
@@ -2007,7 +2007,7 @@ Term.prototype.insertLines = function(params) {
 // Delete Ps Line(s) (default = 1) (DL).
 Term.prototype.deleteLines = function(params) {
   var param, row, j;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
 
@@ -2030,7 +2030,7 @@ Term.prototype.deleteLines = function(params) {
 // Delete Ps Character(s) (default = 1) (DCH).
 Term.prototype.deleteChars = function(params) {
   var param, row;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
   while (param--) {
@@ -2046,7 +2046,7 @@ Term.prototype.deleteChars = function(params) {
 // Erase Ps Character(s) (default = 1) (ECH).
 Term.prototype.eraseChars = function(params) {
   var param, row, j;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
   j = this.x;
@@ -2062,7 +2062,7 @@ Term.prototype.eraseChars = function(params) {
 //   [column] (default = [row,1]) (HPA).
 Term.prototype.charPosAbsolute = function(params) {
   var param, row;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   this.x = param - 1;
   if (this.x >= this.cols) {
@@ -2074,7 +2074,7 @@ Term.prototype.charPosAbsolute = function(params) {
 // Horizontal Position Relative
 Term.prototype.HPositionRelative = function(params) {
   var param, row;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   this.x += param;
   if (this.x >= this.cols - 1) {
@@ -2136,7 +2136,7 @@ Term.prototype.sendDeviceAttributes = function(params) {
 // Line Position Absolute  [row] (default = [1,column]) (VPA).
 Term.prototype.linePosAbsolute = function(params) {
   var param, row;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   this.y = param - 1;
   if (this.y >= this.rows) {
@@ -2147,7 +2147,7 @@ Term.prototype.linePosAbsolute = function(params) {
 // 145 65 e * VPR - Vertical Position Relative
 Term.prototype.VPositionRelative = function(params) {
   var param, row;
-  param = this.params[0];
+  param = params[0];
   if (param < 1) param = 1;
   this.y += param;
   if (this.y >= this.rows) {
@@ -2160,15 +2160,15 @@ Term.prototype.VPositionRelative = function(params) {
 //   Horizontal and Vertical Position [row;column] (default =
 //   [1,1]) (HVP).
 Term.prototype.HVPosition = function(params) {
-  if (this.params[0] < 1) this.params[0] = 1;
-  if (this.params[1] < 1) this.params[1] = 1;
+  if (params[0] < 1) params[0] = 1;
+  if (params[1] < 1) params[1] = 1;
 
-  this.y = this.params[0] - 1;
+  this.y = params[0] - 1;
   if (this.y >= this.rows) {
     this.y = this.rows - 1;
   }
 
-  this.x = this.params[1] - 1;
+  this.x = params[1] - 1;
   if (this.x >= this.cols) {
     this.x = this.cols - 1;
   }
@@ -2502,8 +2502,8 @@ Term.prototype.resetMode = function(params) {
 // CSI ? Pm r
 Term.prototype.setScrollRegion = function(params) {
   if (this.prefix === '?') return;
-  this.scrollTop = (this.params[0] || 1) - 1;
-  this.scrollBottom = (this.params[1] || this.rows) - 1;
+  this.scrollTop = (params[0] || 1) - 1;
+  this.scrollBottom = (params[1] || this.rows) - 1;
   this.x = 0;
   this.y = 0;
 };
@@ -2614,7 +2614,7 @@ Term.prototype.cursorBackwardTab = function(params) {
 
 // CSI Ps b  Repeat the preceding graphic character Ps times (REP).
 Term.prototype.repeatPrecedingCharacter = function(params) {
-  var param = this.params[0] || 1;
+  var param = params[0] || 1;
   var line = this.lines[this.ybase + this.y];
   var ch = line[this.x - 1] || ((this.defAttr << 16) | 32);
   while (param--) line[this.x++] = ch;
