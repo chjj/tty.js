@@ -1602,6 +1602,8 @@ Term.prototype.reverseIndex = function() {
     // add an extra one because we just added a line
     // maybe put this above
     this.lines.splice(this.rows - 1 + this.ybase - j + 1, 1);
+    this.refreshStart = 0;
+    this.refreshEnd = this.rows - 1;
   }
   this.state = normal;
 };
