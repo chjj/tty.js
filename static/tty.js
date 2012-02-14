@@ -35,6 +35,10 @@ socket.on('data', function(data, i) {
   terms[i].write(data);
 });
 
+socket.on('kill', function(i) {
+  destroyTerminal(terms[i]);
+});
+
 function requestTerminal() {
   var i = terms.length;
 
@@ -52,8 +56,7 @@ function requestTerminal() {
   socket.emit('create');
 }
 
-function killTerminal(term) {
-  socket.emit('kill', term.id);
+function destroyTerminal(term) {
   terms[term.id] = null; // don't splice!
   var wrap = term.element.parentNode;
   wrap.parentNode.removeChild(wrap);
@@ -89,7 +92,7 @@ function bindMouse(term) {
     cancel(ev);
 
     if (ev.ctrlKey || ev.altKey || ev.metaKey) {
-      killTerminal(term);
+      socket.emit('kill', term.id);
     } else {
       resize(ev, term);
     }
