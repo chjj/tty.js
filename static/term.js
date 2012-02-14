@@ -1443,7 +1443,14 @@ Term.prototype.keyDownHandler = function(ev) {
         if (ev.keyCode >= 65 && ev.keyCode <= 90) {
           str = String.fromCharCode(ev.keyCode - 64);
         } else if (ev.keyCode === 32) {
+          // NUL
           str = String.fromCharCode(0);
+        } else if (ev.keyCode >= 51 && ev.keyCode <= 55) {
+          // escape, file sep, group sep, record sep, unit sep
+          str = String.fromCharCode(ev.keyCode - 51 + 27);
+        } else if (ev.keyCode === 56) {
+          // delete
+          str = String.fromCharCode(127);
         }
       } else if ((!this.isMac && ev.altKey) || (this.isMac && ev.metaKey)) {
         if (ev.keyCode >= 65 && ev.keyCode <= 90) {
