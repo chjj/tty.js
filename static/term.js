@@ -826,441 +826,442 @@ Terminal.prototype.write = function(str) {
         // 0 - 9
         if (ch >= 48 && ch <= 57) {
           this.currentParam = this.currentParam * 10 + ch - 48;
-        } else {
-          // '$', '"', ' ', '\''
-          if (ch === 36 || ch === 34 || ch === 32 || ch === 39) {
-            this.postfix = str[i];
-            break;
-          }
-
-          this.params[this.params.length] = this.currentParam;
-          this.currentParam = 0;
-
-          // ';'
-          if (ch === 59) break;
-
-          this.state = normal;
-
-          switch (ch) {
-            // CSI Ps A
-            // Cursor Up Ps Times (default = 1) (CUU).
-            case 65:
-              this.cursorUp(this.params);
-              break;
-
-            // CSI Ps B
-            // Cursor Down Ps Times (default = 1) (CUD).
-            case 66:
-              this.cursorDown(this.params);
-              break;
-
-            // CSI Ps C
-            // Cursor Forward Ps Times (default = 1) (CUF).
-            case 67:
-              this.cursorForward(this.params);
-              break;
-
-            // CSI Ps D
-            // Cursor Backward Ps Times (default = 1) (CUB).
-            case 68:
-              this.cursorBackward(this.params);
-              break;
-
-            // CSI Ps ; Ps H
-            // Cursor Position [row;column] (default = [1,1]) (CUP).
-            case 72:
-              this.cursorPos(this.params);
-              break;
-
-            // CSI Ps J  Erase in Display (ED).
-            case 74:
-              this.eraseInDisplay(this.params);
-              break;
-
-            // CSI Ps K  Erase in Line (EL).
-            case 75:
-              this.eraseInLine(this.params);
-              break;
-
-            // CSI Pm m  Character Attributes (SGR).
-            case 109:
-              this.charAttributes(this.params);
-              break;
-
-            // CSI Ps n  Device Status Report (DSR).
-            case 110:
-              this.deviceStatus(this.params);
-              break;
-
-            /**
-             * Additions
-             */
-
-            // CSI Ps @
-            // Insert Ps (Blank) Character(s) (default = 1) (ICH).
-            case 64:
-              this.insertChars(this.params);
-              break;
-
-            // CSI Ps E
-            // Cursor Next Line Ps Times (default = 1) (CNL).
-            case 69:
-              this.cursorNextLine(this.params);
-              break;
-
-            // CSI Ps F
-            // Cursor Preceding Line Ps Times (default = 1) (CNL).
-            case 70:
-              this.cursorPrecedingLine(this.params);
-              break;
-
-            // CSI Ps G
-            // Cursor Character Absolute  [column] (default = [row,1]) (CHA).
-            case 71:
-              this.cursorCharAbsolute(this.params);
-              break;
-
-            // CSI Ps L
-            // Insert Ps Line(s) (default = 1) (IL).
-            case 76:
-              this.insertLines(this.params);
-              break;
-
-            // CSI Ps M
-            // Delete Ps Line(s) (default = 1) (DL).
-            case 77:
-              this.deleteLines(this.params);
-              break;
-
-            // CSI Ps P
-            // Delete Ps Character(s) (default = 1) (DCH).
-            case 80:
-              this.deleteChars(this.params);
-              break;
-
-            // CSI Ps X
-            // Erase Ps Character(s) (default = 1) (ECH).
-            case 88:
-              this.eraseChars(this.params);
-              break;
-
-            // CSI Pm `  Character Position Absolute
-            //   [column] (default = [row,1]) (HPA).
-            case 96:
-              this.charPosAbsolute(this.params);
-              break;
-
-            // 141 61 a * HPR -
-            // Horizontal Position Relative
-            case 97:
-              this.HPositionRelative(this.params);
-              break;
-
-            // CSI P s c
-            // Send Device Attributes (Primary DA).
-            // CSI > P s c
-            // Send Device Attributes (Secondary DA)
-            case 99:
-              this.sendDeviceAttributes(this.params);
-              break;
-
-            // CSI Pm d
-            // Line Position Absolute  [row] (default = [1,column]) (VPA).
-            case 100:
-              this.linePosAbsolute(this.params);
-              break;
-
-            // 145 65 e * VPR - Vertical Position Relative
-            case 101:
-              this.VPositionRelative(this.params);
-              break;
-
-            // CSI Ps ; Ps f
-            //   Horizontal and Vertical Position [row;column] (default =
-            //   [1,1]) (HVP).
-            case 102:
-              this.HVPosition(this.params);
-              break;
-
-            // CSI Pm h  Set Mode (SM).
-            // CSI ? Pm h - mouse escape codes, cursor escape codes
-            case 104:
-              this.setMode(this.params);
-              break;
-
-            // CSI Pm l  Reset Mode (RM).
-            // CSI ? Pm l
-            case 108:
-              this.resetMode(this.params);
-              break;
-
-            // CSI Ps ; Ps r
-            //   Set Scrolling Region [top;bottom] (default = full size of win-
-            //   dow) (DECSTBM).
-            // CSI ? Pm r
-            case 114:
-              this.setScrollRegion(this.params);
-              break;
-
-            // CSI s     Save cursor (ANSI.SYS).
-            case 115:
-              this.saveCursor(this.params);
-              break;
-
-            // CSI u     Restore cursor (ANSI.SYS).
-            case 117:
-              this.restoreCursor(this.params);
-              break;
-
-            /**
-             * Lesser Used
-             */
-
-            // CSI Ps I
-            // Cursor Forward Tabulation Ps tab stops (default = 1) (CHT).
-            case 73:
-              this.cursorForwardTab(this.params);
-              break;
-
-            // CSI Ps S  Scroll up Ps lines (default = 1) (SU).
-            case 83:
-              this.scrollUp(this.params);
-              break;
-
-            // CSI Ps T  Scroll down Ps lines (default = 1) (SD).
-            // CSI Ps ; Ps ; Ps ; Ps ; Ps T
-            // CSI > Ps; Ps T
-            case 84:
-              // if (this.prefix === '>') {
-              //   this.resetTitleModes(this.params);
-              //   break;
-              // }
-              // if (this.params.length > 1) {
-              //   this.initMouseTracking(this.params);
-              //   break;
-              // }
-              this.scrollDown(this.params);
-              break;
-
-            // CSI Ps Z
-            // Cursor Backward Tabulation Ps tab stops (default = 1) (CBT).
-            case 90:
-              this.cursorBackwardTab(this.params);
-              break;
-
-            // CSI Ps b  Repeat the preceding graphic character Ps times (REP).
-            case 98:
-              this.repeatPrecedingCharacter(this.params);
-              break;
-
-            // CSI Ps g  Tab Clear (TBC).
-            // case 103:
-            //   this.tabClear(this.params);
-            //   break;
-
-            // CSI Pm i  Media Copy (MC).
-            // CSI ? Pm i
-            // case 105:
-            //   this.mediaCopy(this.params);
-            //   break;
-
-            // CSI Pm m  Character Attributes (SGR).
-            // CSI > Ps; Ps m
-            // case 109: // duplicate
-            //   if (this.prefix === '>') {
-            //     this.setResources(this.params);
-            //   } else {
-            //     this.charAttributes(this.params);
-            //   }
-            //   break;
-
-            // CSI Ps n  Device Status Report (DSR).
-            // CSI > Ps n
-            // case 110: // duplicate
-            //   if (this.prefix === '>') {
-            //     this.disableModifiers(this.params);
-            //   } else {
-            //     this.deviceStatus(this.params);
-            //   }
-            //   break;
-
-            // CSI > Ps p  Set pointer mode.
-            // CSI ! p   Soft terminal reset (DECSTR).
-            // CSI Ps$ p
-            //   Request ANSI mode (DECRQM).
-            // CSI ? Ps$ p
-            //   Request DEC private mode (DECRQM).
-            // CSI Ps ; Ps " p
-            case 112:
-              switch (this.prefix) {
-                // case '>':
-                //   this.setPointerMode(this.params);
-                //   break;
-                case '!':
-                  this.softReset(this.params);
-                  break;
-                // case '?':
-                //   if (this.postfix === '$') {
-                //     this.requestPrivateMode(this.params);
-                //   }
-                //   break;
-                // default:
-                //   if (this.postfix === '"') {
-                //     this.setConformanceLevel(this.params);
-                //   } else if (this.postfix === '$') {
-                //     this.requestAnsiMode(this.params);
-                //   }
-                //   break;
-              }
-              break;
-
-            // CSI Ps q  Load LEDs (DECLL).
-            // CSI Ps SP q
-            // CSI Ps " q
-            // case 113:
-            //   if (this.postfix === ' ') {
-            //     this.setCursorStyle(this.params);
-            //     break;
-            //   }
-            //   if (this.postfix === '"') {
-            //     this.setCharProtectionAttr(this.params);
-            //     break;
-            //   }
-            //   this.loadLEDs(this.params);
-            //   break;
-
-            // CSI Ps ; Ps r
-            //   Set Scrolling Region [top;bottom] (default = full size of win-
-            //   dow) (DECSTBM).
-            // CSI ? Pm r
-            // CSI Pt; Pl; Pb; Pr; Ps$ r
-            // case 114: // duplicate
-            //   if (this.prefix === '?') {
-            //     this.restorePrivateValues(this.params);
-            //   } else if (this.postfix === '$') {
-            //     this.setAttrInRectangle(this.params);
-            //   } else {
-            //     this.setScrollRegion(this.params);
-            //   }
-            //   break;
-
-            // CSI s     Save cursor (ANSI.SYS).
-            // CSI ? Pm s
-            // case 115: // duplicate
-            //   if (this.prefix === '?') {
-            //     this.savePrivateValues(this.params);
-            //   } else {
-            //     this.saveCursor(this.params);
-            //   }
-            //   break;
-
-            // CSI Ps ; Ps ; Ps t
-            // CSI Pt; Pl; Pb; Pr; Ps$ t
-            // CSI > Ps; Ps t
-            // CSI Ps SP t
-            // case 116:
-            //   if (this.postfix === '$') {
-            //     this.reverseAttrInRectangle(this.params);
-            //   } else if (this.postfix === ' ') {
-            //     this.setWarningBellVolume(this.params);
-            //   } else {
-            //     if (this.prefix === '>') {
-            //       this.setTitleModeFeature(this.params);
-            //     } else {
-            //       this.manipulateWindow(this.params);
-            //     }
-            //   }
-            //   break;
-
-            // CSI u     Restore cursor (ANSI.SYS).
-            // CSI Ps SP u
-            // case 117: // duplicate
-            //   if (this.postfix === ' ') {
-            //     this.setMarginBellVolume(this.params);
-            //   } else {
-            //     this.restoreCursor(this.params);
-            //   }
-            //   break;
-
-            // CSI Pt; Pl; Pb; Pr; Pp; Pt; Pl; Pp$ v
-            // case 118:
-            //   if (this.postfix === '$') {
-            //     this.copyRectagle(this.params);
-            //   }
-            //   break;
-
-            // CSI Pt ; Pl ; Pb ; Pr ' w
-            // case 119:
-            //   if (this.postfix === '\'') {
-            //     this.enableFilterRectangle(this.params);
-            //   }
-            //   break;
-
-            // CSI Ps x  Request Terminal Parameters (DECREQTPARM).
-            // CSI Ps x  Select Attribute Change Extent (DECSACE).
-            // CSI Pc; Pt; Pl; Pb; Pr$ x
-            // case 120:
-            //   if (this.postfix === '$') {
-            //     this.fillRectangle(this.params);
-            //   } else {
-            //     this.requestParameters(this.params);
-            //     //this.__(this.params);
-            //   }
-            //   break;
-
-            // CSI Ps ; Pu ' z
-            // CSI Pt; Pl; Pb; Pr$ z
-            // case 122:
-            //   if (this.postfix === '\'') {
-            //     this.enableLocatorReporting(this.params);
-            //   } else if (this.postfix === '$') {
-            //     this.eraseRectangle(this.params);
-            //   }
-            //   break;
-
-            // CSI Pm ' {
-            // CSI Pt; Pl; Pb; Pr$ {
-            // case 123:
-            //   if (this.postfix === '\'') {
-            //     this.setLocatorEvents(this.params);
-            //   } else if (this.postfix === '$') {
-            //     this.selectiveEraseRectangle(this.params);
-            //   }
-            //   break;
-
-            // CSI Ps ' |
-            // case 124:
-            //   if (this.postfix === '\'') {
-            //     this.requestLocatorPosition(this.params);
-            //   }
-            //   break;
-
-            // CSI P m SP }
-            // Insert P s Column(s) (default = 1) (DECIC), VT420 and up.
-            // case 125:
-            //   if (this.postfix === ' ') {
-            //     this.insertColumns(this.params);
-            //   }
-            //   break;
-
-            // CSI P m SP ~
-            // Delete P s Column(s) (default = 1) (DECDC), VT420 and up
-            // case 126:
-            //   if (this.postfix === ' ') {
-            //     this.deleteColumns(this.params);
-            //   }
-            //   break;
-
-            default:
-              console.log(
-                'Unknown CSI code: %s',
-                str[i], this.params);
-              break;
-          }
-
-          this.prefix = '';
-          this.postfix = '';
+          break;
         }
+
+        // '$', '"', ' ', '\''
+        if (ch === 36 || ch === 34 || ch === 32 || ch === 39) {
+          this.postfix = str[i];
+          break;
+        }
+
+        this.params[this.params.length] = this.currentParam;
+        this.currentParam = 0;
+
+        // ';'
+        if (ch === 59) break;
+
+        this.state = normal;
+
+        switch (ch) {
+          // CSI Ps A
+          // Cursor Up Ps Times (default = 1) (CUU).
+          case 65:
+            this.cursorUp(this.params);
+            break;
+
+          // CSI Ps B
+          // Cursor Down Ps Times (default = 1) (CUD).
+          case 66:
+            this.cursorDown(this.params);
+            break;
+
+          // CSI Ps C
+          // Cursor Forward Ps Times (default = 1) (CUF).
+          case 67:
+            this.cursorForward(this.params);
+            break;
+
+          // CSI Ps D
+          // Cursor Backward Ps Times (default = 1) (CUB).
+          case 68:
+            this.cursorBackward(this.params);
+            break;
+
+          // CSI Ps ; Ps H
+          // Cursor Position [row;column] (default = [1,1]) (CUP).
+          case 72:
+            this.cursorPos(this.params);
+            break;
+
+          // CSI Ps J  Erase in Display (ED).
+          case 74:
+            this.eraseInDisplay(this.params);
+            break;
+
+          // CSI Ps K  Erase in Line (EL).
+          case 75:
+            this.eraseInLine(this.params);
+            break;
+
+          // CSI Pm m  Character Attributes (SGR).
+          case 109:
+            this.charAttributes(this.params);
+            break;
+
+          // CSI Ps n  Device Status Report (DSR).
+          case 110:
+            this.deviceStatus(this.params);
+            break;
+
+          /**
+           * Additions
+           */
+
+          // CSI Ps @
+          // Insert Ps (Blank) Character(s) (default = 1) (ICH).
+          case 64:
+            this.insertChars(this.params);
+            break;
+
+          // CSI Ps E
+          // Cursor Next Line Ps Times (default = 1) (CNL).
+          case 69:
+            this.cursorNextLine(this.params);
+            break;
+
+          // CSI Ps F
+          // Cursor Preceding Line Ps Times (default = 1) (CNL).
+          case 70:
+            this.cursorPrecedingLine(this.params);
+            break;
+
+          // CSI Ps G
+          // Cursor Character Absolute  [column] (default = [row,1]) (CHA).
+          case 71:
+            this.cursorCharAbsolute(this.params);
+            break;
+
+          // CSI Ps L
+          // Insert Ps Line(s) (default = 1) (IL).
+          case 76:
+            this.insertLines(this.params);
+            break;
+
+          // CSI Ps M
+          // Delete Ps Line(s) (default = 1) (DL).
+          case 77:
+            this.deleteLines(this.params);
+            break;
+
+          // CSI Ps P
+          // Delete Ps Character(s) (default = 1) (DCH).
+          case 80:
+            this.deleteChars(this.params);
+            break;
+
+          // CSI Ps X
+          // Erase Ps Character(s) (default = 1) (ECH).
+          case 88:
+            this.eraseChars(this.params);
+            break;
+
+          // CSI Pm `  Character Position Absolute
+          //   [column] (default = [row,1]) (HPA).
+          case 96:
+            this.charPosAbsolute(this.params);
+            break;
+
+          // 141 61 a * HPR -
+          // Horizontal Position Relative
+          case 97:
+            this.HPositionRelative(this.params);
+            break;
+
+          // CSI P s c
+          // Send Device Attributes (Primary DA).
+          // CSI > P s c
+          // Send Device Attributes (Secondary DA)
+          case 99:
+            this.sendDeviceAttributes(this.params);
+            break;
+
+          // CSI Pm d
+          // Line Position Absolute  [row] (default = [1,column]) (VPA).
+          case 100:
+            this.linePosAbsolute(this.params);
+            break;
+
+          // 145 65 e * VPR - Vertical Position Relative
+          case 101:
+            this.VPositionRelative(this.params);
+            break;
+
+          // CSI Ps ; Ps f
+          //   Horizontal and Vertical Position [row;column] (default =
+          //   [1,1]) (HVP).
+          case 102:
+            this.HVPosition(this.params);
+            break;
+
+          // CSI Pm h  Set Mode (SM).
+          // CSI ? Pm h - mouse escape codes, cursor escape codes
+          case 104:
+            this.setMode(this.params);
+            break;
+
+          // CSI Pm l  Reset Mode (RM).
+          // CSI ? Pm l
+          case 108:
+            this.resetMode(this.params);
+            break;
+
+          // CSI Ps ; Ps r
+          //   Set Scrolling Region [top;bottom] (default = full size of win-
+          //   dow) (DECSTBM).
+          // CSI ? Pm r
+          case 114:
+            this.setScrollRegion(this.params);
+            break;
+
+          // CSI s     Save cursor (ANSI.SYS).
+          case 115:
+            this.saveCursor(this.params);
+            break;
+
+          // CSI u     Restore cursor (ANSI.SYS).
+          case 117:
+            this.restoreCursor(this.params);
+            break;
+
+          /**
+           * Lesser Used
+           */
+
+          // CSI Ps I
+          // Cursor Forward Tabulation Ps tab stops (default = 1) (CHT).
+          case 73:
+            this.cursorForwardTab(this.params);
+            break;
+
+          // CSI Ps S  Scroll up Ps lines (default = 1) (SU).
+          case 83:
+            this.scrollUp(this.params);
+            break;
+
+          // CSI Ps T  Scroll down Ps lines (default = 1) (SD).
+          // CSI Ps ; Ps ; Ps ; Ps ; Ps T
+          // CSI > Ps; Ps T
+          case 84:
+            // if (this.prefix === '>') {
+            //   this.resetTitleModes(this.params);
+            //   break;
+            // }
+            // if (this.params.length > 1) {
+            //   this.initMouseTracking(this.params);
+            //   break;
+            // }
+            this.scrollDown(this.params);
+            break;
+
+          // CSI Ps Z
+          // Cursor Backward Tabulation Ps tab stops (default = 1) (CBT).
+          case 90:
+            this.cursorBackwardTab(this.params);
+            break;
+
+          // CSI Ps b  Repeat the preceding graphic character Ps times (REP).
+          case 98:
+            this.repeatPrecedingCharacter(this.params);
+            break;
+
+          // CSI Ps g  Tab Clear (TBC).
+          // case 103:
+          //   this.tabClear(this.params);
+          //   break;
+
+          // CSI Pm i  Media Copy (MC).
+          // CSI ? Pm i
+          // case 105:
+          //   this.mediaCopy(this.params);
+          //   break;
+
+          // CSI Pm m  Character Attributes (SGR).
+          // CSI > Ps; Ps m
+          // case 109: // duplicate
+          //   if (this.prefix === '>') {
+          //     this.setResources(this.params);
+          //   } else {
+          //     this.charAttributes(this.params);
+          //   }
+          //   break;
+
+          // CSI Ps n  Device Status Report (DSR).
+          // CSI > Ps n
+          // case 110: // duplicate
+          //   if (this.prefix === '>') {
+          //     this.disableModifiers(this.params);
+          //   } else {
+          //     this.deviceStatus(this.params);
+          //   }
+          //   break;
+
+          // CSI > Ps p  Set pointer mode.
+          // CSI ! p   Soft terminal reset (DECSTR).
+          // CSI Ps$ p
+          //   Request ANSI mode (DECRQM).
+          // CSI ? Ps$ p
+          //   Request DEC private mode (DECRQM).
+          // CSI Ps ; Ps " p
+          case 112:
+            switch (this.prefix) {
+              // case '>':
+              //   this.setPointerMode(this.params);
+              //   break;
+              case '!':
+                this.softReset(this.params);
+                break;
+              // case '?':
+              //   if (this.postfix === '$') {
+              //     this.requestPrivateMode(this.params);
+              //   }
+              //   break;
+              // default:
+              //   if (this.postfix === '"') {
+              //     this.setConformanceLevel(this.params);
+              //   } else if (this.postfix === '$') {
+              //     this.requestAnsiMode(this.params);
+              //   }
+              //   break;
+            }
+            break;
+
+          // CSI Ps q  Load LEDs (DECLL).
+          // CSI Ps SP q
+          // CSI Ps " q
+          // case 113:
+          //   if (this.postfix === ' ') {
+          //     this.setCursorStyle(this.params);
+          //     break;
+          //   }
+          //   if (this.postfix === '"') {
+          //     this.setCharProtectionAttr(this.params);
+          //     break;
+          //   }
+          //   this.loadLEDs(this.params);
+          //   break;
+
+          // CSI Ps ; Ps r
+          //   Set Scrolling Region [top;bottom] (default = full size of win-
+          //   dow) (DECSTBM).
+          // CSI ? Pm r
+          // CSI Pt; Pl; Pb; Pr; Ps$ r
+          // case 114: // duplicate
+          //   if (this.prefix === '?') {
+          //     this.restorePrivateValues(this.params);
+          //   } else if (this.postfix === '$') {
+          //     this.setAttrInRectangle(this.params);
+          //   } else {
+          //     this.setScrollRegion(this.params);
+          //   }
+          //   break;
+
+          // CSI s     Save cursor (ANSI.SYS).
+          // CSI ? Pm s
+          // case 115: // duplicate
+          //   if (this.prefix === '?') {
+          //     this.savePrivateValues(this.params);
+          //   } else {
+          //     this.saveCursor(this.params);
+          //   }
+          //   break;
+
+          // CSI Ps ; Ps ; Ps t
+          // CSI Pt; Pl; Pb; Pr; Ps$ t
+          // CSI > Ps; Ps t
+          // CSI Ps SP t
+          // case 116:
+          //   if (this.postfix === '$') {
+          //     this.reverseAttrInRectangle(this.params);
+          //   } else if (this.postfix === ' ') {
+          //     this.setWarningBellVolume(this.params);
+          //   } else {
+          //     if (this.prefix === '>') {
+          //       this.setTitleModeFeature(this.params);
+          //     } else {
+          //       this.manipulateWindow(this.params);
+          //     }
+          //   }
+          //   break;
+
+          // CSI u     Restore cursor (ANSI.SYS).
+          // CSI Ps SP u
+          // case 117: // duplicate
+          //   if (this.postfix === ' ') {
+          //     this.setMarginBellVolume(this.params);
+          //   } else {
+          //     this.restoreCursor(this.params);
+          //   }
+          //   break;
+
+          // CSI Pt; Pl; Pb; Pr; Pp; Pt; Pl; Pp$ v
+          // case 118:
+          //   if (this.postfix === '$') {
+          //     this.copyRectagle(this.params);
+          //   }
+          //   break;
+
+          // CSI Pt ; Pl ; Pb ; Pr ' w
+          // case 119:
+          //   if (this.postfix === '\'') {
+          //     this.enableFilterRectangle(this.params);
+          //   }
+          //   break;
+
+          // CSI Ps x  Request Terminal Parameters (DECREQTPARM).
+          // CSI Ps x  Select Attribute Change Extent (DECSACE).
+          // CSI Pc; Pt; Pl; Pb; Pr$ x
+          // case 120:
+          //   if (this.postfix === '$') {
+          //     this.fillRectangle(this.params);
+          //   } else {
+          //     this.requestParameters(this.params);
+          //     //this.__(this.params);
+          //   }
+          //   break;
+
+          // CSI Ps ; Pu ' z
+          // CSI Pt; Pl; Pb; Pr$ z
+          // case 122:
+          //   if (this.postfix === '\'') {
+          //     this.enableLocatorReporting(this.params);
+          //   } else if (this.postfix === '$') {
+          //     this.eraseRectangle(this.params);
+          //   }
+          //   break;
+
+          // CSI Pm ' {
+          // CSI Pt; Pl; Pb; Pr$ {
+          // case 123:
+          //   if (this.postfix === '\'') {
+          //     this.setLocatorEvents(this.params);
+          //   } else if (this.postfix === '$') {
+          //     this.selectiveEraseRectangle(this.params);
+          //   }
+          //   break;
+
+          // CSI Ps ' |
+          // case 124:
+          //   if (this.postfix === '\'') {
+          //     this.requestLocatorPosition(this.params);
+          //   }
+          //   break;
+
+          // CSI P m SP }
+          // Insert P s Column(s) (default = 1) (DECIC), VT420 and up.
+          // case 125:
+          //   if (this.postfix === ' ') {
+          //     this.insertColumns(this.params);
+          //   }
+          //   break;
+
+          // CSI P m SP ~
+          // Delete P s Column(s) (default = 1) (DECDC), VT420 and up
+          // case 126:
+          //   if (this.postfix === ' ') {
+          //     this.deleteColumns(this.params);
+          //   }
+          //   break;
+
+          default:
+            console.log(
+              'Unknown CSI code: %s',
+              str[i], this.params);
+            break;
+        }
+
+        this.prefix = '';
+        this.postfix = '';
         break;
     }
   }
