@@ -149,8 +149,8 @@ function resize(ev, term) {
   var el = term.wrapper;
 
   var resize = {
-    x: ev.pageX,
-    y: ev.pageY
+    w: el.offsetWidth,
+    h: el.offsetHeight
   };
 
   el.style.overflow = 'hidden';
@@ -169,10 +169,8 @@ function resize(ev, term) {
   var up = function(ev) {
     var x, y;
 
-    x = ev.pageX - resize.x + term.element.offsetWidth;
-    y = ev.pageY - resize.y + term.element.offsetHeight;
-    x = x / term.element.offsetWidth;
-    y = y / term.element.offsetHeight;
+    x = el.offsetWidth / resize.w;
+    y = el.offsetHeight / resize.h;
     x = (x * term.cols) | 0;
     y = (y * term.rows) | 0;
 
