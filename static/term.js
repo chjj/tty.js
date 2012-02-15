@@ -44,7 +44,7 @@ var normal = 0
  * Terminal
  */
 
-var Term = function(cols, rows, handler) {
+var Terminal = function(cols, rows, handler) {
   this.cols = cols;
   this.rows = rows;
   this.handler = handler;
@@ -113,29 +113,29 @@ var Term = function(cols, rows, handler) {
  * Focused Terminal
  */
 
-Term.focus = null;
+Terminal.focus = null;
 
-Term.prototype.focus = function() {
-  if (Term.focus) Term.focus.cursorHidden = true;
+Terminal.prototype.focus = function() {
+  if (Terminal.focus) Terminal.focus.cursorHidden = true;
   this.cursorHidden = false;
-  Term.focus = this;
+  Terminal.focus = this;
 };
 
 /**
  * Global Events for key handling
  */
 
-Term.bindKeys = function() {
-  if (Term.focus) return;
+Terminal.bindKeys = function() {
+  if (Terminal.focus) return;
 
   // We could put an "if (Term.focus)" check
   // here, but it shouldn't be necessary.
   document.addEventListener('keydown', function(key) {
-    return Term.focus.keyDownHandler(key);
+    return Terminal.focus.keyDownHandler(key);
   }, true);
 
   document.addEventListener('keypress', function(key) {
-    return Term.focus.keyPressHandler(key);
+    return Terminal.focus.keyPressHandler(key);
   }, true);
 };
 
@@ -143,7 +143,7 @@ Term.bindKeys = function() {
  * Open Terminal
  */
 
-Term.prototype.open = function() {
+Terminal.prototype.open = function() {
   var self = this
     , i = 0
     , div;
@@ -163,8 +163,8 @@ Term.prototype.open = function() {
 
   this.refresh(0, this.rows - 1);
 
-  Term.bindKeys();
-  Term.focus = this;
+  Terminal.bindKeys();
+  Terminal.focus = this;
 
   setInterval(function() {
     self.cursorBlink();
@@ -194,7 +194,7 @@ Term.prototype.open = function() {
 //   button.c, charproc.c, misc.c
 // Relevant functions in xterm/button.c:
 //   BtnCode, EmitButtonCode, EditorButton, SendMousePosition
-Term.prototype.bindMouse = function() {
+Terminal.prototype.bindMouse = function() {
   var el = this.element
     , self = this
     , pressed;
@@ -375,7 +375,7 @@ Term.prototype.bindMouse = function() {
   }
 };
 
-Term.prototype.refresh = function(start, end) {
+Terminal.prototype.refresh = function(start, end) {
   var element
     , x
     , y
@@ -484,19 +484,19 @@ Term.prototype.refresh = function(start, end) {
   }
 };
 
-Term.prototype.cursorBlink = function() {
+Terminal.prototype.cursorBlink = function() {
   this.cursorState ^= 1;
   this.refresh(this.y, this.y);
 };
 
-Term.prototype.showCursor = function() {
+Terminal.prototype.showCursor = function() {
   if (!this.cursorState) {
     this.cursorState = 1;
     this.refresh(this.y, this.y);
   }
 };
 
-Term.prototype.scroll = function() {
+Terminal.prototype.scroll = function() {
   var line, x, ch, row;
 
   if (this.currentHeight < this.totalHeight) {
@@ -538,7 +538,7 @@ Term.prototype.scroll = function() {
   }
 };
 
-Term.prototype.scrollDisp = function(disp) {
+Terminal.prototype.scrollDisp = function(disp) {
   var i, row;
 
   if (disp >= 0) {
@@ -569,7 +569,7 @@ Term.prototype.scrollDisp = function(disp) {
   this.refresh(0, this.rows - 1);
 };
 
-Term.prototype.write = function(str) {
+Terminal.prototype.write = function(str) {
   // console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
 
   var l = str.length
@@ -1272,11 +1272,11 @@ Term.prototype.write = function(str) {
   }
 };
 
-Term.prototype.writeln = function(str) {
+Terminal.prototype.writeln = function(str) {
   this.write(str + '\r\n');
 };
 
-Term.prototype.keyDownHandler = function(ev) {
+Terminal.prototype.keyDownHandler = function(ev) {
   var str = '';
   switch (ev.keyCode) {
     // backspace
@@ -1464,7 +1464,7 @@ Term.prototype.keyDownHandler = function(ev) {
   }
 };
 
-Term.prototype.keyPressHandler = function(ev) {
+Terminal.prototype.keyPressHandler = function(ev) {
   var str = ''
     , key;
 
@@ -1502,7 +1502,7 @@ Term.prototype.keyPressHandler = function(ev) {
   }
 };
 
-Term.prototype.queueChars = function(str) {
+Terminal.prototype.queueChars = function(str) {
   var self = this;
 
   this.outputQueue += str;
@@ -1514,14 +1514,14 @@ Term.prototype.queueChars = function(str) {
   }
 };
 
-Term.prototype.outputHandler = function() {
+Terminal.prototype.outputHandler = function() {
   if (this.outputQueue) {
     this.handler(this.outputQueue);
     this.outputQueue = '';
   }
 };
 
-Term.prototype.bell = function() {
+Terminal.prototype.bell = function() {
   if (!this.useBell) return;
   var self = this;
   this.element.style.borderColor = 'white';
@@ -1530,7 +1530,7 @@ Term.prototype.bell = function() {
   }, 10);
 };
 
-Term.prototype.resize = function(x, y) {
+Terminal.prototype.resize = function(x, y) {
   var line
     , el
     , i
@@ -1606,12 +1606,12 @@ Term.prototype.resize = function(x, y) {
   this.normal = null;
 };
 
-Term.prototype.getRows = function(y) {
+Terminal.prototype.getRows = function(y) {
   this.refreshStart = Math.min(this.refreshStart, y);
   this.refreshEnd = Math.max(this.refreshEnd, y);
 };
 
-Term.prototype.eraseLine = function(x, y) {
+Terminal.prototype.eraseLine = function(x, y) {
   var line, i, ch, row;
 
   row = this.ybase + y;
@@ -1633,7 +1633,7 @@ Term.prototype.eraseLine = function(x, y) {
   this.getRows(y);
 };
 
-Term.prototype.blankLine = function(cur) {
+Terminal.prototype.blankLine = function(cur) {
   var attr = cur
     ? this.curAttr
     : this.defAttr;
@@ -1654,7 +1654,7 @@ Term.prototype.blankLine = function(cur) {
  */
 
 // ESC D Index (IND is 0x84).
-Term.prototype.index = function() {
+Terminal.prototype.index = function() {
   this.y++;
   if (this.y >= this.scrollBottom + 1) {
     this.y--;
@@ -1666,7 +1666,7 @@ Term.prototype.index = function() {
 };
 
 // ESC M Reverse Index (RI is 0x8d).
-Term.prototype.reverseIndex = function() {
+Terminal.prototype.reverseIndex = function() {
   var j;
   this.y--;
   if (this.y < this.scrollTop) {
@@ -1685,8 +1685,8 @@ Term.prototype.reverseIndex = function() {
 };
 
 // ESC c Full Reset (RIS).
-Term.prototype.reset = function() {
-  Term.call(this, this.cols, this.rows, this.handler);
+Terminal.prototype.reset = function() {
+  Terminal.call(this, this.cols, this.rows, this.handler);
 };
 
 /**
@@ -1695,7 +1695,7 @@ Term.prototype.reset = function() {
 
 // CSI Ps A
 // Cursor Up Ps Times (default = 1) (CUU).
-Term.prototype.cursorUp = function(params) {
+Terminal.prototype.cursorUp = function(params) {
   var param, row;
   param = params[0];
   if (param < 1) param = 1;
@@ -1705,7 +1705,7 @@ Term.prototype.cursorUp = function(params) {
 
 // CSI Ps B
 // Cursor Down Ps Times (default = 1) (CUD).
-Term.prototype.cursorDown = function(params) {
+Terminal.prototype.cursorDown = function(params) {
   var param, row;
   param = params[0];
   if (param < 1) param = 1;
@@ -1717,7 +1717,7 @@ Term.prototype.cursorDown = function(params) {
 
 // CSI Ps C
 // Cursor Forward Ps Times (default = 1) (CUF).
-Term.prototype.cursorForward = function(params) {
+Terminal.prototype.cursorForward = function(params) {
   var param, row;
   param = params[0];
   if (param < 1) param = 1;
@@ -1729,7 +1729,7 @@ Term.prototype.cursorForward = function(params) {
 
 // CSI Ps D
 // Cursor Backward Ps Times (default = 1) (CUB).
-Term.prototype.cursorBackward = function(params) {
+Terminal.prototype.cursorBackward = function(params) {
   var param, row;
   param = params[0];
   if (param < 1) param = 1;
@@ -1739,7 +1739,7 @@ Term.prototype.cursorBackward = function(params) {
 
 // CSI Ps ; Ps H
 // Cursor Position [row;column] (default = [1,1]) (CUP).
-Term.prototype.cursorPos = function(params) {
+Terminal.prototype.cursorPos = function(params) {
   var param, row, col;
 
   row = params[0] - 1;
@@ -1776,7 +1776,7 @@ Term.prototype.cursorPos = function(params) {
 //     Ps = 0  -> Selective Erase Below (default).
 //     Ps = 1  -> Selective Erase Above.
 //     Ps = 2  -> Selective Erase All.
-Term.prototype.eraseInDisplay = function(params) {
+Terminal.prototype.eraseInDisplay = function(params) {
   var param, row, j;
   switch (params[0] || 0) {
     case 0:
@@ -1811,7 +1811,7 @@ Term.prototype.eraseInDisplay = function(params) {
 //     Ps = 0  -> Selective Erase to Right (default).
 //     Ps = 1  -> Selective Erase to Left.
 //     Ps = 2  -> Selective Erase All.
-Term.prototype.eraseInLine = function(params) {
+Terminal.prototype.eraseInLine = function(params) {
   switch (params[0] || 0) {
     case 0:
       this.eraseLine(this.x, this.y);
@@ -1899,7 +1899,7 @@ Term.prototype.eraseInLine = function(params) {
 //     Ps.
 //     Ps = 4 8  ; 5  ; Ps -> Set background color to the second
 //     Ps.
-Term.prototype.charAttributes = function(params) {
+Terminal.prototype.charAttributes = function(params) {
   var i, p;
   if (params.length === 0) {
     this.curAttr = this.defAttr;
@@ -1956,7 +1956,7 @@ Term.prototype.charAttributes = function(params) {
 //     Ps = 5 3  -> Report Locator status as
 //   CSI ? 5 3  n  Locator available, if compiled-in, or
 //   CSI ? 5 0  n  No Locator, if not.
-Term.prototype.deviceStatus = function(params) {
+Terminal.prototype.deviceStatus = function(params) {
   if (this.prefix === '?') {
     // modern xterm doesnt seem to
     // respond to any of these except ?6, 6, and 5
@@ -2006,7 +2006,7 @@ Term.prototype.deviceStatus = function(params) {
 
 // CSI Ps @
 // Insert Ps (Blank) Character(s) (default = 1) (ICH).
-Term.prototype.insertChars = function(params) {
+Terminal.prototype.insertChars = function(params) {
   var param, row, j;
   param = params[0];
   if (param < 1) param = 1;
@@ -2023,7 +2023,7 @@ Term.prototype.insertChars = function(params) {
 
 // CSI Ps E
 // Cursor Next Line Ps Times (default = 1) (CNL).
-Term.prototype.cursorNextLine = function(params) {
+Terminal.prototype.cursorNextLine = function(params) {
   var param, row;
   param = params[0];
   if (param < 1) param = 1;
@@ -2037,7 +2037,7 @@ Term.prototype.cursorNextLine = function(params) {
 
 // CSI Ps F
 // Cursor Preceding Line Ps Times (default = 1) (CNL).
-Term.prototype.cursorPrecedingLine = function(params) {
+Terminal.prototype.cursorPrecedingLine = function(params) {
   var param, row;
   param = params[0];
   if (param < 1) param = 1;
@@ -2049,7 +2049,7 @@ Term.prototype.cursorPrecedingLine = function(params) {
 
 // CSI Ps G
 // Cursor Character Absolute  [column] (default = [row,1]) (CHA).
-Term.prototype.cursorCharAbsolute = function(params) {
+Terminal.prototype.cursorCharAbsolute = function(params) {
   var param, row;
   param = params[0];
   if (param < 1) param = 1;
@@ -2058,7 +2058,7 @@ Term.prototype.cursorCharAbsolute = function(params) {
 
 // CSI Ps L
 // Insert Ps Line(s) (default = 1) (IL).
-Term.prototype.insertLines = function(params) {
+Terminal.prototype.insertLines = function(params) {
   var param, row, j;
   param = params[0];
   if (param < 1) param = 1;
@@ -2083,7 +2083,7 @@ Term.prototype.insertLines = function(params) {
 
 // CSI Ps M
 // Delete Ps Line(s) (default = 1) (DL).
-Term.prototype.deleteLines = function(params) {
+Terminal.prototype.deleteLines = function(params) {
   var param, row, j;
   param = params[0];
   if (param < 1) param = 1;
@@ -2106,7 +2106,7 @@ Term.prototype.deleteLines = function(params) {
 
 // CSI Ps P
 // Delete Ps Character(s) (default = 1) (DCH).
-Term.prototype.deleteChars = function(params) {
+Terminal.prototype.deleteChars = function(params) {
   var param, row;
   param = params[0];
   if (param < 1) param = 1;
@@ -2122,7 +2122,7 @@ Term.prototype.deleteChars = function(params) {
 
 // CSI Ps X
 // Erase Ps Character(s) (default = 1) (ECH).
-Term.prototype.eraseChars = function(params) {
+Terminal.prototype.eraseChars = function(params) {
   var param, row, j;
   param = params[0];
   if (param < 1) param = 1;
@@ -2138,7 +2138,7 @@ Term.prototype.eraseChars = function(params) {
 
 // CSI Pm `  Character Position Absolute
 //   [column] (default = [row,1]) (HPA).
-Term.prototype.charPosAbsolute = function(params) {
+Terminal.prototype.charPosAbsolute = function(params) {
   var param, row;
   param = params[0];
   if (param < 1) param = 1;
@@ -2150,7 +2150,7 @@ Term.prototype.charPosAbsolute = function(params) {
 
 // 141 61 a * HPR -
 // Horizontal Position Relative
-Term.prototype.HPositionRelative = function(params) {
+Terminal.prototype.HPositionRelative = function(params) {
   var param, row;
   param = params[0];
   if (param < 1) param = 1;
@@ -2193,7 +2193,7 @@ Term.prototype.HPositionRelative = function(params) {
 //   the XFree86 patch number, starting with 95).  In a DEC termi-
 //   nal, Pc indicates the ROM cartridge registration number and is
 //   always zero.
-Term.prototype.sendDeviceAttributes = function(params) {
+Terminal.prototype.sendDeviceAttributes = function(params) {
   // This severely breaks things if
   // TERM is set to `linux`. xterm
   // is fine.
@@ -2212,7 +2212,7 @@ Term.prototype.sendDeviceAttributes = function(params) {
 
 // CSI Pm d
 // Line Position Absolute  [row] (default = [1,column]) (VPA).
-Term.prototype.linePosAbsolute = function(params) {
+Terminal.prototype.linePosAbsolute = function(params) {
   var param, row;
   param = params[0];
   if (param < 1) param = 1;
@@ -2223,7 +2223,7 @@ Term.prototype.linePosAbsolute = function(params) {
 };
 
 // 145 65 e * VPR - Vertical Position Relative
-Term.prototype.VPositionRelative = function(params) {
+Terminal.prototype.VPositionRelative = function(params) {
   var param, row;
   param = params[0];
   if (param < 1) param = 1;
@@ -2237,7 +2237,7 @@ Term.prototype.VPositionRelative = function(params) {
 // CSI Ps ; Ps f
 //   Horizontal and Vertical Position [row;column] (default =
 //   [1,1]) (HVP).
-Term.prototype.HVPosition = function(params) {
+Terminal.prototype.HVPosition = function(params) {
   if (params[0] < 1) params[0] = 1;
   if (params[1] < 1) params[1] = 1;
 
@@ -2336,7 +2336,7 @@ Term.prototype.HVPosition = function(params) {
 //     Ps = 2 0 0 4  -> Set bracketed paste mode.
 // Modes:
 //   http://vt100.net/docs/vt220-rm/chapter4.html
-Term.prototype.setMode = function(params) {
+Terminal.prototype.setMode = function(params) {
   if (typeof params === 'object') {
     while (params.length) this.setMode(params.shift());
     return;
@@ -2510,7 +2510,7 @@ Term.prototype.setMode = function(params) {
 //     Ps = 1 0 6 0  -> Reset legacy keyboard emulation (X11R6).
 //     Ps = 1 0 6 1  -> Reset keyboard emulation to Sun/PC style.
 //     Ps = 2 0 0 4  -> Reset bracketed paste mode.
-Term.prototype.resetMode = function(params) {
+Terminal.prototype.resetMode = function(params) {
   if (typeof params === 'object') {
     while (params.length) this.resetMode(params.shift());
     return;
@@ -2578,7 +2578,7 @@ Term.prototype.resetMode = function(params) {
 //   Set Scrolling Region [top;bottom] (default = full size of win-
 //   dow) (DECSTBM).
 // CSI ? Pm r
-Term.prototype.setScrollRegion = function(params) {
+Terminal.prototype.setScrollRegion = function(params) {
   if (this.prefix === '?') return;
   this.scrollTop = (params[0] || 1) - 1;
   this.scrollBottom = (params[1] || this.rows) - 1;
@@ -2587,13 +2587,13 @@ Term.prototype.setScrollRegion = function(params) {
 };
 
 // CSI s     Save cursor (ANSI.SYS).
-Term.prototype.saveCursor = function(params) {
+Terminal.prototype.saveCursor = function(params) {
   this.savedX = this.x;
   this.savedY = this.y;
 };
 
 // CSI u     Restore cursor (ANSI.SYS).
-Term.prototype.restoreCursor = function(params) {
+Terminal.prototype.restoreCursor = function(params) {
   this.x = this.savedX || 0;
   this.y = this.savedY || 0;
 };
@@ -2603,7 +2603,7 @@ Term.prototype.restoreCursor = function(params) {
  */
 
 // CSI Ps I  Cursor Forward Tabulation Ps tab stops (default = 1) (CHT).
-Term.prototype.cursorForwardTab = function(params) {
+Terminal.prototype.cursorForwardTab = function(params) {
   var row, param, line, ch;
 
   param = params[0] || 1;
@@ -2623,7 +2623,7 @@ Term.prototype.cursorForwardTab = function(params) {
 };
 
 // CSI Ps S  Scroll up Ps lines (default = 1) (SU).
-Term.prototype.scrollUp = function(params) {
+Terminal.prototype.scrollUp = function(params) {
   var param = params[0] || 1;
   while (param--) {
     //this.lines.shift();
@@ -2637,7 +2637,7 @@ Term.prototype.scrollUp = function(params) {
 };
 
 // CSI Ps T  Scroll down Ps lines (default = 1) (SD).
-Term.prototype.scrollDown = function(params) {
+Terminal.prototype.scrollDown = function(params) {
   var param = params[0] || 1;
   while (param--) {
     //this.lines.pop();
@@ -2653,7 +2653,7 @@ Term.prototype.scrollDown = function(params) {
 //   Initiate highlight mouse tracking.  Parameters are
 //   [func;startx;starty;firstrow;lastrow].  See the section Mouse
 //   Tracking.
-Term.prototype.initMouseTracking = function(params) {
+Terminal.prototype.initMouseTracking = function(params) {
   console.log('mouse tracking');
 };
 
@@ -2668,11 +2668,11 @@ Term.prototype.initMouseTracking = function(params) {
 //     Ps = 2  -> Do not set window/icon labels using UTF-8.
 //     Ps = 3  -> Do not query window/icon labels using UTF-8.
 //   (See discussion of "Title Modes").
-Term.prototype.resetTitleModes = function(params) {
+Terminal.prototype.resetTitleModes = function(params) {
 };
 
 // CSI Ps Z  Cursor Backward Tabulation Ps tab stops (default = 1) (CBT).
-Term.prototype.cursorBackwardTab = function(params) {
+Terminal.prototype.cursorBackwardTab = function(params) {
   var row, param, line, ch;
 
   param = params[0] || 1;
@@ -2691,7 +2691,7 @@ Term.prototype.cursorBackwardTab = function(params) {
 };
 
 // CSI Ps b  Repeat the preceding graphic character Ps times (REP).
-Term.prototype.repeatPrecedingCharacter = function(params) {
+Terminal.prototype.repeatPrecedingCharacter = function(params) {
   var param = params[0] || 1;
   var line = this.lines[this.ybase + this.y];
   var ch = line[this.x - 1] || ((this.defAttr << 16) | 32);
@@ -2701,7 +2701,7 @@ Term.prototype.repeatPrecedingCharacter = function(params) {
 // CSI Ps g  Tab Clear (TBC).
 //     Ps = 0  -> Clear Current Column (default).
 //     Ps = 3  -> Clear All.
-Term.prototype.tabClear = function(params) {
+Terminal.prototype.tabClear = function(params) {
 };
 
 // CSI Pm i  Media Copy (MC).
@@ -2715,7 +2715,7 @@ Term.prototype.tabClear = function(params) {
 //     Ps = 5  -> Turn on autoprint mode.
 //     Ps = 1  0  -> Print composed display, ignores DECPEX.
 //     Ps = 1  1  -> Print all pages.
-Term.prototype.mediaCopy = function(params) {
+Terminal.prototype.mediaCopy = function(params) {
 };
 
 // CSI > Ps; Ps m
@@ -2730,7 +2730,7 @@ Term.prototype.mediaCopy = function(params) {
 //     Ps = 4  -> modifyOtherKeys.
 //   If no parameters are given, all resources are reset to their
 //   initial values.
-Term.prototype.setResources = function(params) {
+Terminal.prototype.setResources = function(params) {
 };
 
 // CSI > Ps n
@@ -2746,7 +2746,7 @@ Term.prototype.setResources = function(params) {
 //   keys to make an extended sequence of functions rather than
 //   adding a parameter to each function key to denote the modi-
 //   fiers.
-Term.prototype.disableModifiers = function(params) {
+Terminal.prototype.disableModifiers = function(params) {
 };
 
 // CSI > Ps p
@@ -2757,11 +2757,11 @@ Term.prototype.disableModifiers = function(params) {
 //     Ps = 1  -> hide if the mouse tracking mode is not enabled.
 //     Ps = 2  -> always hide the pointer.  If no parameter is
 //     given, xterm uses the default, which is 1 .
-Term.prototype.setPointerMode = function(params) {
+Terminal.prototype.setPointerMode = function(params) {
 };
 
 // CSI ! p   Soft terminal reset (DECSTR).
-Term.prototype.softReset = function(params) {
+Terminal.prototype.softReset = function(params) {
   this.reset();
 };
 
@@ -2775,7 +2775,7 @@ Term.prototype.softReset = function(params) {
 //     2 - reset
 //     3 - permanently set
 //     4 - permanently reset
-Term.prototype.requestAnsiMode = function(params) {
+Terminal.prototype.requestAnsiMode = function(params) {
 };
 
 // CSI ? Ps$ p
@@ -2783,7 +2783,7 @@ Term.prototype.requestAnsiMode = function(params) {
 //     CSI ? Ps; Pm$ p
 //   where Ps is the mode number as in DECSET, Pm is the mode value
 //   as in the ANSI DECRQM.
-Term.prototype.requestPrivateMode = function(params) {
+Terminal.prototype.requestPrivateMode = function(params) {
 };
 
 // CSI Ps ; Ps " p
@@ -2796,7 +2796,7 @@ Term.prototype.requestPrivateMode = function(params) {
 //     Ps = 0  -> 8-bit controls.
 //     Ps = 1  -> 7-bit controls (always set for VT100).
 //     Ps = 2  -> 8-bit controls.
-Term.prototype.setConformanceLevel = function(params) {
+Terminal.prototype.setConformanceLevel = function(params) {
 };
 
 // CSI Ps q  Load LEDs (DECLL).
@@ -2807,7 +2807,7 @@ Term.prototype.setConformanceLevel = function(params) {
 //     Ps = 2  1  -> Extinguish Num Lock.
 //     Ps = 2  2  -> Extinguish Caps Lock.
 //     Ps = 2  3  -> Extinguish Scroll Lock.
-Term.prototype.loadLEDs = function(params) {
+Terminal.prototype.loadLEDs = function(params) {
 };
 
 // CSI Ps SP q
@@ -2817,7 +2817,7 @@ Term.prototype.loadLEDs = function(params) {
 //     Ps = 2  -> steady block.
 //     Ps = 3  -> blinking underline.
 //     Ps = 4  -> steady underline.
-Term.prototype.setCursorStyle = function(params) {
+Terminal.prototype.setCursorStyle = function(params) {
 };
 
 // CSI Ps " q
@@ -2826,13 +2826,13 @@ Term.prototype.setCursorStyle = function(params) {
 //     Ps = 0  -> DECSED and DECSEL can erase (default).
 //     Ps = 1  -> DECSED and DECSEL cannot erase.
 //     Ps = 2  -> DECSED and DECSEL can erase.
-Term.prototype.setCharProtectionAttr = function(params) {
+Terminal.prototype.setCharProtectionAttr = function(params) {
 };
 
 // CSI ? Pm r
 //   Restore DEC Private Mode Values.  The value of Ps previously
 //   saved is restored.  Ps values are the same as for DECSET.
-Term.prototype.restorePrivateValues = function(params) {
+Terminal.prototype.restorePrivateValues = function(params) {
 };
 
 // CSI Pt; Pl; Pb; Pr; Ps$ r
@@ -2840,7 +2840,7 @@ Term.prototype.restorePrivateValues = function(params) {
 //     Pt; Pl; Pb; Pr denotes the rectangle.
 //     Ps denotes the SGR attributes to change: 0, 1, 4, 5, 7.
 // NOTE: xterm doesn't enable this code by default.
-Term.prototype.setAttrInRectangle = function(params) {
+Terminal.prototype.setAttrInRectangle = function(params) {
   var t = params[0]
     , l = params[1]
     , b = params[2]
@@ -2861,7 +2861,7 @@ Term.prototype.setAttrInRectangle = function(params) {
 // CSI ? Pm s
 //   Save DEC Private Mode Values.  Ps values are the same as for
 //   DECSET.
-Term.prototype.savePrivateValues = function(params) {
+Terminal.prototype.savePrivateValues = function(params) {
 };
 
 // CSI Ps ; Ps ; Ps t
@@ -2910,7 +2910,7 @@ Term.prototype.savePrivateValues = function(params) {
 //     Ps = 2 3  ;  1  -> Restore xterm icon title from stack.
 //     Ps = 2 3  ;  2  -> Restore xterm window title from stack.
 //     Ps >= 2 4  -> Resize to Ps lines (DECSLPP).
-Term.prototype.manipulateWindow = function(params) {
+Terminal.prototype.manipulateWindow = function(params) {
 };
 
 // CSI Pt; Pl; Pb; Pr; Ps$ t
@@ -2919,7 +2919,7 @@ Term.prototype.manipulateWindow = function(params) {
 //     Pt; Pl; Pb; Pr denotes the rectangle.
 //     Ps denotes the attributes to reverse, i.e.,  1, 4, 5, 7.
 // NOTE: xterm doesn't enable this code by default.
-Term.prototype.reverseAttrInRectangle = function(params) {
+Terminal.prototype.reverseAttrInRectangle = function(params) {
 };
 
 // CSI > Ps; Ps t
@@ -2930,7 +2930,7 @@ Term.prototype.reverseAttrInRectangle = function(params) {
 //     Ps = 2  -> Set window/icon labels using UTF-8.
 //     Ps = 3  -> Query window/icon labels using UTF-8.  (See dis-
 //     cussion of "Title Modes")
-Term.prototype.setTitleModeFeature = function(params) {
+Terminal.prototype.setTitleModeFeature = function(params) {
 };
 
 // CSI Ps SP t
@@ -2938,7 +2938,7 @@ Term.prototype.setTitleModeFeature = function(params) {
 //     Ps = 0  or 1  -> off.
 //     Ps = 2 , 3  or 4  -> low.
 //     Ps = 5 , 6 , 7 , or 8  -> high.
-Term.prototype.setWarningBellVolume = function(params) {
+Terminal.prototype.setWarningBellVolume = function(params) {
 };
 
 // CSI Ps SP u
@@ -2946,7 +2946,7 @@ Term.prototype.setWarningBellVolume = function(params) {
 //     Ps = 1  -> off.
 //     Ps = 2 , 3  or 4  -> low.
 //     Ps = 0 , 5 , 6 , 7 , or 8  -> high.
-Term.prototype.setMarginBellVolume = function(params) {
+Terminal.prototype.setMarginBellVolume = function(params) {
 };
 
 // CSI Pt; Pl; Pb; Pr; Pp; Pt; Pl; Pp$ v
@@ -2956,7 +2956,7 @@ Term.prototype.setMarginBellVolume = function(params) {
 //     Pt; Pl denotes the target location.
 //     Pp denotes the target page.
 // NOTE: xterm doesn't enable this code by default.
-Term.prototype.copyRectangle = function(params) {
+Terminal.prototype.copyRectangle = function(params) {
 };
 
 // CSI Pt ; Pl ; Pb ; Pr ' w
@@ -2970,7 +2970,7 @@ Term.prototype.copyRectangle = function(params) {
 //   to the current locator position.  If all parameters are omit-
 //   ted, any locator motion will be reported.  DECELR always can-
 //   cels any prevous rectangle definition.
-Term.prototype.enableFilterRectangle = function(params) {
+Terminal.prototype.enableFilterRectangle = function(params) {
 };
 
 // CSI Ps x  Request Terminal Parameters (DECREQTPARM).
@@ -2984,14 +2984,14 @@ Term.prototype.enableFilterRectangle = function(params) {
 //     Pn = 1  <- 2  8  receive 38.4k baud.
 //     Pn = 1  <- clock multiplier.
 //     Pn = 0  <- STP flags.
-Term.prototype.requestParameters = function(params) {
+Terminal.prototype.requestParameters = function(params) {
 };
 
 // CSI Ps x  Select Attribute Change Extent (DECSACE).
 //     Ps = 0  -> from start to end position, wrapped.
 //     Ps = 1  -> from start to end position, wrapped.
 //     Ps = 2  -> rectangle (exact).
-Term.prototype.__ = function(params) {
+Terminal.prototype.__ = function(params) {
 };
 
 // CSI Pc; Pt; Pl; Pb; Pr$ x
@@ -2999,7 +2999,7 @@ Term.prototype.__ = function(params) {
 //     Pc is the character to use.
 //     Pt; Pl; Pb; Pr denotes the rectangle.
 // NOTE: xterm doesn't enable this code by default.
-Term.prototype.fillRectangle = function(params) {
+Terminal.prototype.fillRectangle = function(params) {
   var ch = params[0]
     , t = params[1]
     , l = params[2]
@@ -3029,14 +3029,14 @@ Term.prototype.fillRectangle = function(params) {
 //     Pu = 0  <- or omitted -> default to character cells.
 //     Pu = 1  <- device physical pixels.
 //     Pu = 2  <- character cells.
-Term.prototype.enableLocatorReporting = function(params) {
+Terminal.prototype.enableLocatorReporting = function(params) {
 };
 
 // CSI Pt; Pl; Pb; Pr$ z
 //   Erase Rectangular Area (DECERA), VT400 and up.
 //     Pt; Pl; Pb; Pr denotes the rectangle.
 // NOTE: xterm doesn't enable this code by default.
-Term.prototype.eraseRectangle = function(params) {
+Terminal.prototype.eraseRectangle = function(params) {
   var t = params[0]
     , l = params[1]
     , b = params[2]
@@ -3065,13 +3065,13 @@ Term.prototype.eraseRectangle = function(params) {
 //     Ps = 2  -> do not report button down transitions.
 //     Ps = 3  -> report button up transitions.
 //     Ps = 4  -> do not report button up transitions.
-Term.prototype.setLocatorEvents = function(params) {
+Terminal.prototype.setLocatorEvents = function(params) {
 };
 
 // CSI Pt; Pl; Pb; Pr$ {
 //   Selective Erase Rectangular Area (DECSERA), VT400 and up.
 //     Pt; Pl; Pb; Pr denotes the rectangle.
-Term.prototype.selectiveEraseRectangle = function(params) {
+Terminal.prototype.selectiveEraseRectangle = function(params) {
 };
 
 // CSI Ps ' |
@@ -3114,13 +3114,13 @@ Term.prototype.selectiveEraseRectangle = function(params) {
 //     mal.
 //   The ``page'' parameter is not used by xterm, and will be omit-
 //   ted.
-Term.prototype.requestLocatorPosition = function(params) {
+Terminal.prototype.requestLocatorPosition = function(params) {
 };
 
 // CSI P m SP }
 // Insert P s Column(s) (default = 1) (DECIC), VT420 and up.
 // NOTE: xterm doesn't enable this code by default.
-Term.prototype.insertColumns = function() {
+Terminal.prototype.insertColumns = function() {
   param = params[0];
 
   var l = this.ybase + this.rows
@@ -3138,7 +3138,7 @@ Term.prototype.insertColumns = function() {
 // CSI P m SP ~
 // Delete P s Column(s) (default = 1) (DECDC), VT420 and up
 // NOTE: xterm doesn't enable this code by default.
-Term.prototype.deleteColumns = function() {
+Terminal.prototype.deleteColumns = function() {
   param = params[0];
 
   var l = this.ybase + this.rows
@@ -3203,6 +3203,6 @@ var SCLD = {
  * Expose
  */
 
-this.Term = Term;
+this.Terminal = Terminal;
 
 }).call(this);

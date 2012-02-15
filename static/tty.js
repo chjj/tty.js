@@ -58,7 +58,7 @@ function open() {
 function requestTerminal() {
   var id = terms.length;
 
-  var term = new Term(80, 30, function(data) {
+  var term = new Terminal(80, 30, function(data) {
     socket.emit('data', data, id);
   });
 
