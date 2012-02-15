@@ -19,14 +19,18 @@ var doc = this.document
  */
 
 var socket
-  , terms;
+  , terms
+  , conf;
 
 function open() {
+  if (socket) return;
+
   root = doc.documentElement;
   body = doc.body;
 
   socket = io.connect();
   terms = [];
+  conf = {};
 
   var open = doc.getElementById('open');
 
@@ -34,8 +38,15 @@ function open() {
     requestTerminal();
   });
 
-  socket.on('config', function() {
-    ;
+  socket.on('config', function(conf_) {
+    if (!conf_) return;
+
+    conf = conf_;
+
+    var i = terms.length;
+    while (i--) {
+      if (terms[i]) applyConfig(terms[i]);
+    }
   });
 
   socket.on('connect', function() {
@@ -62,6 +73,8 @@ function requestTerminal() {
     socket.emit('data', data, id);
   });
 
+  applyConfig(term);
+
   term.open();
   term.id = id;
 
@@ -76,6 +89,19 @@ function destroyTerminal(term) {
   terms[term.id] = null; // don't splice!
   var wrap = term.element.parentNode;
   wrap.parentNode.removeChild(wrap);
+}
+
+function applyConfig(term) {
+  if (term._configApplied) return;
+  term._configApplied = true;
+
+  if (conf.fgColors && conf.fgColors.length === 8) {
+    term.fgColors = conf.fgColors;
+  }
+
+  if (conf.bgColors && conf.bgColors.length === 8) {
+    term.bgColors = conf.bgColors;
+  }
 }
 
 /**
