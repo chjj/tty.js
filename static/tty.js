@@ -34,6 +34,10 @@ function open() {
     requestTerminal();
   });
 
+  socket.on('config', function() {
+    ;
+  });
+
   socket.on('connect', function() {
     requestTerminal();
   });
