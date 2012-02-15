@@ -16,13 +16,17 @@ if [ -z "$node" ]; then
   fi
 fi
 
-case "$1" in
-  production | --production)
-    export NODE_ENV=production
-    (setsid "$node" ../index.js $@ > /dev/null 2>&1 &)
-  ;;
-  * | dev | --dev)
-    export NODE_ENV=development
-    exec "$node" ../index.js $@
-  ;;
-esac
+for arg in "$@"; do
+  case "$arg" in
+    -d | --daemonize | production | --production)
+      daemonize=1
+      break
+    ;;
+  esac
+done
+
+if [ -n "$daemonize" ]; then
+  (setsid "$node" ../index.js $@ > /dev/null 2>&1 &)
+else
+  exec "$node" ../index.js $@
+fi
