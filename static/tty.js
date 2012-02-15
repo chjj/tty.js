@@ -28,6 +28,8 @@ function open() {
   root = doc.documentElement;
   body = doc.body;
 
+  bindGlobal();
+
   socket = io.connect();
   terms = [];
   conf = {};
@@ -107,6 +109,31 @@ function applyConfig(term) {
 /**
  * Window Behavior
  */
+
+function bindGlobal() {
+  // Alt-Q to quickly swap between terminals.
+  // This stops ^[q from going to the terminal
+  // which is only used in tektronix emulation.
+  var kd = Terminal.prototype.keyDownHandler;
+  Terminal.prototype.keyDownHandler = function(ev) {
+    if (ev.keyCode === 81
+        && ((!this.isMac && ev.altKey)
+        || (this.isMac && ev.metaKey))) {
+      var i = Terminal.focus.id;
+
+      for (i++; i < terms.length; i++) {
+        if (terms[i]) return focus(terms[i]);
+      }
+
+      for (i = 0; i < terms.length; i++) {
+        if (terms[i]) return focus(terms[i]);
+      }
+
+      return cancel(ev);
+    }
+    return kd.call(this, ev);
+  };
+}
 
 function bindMouse(term) {
   var grip
