@@ -3162,7 +3162,7 @@ Terminal.prototype.deleteColumns = function() {
 // A lot of curses apps use this if they see TERM=xterm.
 // testing: echo -e '\e(0a\e(B'
 // The real xterm output seems to conflict with the
-// reference above. The table below uses the exact
+// reference above. The table below uses
 // the exact same charset xterm outputs.
 var SCLD = {
   95: 0x005f, // '_' - blank ? should this be ' ' ?
