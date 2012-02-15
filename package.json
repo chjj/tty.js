@@ -2,7 +2,7 @@
   "name": "tty.js",
   "description": "A terminal for your browser",
   "author": "Christopher Jeffrey",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "main": "./lib/tty.js",
   "bin": "./bin/tty.js",
   "preferGlobal": false,
