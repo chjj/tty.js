@@ -115,6 +115,7 @@ function bindGlobal() {
   // This stops ^[q from going to the terminal
   // which is only used in tektronix emulation.
   var kd = Terminal.prototype.keyDownHandler;
+
   Terminal.prototype.keyDownHandler = function(ev) {
     if (ev.keyCode === 81
         && ((!this.isMac && ev.altKey)
@@ -122,17 +123,25 @@ function bindGlobal() {
       var i = Terminal.focus.id;
 
       for (i++; i < terms.length; i++) {
-        if (terms[i]) return focus(terms[i]);
+        if (terms[i]) return focus_(terms[i]);
       }
 
       for (i = 0; i < terms.length; i++) {
-        if (terms[i]) return focus(terms[i]);
+        if (terms[i]) return focus_(terms[i]);
       }
 
       return cancel(ev);
     }
     return kd.call(this, ev);
   };
+
+  function focus_(term) {
+    term.wrapper.style.borderColor = 'orange';
+    setTimeout(function() {
+      term.wrapper.style.borderColor = '';
+    }, 200);
+    focus(term);
+  }
 }
 
 function bindMouse(term) {
