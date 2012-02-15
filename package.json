@@ -6,15 +6,15 @@
   "main": "./lib/tty.js",
   "bin": "./bin/tty.js",
   "preferGlobal": false,
-  "scripts": { "preinstall": "make" },
+  "scripts": { "install": "make" },
   "repository": "git://github.com/chjj/tty.js.git",
   "homepage": "https://github.com/chjj/tty.js",
   "bugs": { "url": "https://github.com/chjj/tty.js/issues" },
   "keywords": [ "tty", "terminal" ],
   "tags": [ "tty", "terminal" ],
   "dependencies": {
-    "express": "2.5.x",
-    "socket.io": "0.8.x",
-    "socket.io-client": "0.8.x"
+    "express": ">= 2.5.8",
+    "socket.io": ">= 0.8.7",
+    "socket.io-client": ">= 0.8.7"
   }
 }
