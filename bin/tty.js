@@ -19,10 +19,10 @@ fi
 case "$1" in
   production | --production)
     export NODE_ENV=production
-    (setsid "$node" ../index.js > /dev/null 2>&1 &)
+    (setsid "$node" ../index.js $@ > /dev/null 2>&1 &)
   ;;
   * | dev | --dev)
     export NODE_ENV=development
-    exec "$node" ../index.js
+    exec "$node" ../index.js $@
   ;;
 esac
