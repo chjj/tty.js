@@ -9,45 +9,57 @@
  * Elements
  */
 
-var root = this.documentElement
-  , body = this.document.body
-  , doc = this.document
-  , win = this;
+var doc = this.document
+  , win = this
+  , root
+  , body;
+
+/**
+ * Open
+ */
+
+var socket
+  , terms;
+
+function open() {
+  root = doc.documentElement;
+  body = doc.body;
+
+  socket = io.connect();
+  terms = [];
+
+  var open = doc.getElementById('open');
+
+  on(open, 'click', function() {
+    requestTerminal();
+  });
+
+  socket.on('connect', function() {
+    requestTerminal();
+  });
+
+  socket.on('data', function(data, id) {
+    terms[id].write(data);
+  });
+
+  socket.on('kill', function(id) {
+    destroyTerminal(terms[id]);
+  });
+}
 
 /**
  * Terminal
  */
 
-var socket = io.connect()
-  , terms = [];
-
-var open = doc.getElementById('open');
-
-open.addEventListener('click', function() {
-  requestTerminal();
-}, false);
-
-socket.on('connect', function() {
-  requestTerminal();
-});
-
-socket.on('data', function(data, i) {
-  terms[i].write(data);
-});
-
-socket.on('kill', function(i) {
-  destroyTerminal(terms[i]);
-});
-
 function requestTerminal() {
-  var i = terms.length;
+  var id = terms.length;
 
   var term = new Term(80, 30, function(data) {
-    socket.emit('data', data, i);
+    socket.emit('data', data, id);
   });
 
   term.open();
-  term.id = i;
+  term.id = id;
 
   bindMouse(term, socket);
 
@@ -63,15 +75,12 @@ function destroyTerminal(term) {
 }
 
 /**
- * Resize & Drag
+ * Window Behavior
  */
 
 function bindMouse(term) {
   var grip
     , el;
-
-  root = doc.documentElement;
-  body = doc.body;
 
   el = document.createElement('div');
   el.className = 'wrapper';
@@ -86,8 +95,8 @@ function bindMouse(term) {
   term.wrapper = el;
   term.grip = grip;
 
-  grip.addEventListener('mousedown', function(ev) {
-    swapIndex(term);
+  on(grip, 'mousedown', function(ev) {
+    focus(term);
 
     cancel(ev);
 
@@ -96,17 +105,17 @@ function bindMouse(term) {
     } else {
       resize(ev, term);
     }
-  }, false);
+  });
 
-  el.addEventListener('mousedown', function(ev) {
-    swapIndex(term);
+  on(el, 'mousedown', function(ev) {
+    focus(term);
 
     if (ev.target !== el) return;
 
     cancel(ev);
 
     drag(ev, term);
-  }, false);
+  });
 }
 
 function drag(ev, term) {
@@ -137,12 +146,12 @@ function drag(ev, term) {
     el.style.cursor = '';
     root.style.cursor = '';
 
-    doc.removeEventListener('mousemove', move, false);
-    doc.removeEventListener('mouseup', up, false);
+    off(doc, 'mousemove', move);
+    off(doc, 'mouseup', up);
   };
 
-  doc.addEventListener('mousemove', move, false);
-  doc.addEventListener('mouseup', up, false);
+  on(doc, 'mousemove', move);
+  on(doc, 'mouseup', up);
 }
 
 function resize(ev, term) {
@@ -185,15 +194,15 @@ function resize(ev, term) {
     el.style.cursor = '';
     root.style.cursor = '';
 
-    doc.removeEventListener('mousemove', move, false);
-    doc.removeEventListener('mouseup', up, false);
+    off(doc, 'mousemove', move);
+    off(doc, 'mouseup', up);
   };
 
-  doc.addEventListener('mousemove', move, false);
-  doc.addEventListener('mouseup', up, false);
+  on(doc, 'mousemove', move);
+  on(doc, 'mouseup', up);
 }
 
-function swapIndex(term) {
+function focus(term) {
   var el = term.wrapper;
 
   // focus the terminal
@@ -217,5 +226,30 @@ function cancel(ev) {
   ev.cancelBubble = true;
   return false;
 }
+
+/**
+ * Helpers
+ */
+
+function on(el, type, handler) {
+  el.addEventListener(type, handler, false);
+}
+
+function off(el, type, handler) {
+  el.removeEventListener(type, handler, false);
+}
+
+/**
+ * Load
+ */
+
+function load() {
+  off(doc, 'load', load);
+  off(doc, 'DOMContentLoaded', load);
+  open();
+}
+
+on(doc, 'load', load);
+on(doc, 'DOMContentLoaded', load);
 
 }).call(this);
