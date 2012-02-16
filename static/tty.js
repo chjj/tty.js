@@ -169,7 +169,7 @@ function bindMouse(term) {
 
     cancel(ev);
 
-    if (ev.ctrlKey || ev.altKey || ev.metaKey) {
+    if (ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) {
       socket.emit('kill', term.id);
       destroyTerminal(term);
     } else {
