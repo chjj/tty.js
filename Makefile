@@ -1,5 +1,3 @@
-SIO = node_modules/socket.io-client/dist/socket.io.js
-
 all:
 	node-waf configure build
 	@mv -f build/Release/pty.node -t .

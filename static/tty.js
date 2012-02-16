@@ -111,13 +111,10 @@ function applyConfig(term) {
  */
 
 function bindGlobal() {
-  // Alt-Q to quickly swap between terminals.
-  // This stops ^[q from going to the terminal
-  // which is only used in tektronix emulation.
+  // Alt-` to quickly swap between terminals.
   var kd = Terminal.prototype.keyDownHandler;
-
   Terminal.prototype.keyDownHandler = function(ev) {
-    if (ev.keyCode === 81
+    if (ev.keyCode === 192
         && ((!this.isMac && ev.altKey)
         || (this.isMac && ev.metaKey))) {
       var i = Terminal.focus.id;
