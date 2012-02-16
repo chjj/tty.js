@@ -1444,6 +1444,8 @@ Terminal.prototype.keyDownHandler = function(ev) {
       } else if ((!this.isMac && ev.altKey) || (this.isMac && ev.metaKey)) {
         if (ev.keyCode >= 65 && ev.keyCode <= 90) {
           str = '\x1b' + String.fromCharCode(ev.keyCode + 32);
+        } else if (ev.keyCode >= 48 && ev.keyCode <= 57) {
+          str = '\x1b' + (ev.keyCode - 48);
         }
       }
       break;
