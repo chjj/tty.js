@@ -1,6 +1,6 @@
 /**
- * style.css
- * css for tty.js
+ * style.css (https://github.com/chjj/tty.js)
+ * Copyright (c) 2012, Christopher Jeffrey (MIT License)
  */
 
 html, body {
@@ -12,19 +12,6 @@ div {
   border: 0;
   padding: 0;
   margin: 0;
-}
-
-.term {
-  font-family: "DejaVu Sans Mono", monospace;
-  /*font: 11px/13px "DejaVu Sans Mono", monospace;*/
-  font-size: 11px;
-  color: #f0f0f0;
-  background: #000;
-}
-
-.termReverse {
-  color: #000;
-  background: #f0f0f0;
 }
 
 html {
@@ -39,8 +26,44 @@ body {
   margin: 25px;
 }
 
+.wrapper {
+  border: 6px solid;
+  color: rgba(112, 128, 144, 0.5);
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+}
+
+.wrapper > .grip {
+  background: rgba(112, 128, 144, 0.5);
+  position: absolute;
+  bottom: -13px;
+  right: -13px;
+  width: 22px;
+  height: 22px;
+  border-radiusz: 20px;
+  cursor: se-resize;
+}
+
+.grip:hover {
+  border: #333 solid 1px;
+}
+
 .terminal {
   border: #000 solid 5px;
+}
+
+.term {
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 11px;
+  color: #f0f0f0;
+  background: #000;
+}
+
+.termReverse {
+  color: #000;
+  background: #f0f0f0;
 }
 
 h1 {
@@ -51,10 +74,6 @@ h1 {
   padding: 10px 25px;
   color: white;
   border-top: slategrey solid 10px;
-}
-
-p {
-  font: 15px/1.5 sans-serif;
 }
 
 #open, #lights {
@@ -92,27 +111,10 @@ p {
   color: orange;
 }
 
-.wrapper {
-  border: 6px solid;
-  color: rgba(112, 128, 144, 0.5);
-  /*color: rgba(130, 130, 130, 0.5);*/
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  z-index: 1000;
-}
-
-.wrapper > .grip {
-  background: rgba(112, 128, 144, 0.5);
-  position: absolute;
-  bottom: -13px;
-  right: -13px;
-  width: 22px;
-  height: 22px;
-  border-radiusz: 20px;
-  cursor: se-resize;
-}
-
-.grip:hover {
-  border: #333 solid 1px;
+#help {
+  font: 15px/1.5 sans-serif;
+  color: #999;
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
 }
