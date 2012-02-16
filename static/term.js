@@ -116,8 +116,10 @@ var Terminal = function(cols, rows, handler) {
 Terminal.focus = null;
 
 Terminal.prototype.focus = function() {
-  if (Terminal.focus) Terminal.focus.cursorHidden = true;
-  this.cursorHidden = false;
+  if (Terminal.focus) {
+    Terminal.focus.cursorState = 0;
+    Terminal.focus.refresh(Terminal.focus.y, Terminal.focus.y);
+  }
   Terminal.focus = this;
 };
 
@@ -164,7 +166,7 @@ Terminal.prototype.open = function() {
   this.refresh(0, this.rows - 1);
 
   Terminal.bindKeys();
-  Terminal.focus = this;
+  this.focus();
 
   setInterval(function() {
     self.cursorBlink();
@@ -485,6 +487,7 @@ Terminal.prototype.refresh = function(start, end) {
 };
 
 Terminal.prototype.cursorBlink = function() {
+  if (Terminal.focus !== this) return;
   this.cursorState ^= 1;
   this.refresh(this.y, this.y);
 };
