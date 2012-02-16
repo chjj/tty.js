@@ -93,6 +93,7 @@ function requestTerminal() {
 }
 
 function destroyTerminal(term) {
+  if (!term) return;
   terms[term.id] = null; // don't splice!
   var wrap = term.element.parentNode;
   wrap.parentNode.removeChild(wrap);
@@ -170,6 +171,7 @@ function bindMouse(term) {
 
     if (ev.ctrlKey || ev.altKey || ev.metaKey) {
       socket.emit('kill', term.id);
+      destroyTerminal(term);
     } else {
       resize(ev, term);
     }
