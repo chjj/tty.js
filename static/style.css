@@ -12,63 +12,90 @@ div {
   border: 0;
   padding: 0;
   margin: 0;
-  border-spacing: 0;
 }
 
 .term {
   font-family: "DejaVu Sans Mono", monospace;
+  /*font: 11px/13px "DejaVu Sans Mono", monospace;*/
   font-size: 11px;
-  /*line-height: 13px;*/
   color: #f0f0f0;
-  background: #000000;
+  background: #000;
 }
 
 .termReverse {
-  color: #000000;
+  color: #000;
   background: #f0f0f0;
+}
+
+html {
+  background: #fff;
+}
+
+html.dark {
+  background: #333;
 }
 
 body {
   margin: 25px;
-  background: #fff;
 }
 
 .terminal {
-  border: #000 solid 5px; /* 10px */
+  border: #000 solid 5px;
 }
 
 h1 {
   font: 20px/1.5 sans-serif;
+  background: #333;
+  margin: -25px -25px 0 -25px;
+  height: 30px;
+  padding: 10px 25px;
+  color: white;
+  border-top: slategrey solid 10px;
 }
 
 p {
   font: 15px/1.5 sans-serif;
 }
 
-#open {
+#open, #lights {
   font: 20px/1.5 sans-serif;
   position: fixed;
-  top: 0;
   right: 0;
   padding: 10px;
-  background: rgba(112, 128, 144, 0.5);
+  height: 50px;
   color: white;
-  border-radius: 0 0 0 5px;
   cursor: pointer;
   margin: 0;
-  -webkit-appearance: none;
+  background: none;
   border: none;
+  -webkit-appearance: none;
 }
 
-#open:hover {
-  border: 2px #333 solid;
-  border-top: none;
-  border-right: none;
+#open {
+  top: 10px;
+  background: #333;
+}
+
+#lights {
+  font-size: 18px;
+  height: 46px;
+  top: 60px;
+  background: #555;
+}
+
+#open:hover, #lights:hover {
+  color: slategrey;
+  background: white;
+}
+
+#open:active, #lights:active {
+  color: orange;
 }
 
 .wrapper {
   border: 6px solid;
   color: rgba(112, 128, 144, 0.5);
+  /*color: rgba(130, 130, 130, 0.5);*/
   position: absolute;
   top: 0px;
   left: 0px;

@@ -34,10 +34,17 @@ function open() {
   terms = [];
   conf = {};
 
-  var open = doc.getElementById('open');
+  var open = doc.getElementById('open')
+    , lights = doc.getElementById('lights');
 
   on(open, 'click', function() {
     requestTerminal();
+  });
+
+  on(lights, 'click', function() {
+    root.className = !root.className
+      ? 'dark'
+      : '';
   });
 
   socket.on('config', function(conf_) {
@@ -312,5 +319,6 @@ function load() {
 
 on(doc, 'load', load);
 on(doc, 'DOMContentLoaded', load);
+setTimeout(load, 200);
 
 }).call(this);
