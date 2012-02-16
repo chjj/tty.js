@@ -75,12 +75,10 @@ function requestTerminal() {
     socket.emit('data', data, id);
   });
 
-  applyConfig(term);
-
   term.open();
   term.id = id;
 
-  bindMouse(term, socket);
+  bindMouse(term);
 
   terms.push(term);
 
