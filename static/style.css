@@ -36,14 +36,14 @@ body {
 }
 
 .wrapper > .grip {
-  background: rgba(112, 128, 144, 0.5);
+  background: rgba(112, 128, 144, 0.8);
   position: absolute;
-  bottom: -13px;
-  right: -13px;
+  bottom: -6px;
+  right: -6px;
   width: 22px;
   height: 22px;
-  border-radiusz: 20px;
   cursor: se-resize;
+  z-index: -1;
 }
 
 .grip:hover {

@@ -157,8 +157,8 @@ function bindMouse(term) {
   grip = document.createElement('div');
   grip.className = 'grip';
 
-  el.appendChild(grip);
   el.appendChild(term.element);
+  el.appendChild(grip);
   body.appendChild(el);
 
   term.wrapper = el;
