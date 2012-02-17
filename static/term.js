@@ -48,8 +48,7 @@ var Terminal = function(cols, rows, handler) {
   this.cols = cols;
   this.rows = rows;
   this.handler = handler;
-  this.currentHeight = this.rows;
-  this.totalHeight = 1000;
+  this.scrollback = 1000;
   this.ybase = 0;
   this.ydisp = 0;
   this.x = 0;
@@ -394,9 +393,6 @@ Terminal.prototype.refresh = function(start, end) {
 
   for (y = start; y <= end; y++) {
     row = y + this.ydisp;
-    if (row >= this.currentHeight) {
-      row -= this.currentHeight;
-    }
 
     line = this.lines[row];
     out = '';
@@ -500,37 +496,26 @@ Terminal.prototype.showCursor = function() {
 };
 
 Terminal.prototype.scroll = function() {
-  var line, x, ch, row;
+  var row;
 
-  if (this.currentHeight < this.totalHeight) {
-    this.currentHeight++;
-  }
-
-  if (++this.ybase === this.currentHeight) {
+  // maybe check this.lines.length ?
+  if (++this.ybase === this.scrollback) {
     this.ybase = 0;
+    this.ydisp = 0; // always reset disp to zero
+    this.lines = this.lines.slice(-this.rows + 1);
   }
 
+  // if (this.scrollTtyOutput)
   this.ydisp = this.ybase;
-  ch = 32 | (this.defAttr << 16);
 
-  line = [];
-  for (x = 0; x < this.cols; x++) {
-    line[x] = ch;
-  }
-
+  // last line
   row = this.ybase + this.rows - 1;
 
-  if (row >= this.currentHeight) {
-    row -= this.currentHeight;
-  }
+  // subtract the bottom scroll region
+  row -= this.rows - 1 - this.scrollBottom;
 
-  var b = this.scrollBottom + this.ybase;
-  if (row > b) {
-    var j = this.rows - 1 - this.scrollBottom;
-    this.lines.splice(this.rows - 1 + this.ybase - j, 0, line);
-  } else {
-    this.lines[row] = line;
-  }
+  // add our new line
+  this.lines.splice(row, 0, this.blankLine());
 
   if (this.scrollTop !== 0) {
     if (this.ybase !== 0) {
@@ -542,31 +527,12 @@ Terminal.prototype.scroll = function() {
 };
 
 Terminal.prototype.scrollDisp = function(disp) {
-  var i, row;
+  this.ydisp += disp;
 
-  if (disp >= 0) {
-    for (i = 0; i < disp; i++) {
-      if (this.ydisp === this.ybase) {
-        break;
-      }
-      if (++this.ydisp === this.currentHeight) {
-        this.ydisp = 0;
-      }
-    }
-  } else {
-    disp = -disp;
-    row = this.ybase + this.rows;
-
-    if (row >= this.currentHeight) {
-      row -= this.currentHeight;
-    }
-
-    for (i = 0; i < disp; i++) {
-      if (this.ydisp === row) break;
-      if (--this.ydisp < 0) {
-        this.ydisp = this.currentHeight - 1;
-      }
-    }
+  if (this.ydisp > this.ybase) {
+    this.ydisp = this.ybase;
+  } else if (this.ydisp < 0) {
+    this.ydisp = 0;
   }
 
   this.refresh(0, this.rows - 1);
@@ -664,9 +630,6 @@ Terminal.prototype.write = function(str) {
                 }
               }
               row = this.y + this.ybase;
-              if (row >= this.currentHeight) {
-                row -= this.currentHeight;
-              }
               this.lines[row][this.x] = (ch & 0xffff) | (this.curAttr << 16);
               this.x++;
               this.getRows(this.y);
@@ -1598,10 +1561,6 @@ Terminal.prototype.resize = function(x, y) {
   this.scrollBottom = y - 1;
   this.refreshStart = 0;
   this.refreshEnd = y - 1;
-  this.currentHeight = this.lines.length;
-  if (this.currentHeight < this.rows) {
-    this.currentHeight = this.rows;
-  }
 
   this.refresh(0, this.rows - 1);
 
@@ -1621,10 +1580,6 @@ Terminal.prototype.eraseLine = function(x, y) {
   var line, i, ch, row;
 
   row = this.ybase + y;
-
-  if (row >= this.currentHeight) {
-    row -= this.currentHeight;
-  }
 
   line = this.lines[row];
   // screen:
@@ -2420,7 +2375,6 @@ Terminal.prototype.setMode = function(params) {
         if (!this.normal) {
           var normal = {
             lines: this.lines,
-            currentHeight: this.currentHeight,
             ybase: this.ybase,
             ydisp: this.ydisp,
             x: this.x,
@@ -2561,7 +2515,6 @@ Terminal.prototype.resetMode = function(params) {
       case 1047: // normal screen buffer - clearing it first
         if (this.normal) {
           this.lines = this.normal.lines;
-          this.currentHeight = this.normal.currentHeight;
           this.ybase = this.normal.ybase;
           this.ydisp = this.normal.ydisp;
           this.x = this.normal.x;
