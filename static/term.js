@@ -70,7 +70,7 @@ var Terminal = function(cols, rows, handler) {
   this.charset = null;
   this.normal = null;
 
-  this.defAttr = (7 << 3) | 0;
+  this.defAttr = (7 << 4) | 0;
   this.curAttr = this.defAttr;
   this.isMac = ~navigator.userAgent.indexOf('Mac');
   this.keyState = 0;
@@ -90,7 +90,7 @@ var Terminal = function(cols, rows, handler) {
  * Options
  */
 
-Terminal.bgColors = [
+Terminal.fgColors = [
   '#2e3436',
   '#cc0000',
   '#4e9a06',
@@ -101,7 +101,7 @@ Terminal.bgColors = [
   '#d3d7cf'
 ];
 
-Terminal.fgColors = [
+Terminal.bgColors = [
   '#555753',
   '#ef2929',
   '#8ae234',
@@ -451,18 +451,35 @@ Terminal.prototype.refresh = function(start, end) {
             out += '<span class="termReverse">';
           } else {
             out += '<span style="';
-            fgColor = (data >> 3) & 7;
-            bgColor = data & 7;
-            if (fgColor !== 7) {
+            fgColor = (data >> 4) & 15;
+            bgColor = data & 15;
+
+            if ((fgColor & 8) || ((data >> 8) & 1)) {
+              fgColor &= 7;
               out += 'color:'
-                + Terminal.fgColors[fgColor]
+                + Terminal.bgColors[fgColor]
                 + ';';
+            } else {
+              if (fgColor !== 7) {
+                out += 'color:'
+                  + Terminal.fgColors[fgColor]
+                  + ';';
+              }
             }
-            if (bgColor !== 0) {
+
+            if (bgColor & 8) {
+              bgColor &= 7;
               out += 'background-color:'
                 + Terminal.bgColors[bgColor]
                 + ';';
+            } else {
+              if (bgColor !== 0) {
+                out += 'background-color:'
+                  + Terminal.fgColors[bgColor]
+                  + ';';
+              }
             }
+
             if ((data >> 8) & 1) {
               out += 'font-weight:bold;';
             }
@@ -1907,13 +1924,15 @@ Terminal.prototype.charAttributes = function(params) {
     for (i = 0; i < params.length; i++) {
       p = params[i];
       if (p >= 30 && p <= 37) {
-        this.curAttr = (this.curAttr & ~(7 << 3)) | ((p - 30) << 3);
+        this.curAttr = (this.curAttr & ~(15 << 4)) | ((p - 30) << 4);
       } else if (p >= 40 && p <= 47) {
-        this.curAttr = (this.curAttr & ~7) | (p - 40);
+        this.curAttr = (this.curAttr & ~15) | (p - 40);
       } else if (p >= 90 && p <= 97) {
-        this.curAttr = (this.curAttr & ~(7 << 3)) | ((p - 90) << 3);
+        this.curAttr = (this.curAttr & ~(15 << 4)) | ((p - 90) << 4);
+        this.curAttr = this.curAttr | (8 << 4);
       } else if (p >= 100 && p <= 107) {
-        this.curAttr = (this.curAttr & ~7) | (p - 100);
+        this.curAttr = (this.curAttr & ~15) | (p - 100);
+        this.curAttr = this.curAttr | 8;
       } else if (p === 0) {
         this.curAttr = this.defAttr;
       } else if (p === 1) {
@@ -1938,12 +1957,12 @@ Terminal.prototype.charAttributes = function(params) {
         this.curAttr = this.defAttr;
       } else if (p === 39) {
         // reset fg
-        p = this.curAttr & 7;
-        this.curAttr = (this.defAttr & ~7) | p;
+        p = this.curAttr & 15;
+        this.curAttr = (this.defAttr & ~15) | p;
       } else if (p === 49) {
         // reset bg
-        p = (this.curAttr >> 3) & 7;
-        this.curAttr = (this.defAttr & ~(7 << 3)) | (p << 3);
+        p = (this.curAttr >> 4) & 15;
+        this.curAttr = (this.defAttr & ~(15 << 4)) | (p << 4);
       }
     }
   }
