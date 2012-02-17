@@ -368,6 +368,10 @@ Terminal.prototype.bindMouse = function() {
     } else {
       self.scrollDisp(ev.wheelDeltaY > 0 ? -5 : 5);
     }
+    if (ev.preventDefault) ev.preventDefault();
+    ev.returnValue = false;
+    if (ev.stopPropagation) ev.stopPropagation();
+    ev.cancelBubble = true;
   }
 
   if ('onmousewheel' in window) {
