@@ -132,11 +132,11 @@ Terminal.bindKeys = function() {
 
   // We could put an "if (Term.focus)" check
   // here, but it shouldn't be necessary.
-  document.addEventListener('keydown', function(key) {
+  on(document, 'keydown', function(key) {
     return Terminal.focus.keyDownHandler(key);
   }, true);
 
-  document.addEventListener('keypress', function(key) {
+  on(document, 'keypress', function(key) {
     return Terminal.focus.keyPressHandler(key);
   }, true);
 };
@@ -172,18 +172,18 @@ Terminal.prototype.open = function() {
     self.cursorBlink();
   }, 500);
 
-  this.element.addEventListener('click', function() {
+  on(this.element, 'click', function() {
     self.focus();
-  }, false);
+  });
 
-  this.element.addEventListener('paste', function(ev) {
+  on(this.element, 'paste', function(ev) {
     if (ev.clipboardData) {
       self.queueChars(ev.clipboardData.getData('text/plain'));
     } else if (window.clipboardData) {
       // does ie9 do this?
       self.queueChars(window.clipboardData.getData('Text'));
     }
-  }, false);
+  });
 
   this.bindMouse();
 };
@@ -226,10 +226,7 @@ Terminal.prototype.bindMouse = function() {
       ? button
       : false;
 
-    if (ev.preventDefault) ev.preventDefault();
-    ev.returnValue = false;
-    if (ev.stopPropagation) ev.stopPropagation();
-    ev.cancelBubble = true;
+    return cancel(ev);
   }
 
   // motion example of a left click:
@@ -347,16 +344,16 @@ Terminal.prototype.bindMouse = function() {
     return { x: x, y: y };
   }
 
-  el.addEventListener('mousedown', click, false);
-  el.addEventListener('mouseup', click, false);
+  on(el, 'mousedown', click);
+  on(el, 'mouseup', click);
 
   if ('onmousewheel' in window) {
-    el.addEventListener('mousewheel', click, false);
+    on(el, 'mousewheel', click);
   } else {
-    el.addEventListener('DOMMouseScroll', click, false);
+    on(el, 'DOMMouseScroll', click);
   }
 
-  el.addEventListener('mousemove', move, false);
+  on(el, 'mousemove', move);
 
   // allow mousewheel scrolling in
   // the shell for example
@@ -368,16 +365,13 @@ Terminal.prototype.bindMouse = function() {
     } else {
       self.scrollDisp(ev.wheelDeltaY > 0 ? -5 : 5);
     }
-    if (ev.preventDefault) ev.preventDefault();
-    ev.returnValue = false;
-    if (ev.stopPropagation) ev.stopPropagation();
-    ev.cancelBubble = true;
+    return cancel(ev);
   }
 
   if ('onmousewheel' in window) {
-    el.addEventListener('mousewheel', wheel, false);
+    on(el, 'mousewheel', wheel);
   } else {
-    el.addEventListener('DOMMouseScroll', wheel, false);
+    on(el, 'DOMMouseScroll', wheel);
   }
 };
 
@@ -1423,8 +1417,7 @@ Terminal.prototype.keyDownHandler = function(ev) {
   }
 
   if (str) {
-    if (ev.stopPropagation) ev.stopPropagation();
-    if (ev.preventDefault) ev.preventDefault();
+    cancel(ev);
 
     this.showCursor();
     this.keyState = 1;
@@ -1442,8 +1435,7 @@ Terminal.prototype.keyPressHandler = function(ev) {
   var str = ''
     , key;
 
-  if (ev.stopPropagation) ev.stopPropagation();
-  if (ev.preventDefault) ev.preventDefault();
+  cancel(ev);
 
   if (!('charCode' in ev)) {
     key = ev.keyCode;
@@ -3162,6 +3154,26 @@ var SCLD = {
   125: 0x00a3, // '£'
   126: 0x00b7  // '·'
 };
+
+/**
+ * Helpers
+ */
+
+function on(el, type, handler, capture) {
+  el.addEventListener(type, handler, capture || false);
+}
+
+function off(el, type, handler, capture) {
+  el.removeEventListener(type, handler, capture || false);
+}
+
+function cancel(ev) {
+  if (ev.preventDefault) ev.preventDefault();
+  ev.returnValue = false;
+  if (ev.stopPropagation) ev.stopPropagation();
+  ev.cancelBubble = true;
+  return false;
+}
 
 /**
  * Expose

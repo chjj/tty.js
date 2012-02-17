@@ -289,24 +289,24 @@ function focus(term) {
   }
 }
 
+/**
+ * Helpers
+ */
+
+function on(el, type, handler, capture) {
+  el.addEventListener(type, handler, capture || false);
+}
+
+function off(el, type, handler, capture) {
+  el.removeEventListener(type, handler, capture || false);
+}
+
 function cancel(ev) {
   if (ev.preventDefault) ev.preventDefault();
   ev.returnValue = false;
   if (ev.stopPropagation) ev.stopPropagation();
   ev.cancelBubble = true;
   return false;
-}
-
-/**
- * Helpers
- */
-
-function on(el, type, handler) {
-  el.addEventListener(type, handler, false);
-}
-
-function off(el, type, handler) {
-  el.removeEventListener(type, handler, false);
 }
 
 /**
