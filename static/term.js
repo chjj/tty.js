@@ -1880,6 +1880,12 @@ Terminal.prototype.charAttributes = function(params) {
       } else if (p === 4) {
         // underlined text
         this.curAttr = this.curAttr | (4 << 8);
+      } else if (p === 22) {
+        // not bold
+        this.curAttr = this.curAttr & ~(1 << 8);
+      } else if (p === 24) {
+        // not underlined
+        this.curAttr = this.curAttr & ~(4 << 8);
       } else if (p === 39) {
         // reset fg
         p = this.curAttr & 7;
