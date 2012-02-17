@@ -120,6 +120,7 @@ Terminal.prototype.focus = function() {
     Terminal.focus.refresh(Terminal.focus.y, Terminal.focus.y);
   }
   Terminal.focus = this;
+  this.showCursor();
 };
 
 /**
