@@ -402,8 +402,7 @@ Terminal.prototype.bindMouse = function() {
 };
 
 Terminal.prototype.refresh = function(start, end) {
-  var element
-    , x
+  var x
     , y
     , i
     , line
@@ -411,17 +410,18 @@ Terminal.prototype.refresh = function(start, end) {
     , ch
     , width
     , data
-    , defAttr
+    , attr
     , fgColor
     , bgColor
     , row;
+
+  width = this.cols;
 
   for (y = start; y <= end; y++) {
     row = y + this.ydisp;
 
     line = this.lines[row];
     out = '';
-    width = this.cols;
 
     if (y === this.y
         && this.cursorState
@@ -432,7 +432,7 @@ Terminal.prototype.refresh = function(start, end) {
       x = -1;
     }
 
-    defAttr = this.defAttr;
+    attr = this.defAttr;
 
     for (i = 0; i < width; i++) {
       ch = line[i];
@@ -442,9 +442,10 @@ Terminal.prototype.refresh = function(start, end) {
         data = -1;
       }
 
-      if (data !== defAttr) {
-        if (defAttr !== this.defAttr)
+      if (data !== attr) {
+        if (attr !== this.defAttr) {
           out += '</span>';
+        }
         if (data !== this.defAttr) {
           if (data === -1) {
             out += '<span class="termReverse">';
@@ -495,15 +496,14 @@ Terminal.prototype.refresh = function(start, end) {
           break;
       }
 
-      defAttr = data;
+      attr = data;
     }
 
-    if (defAttr !== this.defAttr) {
+    if (attr !== this.defAttr) {
       out += '</span>';
     }
 
-    element = this.children[y];
-    element.innerHTML = out;
+    this.children[y].innerHTML = out;
   }
 };
 
@@ -539,14 +539,11 @@ Terminal.prototype.refreshBlink = function() {
 Terminal.prototype.scroll = function() {
   var row;
 
-  // maybe check this.lines.length ?
   if (++this.ybase === this.scrollback) {
     this.ybase = 0;
-    this.ydisp = 0; // always reset disp to zero
     this.lines = this.lines.slice(-this.rows + 1);
   }
 
-  // if (this.scrollTtyOutput)
   this.ydisp = this.ybase;
 
   // last line
