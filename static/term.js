@@ -202,17 +202,16 @@ Terminal.prototype.bindMouse = function() {
     , self = this
     , pressed;
 
+  var wheelEvent = 'onmousewheel' in window
+    ? 'mousewheel'
+    : 'DOMMouseScroll';
+
   // mouseup, mousedown, mousewheel
   // left click: ^[[M 3<^[[M#3<
   // mousewheel up: ^[[M`3>
-  function click(ev) {
-    if (!self.mouseEvents) return;
-
-    var el = ev.target
-      , button
+  function sendButton(ev) {
+    var button
       , pos;
-
-    //if (el === self.element) return;
 
     // get the xterm-style button
     button = getButton(ev);
@@ -226,20 +225,11 @@ Terminal.prototype.bindMouse = function() {
     pressed = ev.type === 'mousedown'
       ? button
       : false;
-
-    // ensure focus in case the
-    // original click handler gets ignored
-    if (pressed === false) self.focus();
-
-    return cancel(ev);
   }
 
   // motion example of a left click:
   // ^[[M 3<^[[M@4<^[[M@5<^[[M@6<^[[M@7<^[[M#7<
-  function move(ev) {
-    if (!self.mouseEvents) return;
-    if (!pressed) return;
-
+  function sendMove(ev) {
     var button = pressed
       , pos;
 
@@ -338,8 +328,10 @@ Terminal.prototype.bindMouse = function() {
 
     // be sure to avoid sending
     // bad positions to the program
-    if (x < 0 || x > self.cols) return;
-    if (y < 0 || y > self.rows) return;
+    if (x < 0) x = 0;
+    if (x > self.cols) x = self.cols;
+    if (y < 0) y = 0;
+    if (y > self.rows) y = self.rows;
 
     // xterm sends raw bytes and
     // starts at 32 (SP) for each.
@@ -349,20 +341,36 @@ Terminal.prototype.bindMouse = function() {
     return { x: x, y: y };
   }
 
-  on(el, 'mousedown', click);
-  on(el, 'mouseup', click);
+  on(el, 'mousedown', function(ev) {
+    if (!self.mouseEvents) return;
 
-  if ('onmousewheel' in window) {
-    on(el, 'mousewheel', click);
-  } else {
-    on(el, 'DOMMouseScroll', click);
-  }
+    // send the button
+    sendButton(ev);
 
-  on(el, 'mousemove', move);
+    // ensure focus
+    self.focus();
+
+    // bind events
+    on(el, 'mousemove', sendMove);
+    on(document, 'mouseup', function up(ev) {
+      sendButton(ev);
+      off(el, 'mousemove', sendMove);
+      off(document, 'mouseup', up);
+      return cancel(ev);
+    });
+
+    return cancel(ev);
+  });
+
+  on(el, wheelEvent, function(ev) {
+    if (!self.mouseEvents) return;
+    sendButton(ev);
+    return cancel(ev);
+  });
 
   // allow mousewheel scrolling in
   // the shell for example
-  function wheel(ev) {
+  on(el, wheelEvent, function(ev) {
     if (self.mouseEvents) return;
     if (self.applicationKeypad) return;
     if (ev.type === 'DOMMouseScroll') {
@@ -371,13 +379,7 @@ Terminal.prototype.bindMouse = function() {
       self.scrollDisp(ev.wheelDeltaY > 0 ? -5 : 5);
     }
     return cancel(ev);
-  }
-
-  if ('onmousewheel' in window) {
-    on(el, 'mousewheel', wheel);
-  } else {
-    on(el, 'DOMMouseScroll', wheel);
-  }
+  });
 };
 
 Terminal.prototype.refresh = function(start, end) {
