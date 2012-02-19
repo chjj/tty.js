@@ -70,28 +70,6 @@ var Terminal = function(cols, rows, handler) {
   this.charset = null;
   this.normal = null;
 
-  this.bgColors = [
-    '#2e3436',
-    '#cc0000',
-    '#4e9a06',
-    '#c4a000',
-    '#3465a4',
-    '#75507b',
-    '#06989a',
-    '#d3d7cf'
-  ];
-
-  this.fgColors = [
-    '#555753',
-    '#ef2929',
-    '#8ae234',
-    '#fce94f',
-    '#729fcf',
-    '#ad7fa8',
-    '#34e2e2',
-    '#eeeeec'
-  ];
-
   this.defAttr = (7 << 3) | 0;
   this.curAttr = this.defAttr;
   this.isMac = ~navigator.userAgent.indexOf('Mac');
@@ -107,6 +85,32 @@ var Terminal = function(cols, rows, handler) {
     this.lines.push(this.lines[0].slice());
   }
 };
+
+/**
+ * Options
+ */
+
+Terminal.bgColors = [
+  '#2e3436',
+  '#cc0000',
+  '#4e9a06',
+  '#c4a000',
+  '#3465a4',
+  '#75507b',
+  '#06989a',
+  '#d3d7cf'
+];
+
+Terminal.fgColors = [
+  '#555753',
+  '#ef2929',
+  '#8ae234',
+  '#fce94f',
+  '#729fcf',
+  '#ad7fa8',
+  '#34e2e2',
+  '#eeeeec'
+];
 
 /**
  * Focused Terminal
@@ -445,12 +449,12 @@ Terminal.prototype.refresh = function(start, end) {
             bgColor = data & 7;
             if (fgColor !== 7) {
               out += 'color:'
-                + this.fgColors[fgColor]
+                + Terminal.fgColors[fgColor]
                 + ';';
             }
             if (bgColor !== 0) {
               out += 'background-color:'
-                + this.bgColors[bgColor]
+                + Terminal.bgColors[bgColor]
                 + ';';
             }
             if ((data >> 8) & 1) {

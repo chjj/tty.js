@@ -19,8 +19,7 @@ var doc = this.document
  */
 
 var socket
-  , terms
-  , conf;
+  , terms;
 
 function open() {
   if (socket) return;
@@ -32,7 +31,6 @@ function open() {
 
   socket = io.connect();
   terms = [];
-  conf = {};
 
   var open = doc.getElementById('open')
     , lights = doc.getElementById('lights');
@@ -45,17 +43,6 @@ function open() {
     root.className = !root.className
       ? 'dark'
       : '';
-  });
-
-  socket.on('config', function(conf_) {
-    if (!conf_) return;
-
-    conf = conf_;
-
-    var i = terms.length;
-    while (i--) {
-      if (terms[i]) applyConfig(terms[i]);
-    }
   });
 
   socket.on('connect', function() {
@@ -102,19 +89,6 @@ function destroyTerminal(term) {
     while (i--) {
       if (terms[i]) return terms[i].focus();
     }
-  }
-}
-
-function applyConfig(term) {
-  if (term._configApplied) return;
-  term._configApplied = true;
-
-  if (conf.fgColors && conf.fgColors.length === 8) {
-    term.fgColors = conf.fgColors;
-  }
-
-  if (conf.bgColors && conf.bgColors.length === 8) {
-    term.bgColors = conf.bgColors;
   }
 }
 
