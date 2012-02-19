@@ -174,8 +174,6 @@ function drag(ev, term) {
   var drag = {
     left: el.offsetLeft,
     top: el.offsetTop,
-    x: ev.pageX - el.offsetLeft,
-    y: ev.pageY - el.offsetTop,
     pageX: ev.pageX,
     pageY: ev.pageY
   };
@@ -184,21 +182,21 @@ function drag(ev, term) {
   el.style.cursor = 'move';
   root.style.cursor = 'move';
 
-  var move = function(ev) {
+  function move(ev) {
     el.style.left =
       (drag.left + ev.pageX - drag.pageX) + 'px';
     el.style.top =
       (drag.top + ev.pageY - drag.pageY) + 'px';
-  };
+  }
 
-  var up = function(ev) {
+  function up(ev) {
     el.style.opacity = '';
     el.style.cursor = '';
     root.style.cursor = '';
 
     off(doc, 'mousemove', move);
     off(doc, 'mouseup', up);
-  };
+  }
 
   on(doc, 'mousemove', move);
   on(doc, 'mouseup', up);
@@ -216,16 +214,17 @@ function resize(ev, term) {
   el.style.opacity = '0.70';
   el.style.cursor = 'se-resize';
   root.style.cursor = 'se-resize';
+  term.element.style.height = '100%';
 
-  var move = function(ev) {
+  function move(ev) {
     var x, y;
     x = ev.pageX - el.offsetLeft;
     y = ev.pageY - el.offsetTop;
     el.style.width = x + 'px';
     el.style.height = y + 'px';
-  };
+  }
 
-  var up = function(ev) {
+  function up(ev) {
     var x, y;
 
     x = el.offsetWidth / resize.w;
@@ -243,10 +242,11 @@ function resize(ev, term) {
     el.style.opacity = '';
     el.style.cursor = '';
     root.style.cursor = '';
+    term.element.style.height = '';
 
     off(doc, 'mousemove', move);
     off(doc, 'mouseup', up);
-  };
+  }
 
   on(doc, 'mousemove', move);
   on(doc, 'mouseup', up);

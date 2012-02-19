@@ -52,6 +52,7 @@ body {
 
 .terminal {
   border: #000 solid 5px;
+  background: #000;
 }
 
 .term {
