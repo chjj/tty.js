@@ -143,7 +143,7 @@ function bindGlobal() {
     setTimeout(function() {
       term.wrapper.style.borderColor = '';
     }, 200);
-    focus(term);
+    term.focus();
   }
 }
 
@@ -165,7 +165,7 @@ function bindMouse(term) {
   term.grip = grip;
 
   on(grip, 'mousedown', function(ev) {
-    focus(term);
+    term.focus();
 
     cancel(ev);
 
@@ -178,7 +178,7 @@ function bindMouse(term) {
   });
 
   on(el, 'mousedown', function(ev) {
-    focus(term);
+    term.focus();
 
     if (ev.target !== el) return;
 
@@ -272,22 +272,21 @@ function resize(ev, term) {
   on(doc, 'mouseup', up);
 }
 
-function focus(term) {
-  var el = term.wrapper;
+var focus_ = Terminal.prototype.focus;
+Terminal.prototype.focus = function() {
+  if (Terminal.focus === this) return;
 
-  // focus the terminal
-  term.focus();
-
-  el.style.zIndex = '1000';
-
-  var e = document.getElementsByTagName('div')
-    , i = e.length;
-
-  while (i--) {
-    if (e[i].className === 'wrapper'
-        && e[i] !== el) e[i].style.zIndex = '0';
+  if (this.wrapper) {
+    var i = terms.length;
+    while (i--) {
+      terms[i].wrapper.style.zIndex = terms[i] === this
+        ? '1000'
+        : '0';
+    }
   }
-}
+
+  return focus_.call(this);
+};
 
 /**
  * Helpers

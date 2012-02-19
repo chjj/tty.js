@@ -115,6 +115,7 @@ var Terminal = function(cols, rows, handler) {
 Terminal.focus = null;
 
 Terminal.prototype.focus = function() {
+  if (Terminal.focus === this) return;
   if (Terminal.focus) {
     Terminal.focus.cursorState = 0;
     Terminal.focus.refresh(Terminal.focus.y, Terminal.focus.y);
@@ -225,6 +226,10 @@ Terminal.prototype.bindMouse = function() {
     pressed = ev.type === 'mousedown'
       ? button
       : false;
+
+    // ensure focus in case the
+    // original click handler gets ignored
+    if (pressed === false) self.focus();
 
     return cancel(ev);
   }
