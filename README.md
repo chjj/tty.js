@@ -37,6 +37,10 @@ JSON file. An example configuration file looks like:
   "shell": "sh",
   "stylesheet": "./my_custom_stylesheet.css",
   "term": {
+    "scrollback": 1000,
+    "visualBell": false,
+    "popOnBell": false,
+    "cursorBlink": false,
     "bgColors": [
       "#2e3436",
       "#cc0000",

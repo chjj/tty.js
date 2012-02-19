@@ -48,7 +48,7 @@ var Terminal = function(cols, rows, handler) {
   this.cols = cols;
   this.rows = rows;
   this.handler = handler;
-  this.scrollback = 1000;
+  this.scrollback = Terminal.scrollback;
   this.ybase = 0;
   this.ydisp = 0;
   this.x = 0;
@@ -111,6 +111,11 @@ Terminal.fgColors = [
   '#34e2e2',
   '#eeeeec'
 ];
+
+Terminal.cursorBlink = true;
+Terminal.visualBell = false;
+Terminal.popOnBell = false;
+Terminal.scrollback = 1000;
 
 /**
  * Focused Terminal
@@ -517,6 +522,7 @@ Terminal.prototype.showCursor = function() {
 };
 
 Terminal.prototype.startBlink = function() {
+  if (!Terminal.cursorBlink) return;
   var self = this;
   this._blinker = function() {
     self.cursorBlink();
@@ -525,6 +531,7 @@ Terminal.prototype.startBlink = function() {
 };
 
 Terminal.prototype.refreshBlink = function() {
+  if (!Terminal.cursorBlink) return;
   clearTimeout(this._blink);
   this._blink = setInterval(this._blinker, 500);
 };
@@ -1523,12 +1530,13 @@ Terminal.prototype.outputHandler = function() {
 };
 
 Terminal.prototype.bell = function() {
-  if (!this.useBell) return;
+  if (!Terminal.visualBell) return;
   var self = this;
   this.element.style.borderColor = 'white';
   setTimeout(function() {
     self.element.style.borderColor = '';
   }, 10);
+  if (Terminal.popOnBell) term.focus();
 };
 
 Terminal.prototype.resize = function(x, y) {
