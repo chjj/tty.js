@@ -1887,12 +1887,20 @@ Terminal.prototype.charAttributes = function(params) {
       } else if (p === 4) {
         // underlined text
         this.curAttr = this.curAttr | (4 << 8);
+      } else if (p === 7) {
+        // reverse video
+        // should maybe have this as
+        // an attr 1 byte to the left
+        this.curAttr = -1;
       } else if (p === 22) {
         // not bold
         this.curAttr = this.curAttr & ~(1 << 8);
       } else if (p === 24) {
         // not underlined
         this.curAttr = this.curAttr & ~(4 << 8);
+      } else if (p === 27) {
+        // not reverse video
+        this.curAttr = this.defAttr;
       } else if (p === 39) {
         // reset fg
         p = this.curAttr & 7;
