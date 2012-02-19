@@ -200,7 +200,7 @@ Terminal.prototype.open = function() {
 Terminal.prototype.bindMouse = function() {
   var el = this.element
     , self = this
-    , pressed;
+    , pressed = 32;
 
   var wheelEvent = 'onmousewheel' in window
     ? 'mousewheel'
@@ -222,9 +222,21 @@ Terminal.prototype.bindMouse = function() {
 
     sendEvent(button, pos);
 
-    pressed = ev.type === 'mousedown'
-      ? button
-      : false;
+    switch (ev.type) {
+      case 'mousedown':
+        pressed = button;
+        break;
+      case 'mouseup':
+        // keep it at the left
+        // button, just in case.
+        pressed = 32;
+        break;
+      case wheelEvent:
+        // nothing. don't
+        // interfere with
+        // `pressed`.
+        break;
+    }
   }
 
   // motion example of a left click:
@@ -351,10 +363,10 @@ Terminal.prototype.bindMouse = function() {
     self.focus();
 
     // bind events
-    on(el, 'mousemove', sendMove);
+    on(document, 'mousemove', sendMove);
     on(document, 'mouseup', function up(ev) {
       sendButton(ev);
-      off(el, 'mousemove', sendMove);
+      off(document, 'mousemove', sendMove);
       off(document, 'mouseup', up);
       return cancel(ev);
     });
