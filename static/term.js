@@ -180,7 +180,7 @@ Terminal.prototype.open = function() {
 
   this.startBlink();
 
-  on(this.element, 'click', function() {
+  on(this.element, 'mousedown', function() {
     self.focus();
   });
 

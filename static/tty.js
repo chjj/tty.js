@@ -158,9 +158,9 @@ function bindMouse(term) {
   });
 
   on(el, 'mousedown', function(ev) {
-    term.focus();
-
     if (ev.target !== el) return;
+
+    term.focus();
 
     cancel(ev);
 
