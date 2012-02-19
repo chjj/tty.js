@@ -97,6 +97,12 @@ function destroyTerminal(term) {
   terms[term.id] = null; // don't splice!
   var wrap = term.element.parentNode;
   wrap.parentNode.removeChild(wrap);
+  if (Terminal.focus === term) {
+    var i = terms.length;
+    while (i--) {
+      if (terms[i]) return terms[i].focus();
+    }
+  }
 }
 
 function applyConfig(term) {
@@ -279,6 +285,7 @@ Terminal.prototype.focus = function() {
   if (this.wrapper) {
     var i = terms.length;
     while (i--) {
+      if (!terms[i]) continue;
       terms[i].wrapper.style.zIndex = terms[i] === this
         ? '1000'
         : '0';
