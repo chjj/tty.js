@@ -517,8 +517,10 @@ Terminal.prototype.showCursor = function() {
   if (!this.cursorState) {
     this.cursorState = 1;
     this.refresh(this.y, this.y);
+  } else {
+    // Temporarily disabled:
+    // this.refreshBlink();
   }
-  this.refreshBlink();
 };
 
 Terminal.prototype.startBlink = function() {
@@ -532,7 +534,7 @@ Terminal.prototype.startBlink = function() {
 
 Terminal.prototype.refreshBlink = function() {
   if (!Terminal.cursorBlink) return;
-  clearTimeout(this._blink);
+  clearInterval(this._blink);
   this._blink = setInterval(this._blinker, 500);
 };
 
