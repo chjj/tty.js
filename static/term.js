@@ -2128,9 +2128,9 @@ Terminal.prototype.deleteChars = function(params) {
   while (param--) {
     this.lines[row].splice(this.x, 1);
     // screen:
-    //this.lines.push((this.defAttr << 16) | 32);
+    //this.lines[row].push((this.defAttr << 16) | 32);
     // xterm, linux:
-    this.lines.push((this.curAttr << 16) | 32);
+    this.lines[row].push((this.curAttr << 16) | 32);
   }
 };
 
