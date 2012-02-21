@@ -90,7 +90,8 @@ var Terminal = function(cols, rows, handler) {
  * Options
  */
 
-Terminal.fgColors = [
+Terminal.colors = [
+  // dark:
   '#2e3436',
   '#cc0000',
   '#4e9a06',
@@ -98,10 +99,8 @@ Terminal.fgColors = [
   '#3465a4',
   '#75507b',
   '#06989a',
-  '#d3d7cf'
-];
-
-Terminal.bgColors = [
+  '#d3d7cf',
+  // bright:
   '#555753',
   '#ef2929',
   '#8ae234',
@@ -413,6 +412,7 @@ Terminal.prototype.refresh = function(start, end) {
     , attr
     , fgColor
     , bgColor
+    , flags
     , row;
 
   width = this.cols;
@@ -453,39 +453,29 @@ Terminal.prototype.refresh = function(start, end) {
             out += '<span style="';
             fgColor = (data >> 4) & 15;
             bgColor = data & 15;
+            flags = data >> 8;
 
-            if ((fgColor & 8) || ((data >> 8) & 1)) {
-              fgColor &= 7;
-              out += 'color:'
-                + Terminal.bgColors[fgColor]
-                + ';';
-            } else {
-              if (fgColor !== 7) {
-                out += 'color:'
-                  + Terminal.fgColors[fgColor]
-                  + ';';
-              }
-            }
-
-            if (bgColor & 8) {
-              bgColor &= 7;
-              out += 'background-color:'
-                + Terminal.bgColors[bgColor]
-                + ';';
-            } else {
-              if (bgColor !== 0) {
-                out += 'background-color:'
-                  + Terminal.fgColors[bgColor]
-                  + ';';
-              }
-            }
-
-            if ((data >> 8) & 1) {
+            if (flags & 1) {
               out += 'font-weight:bold;';
+              fgColor |= 8;
             }
-            if ((data >> 8) & 4) {
+
+            if (flags & 2) {
               out += 'text-decoration:underline;';
             }
+
+            if (fgColor !== 7) {
+              out += 'color:'
+                + Terminal.colors[fgColor]
+                + ';';
+            }
+
+            if (bgColor !== 0) {
+              out += 'background-color:'
+                + Terminal.colors[bgColor]
+                + ';';
+            }
+
             out += '">';
           }
         }
@@ -1940,16 +1930,16 @@ Terminal.prototype.charAttributes = function(params) {
         this.curAttr = this.curAttr | (1 << 8);
       } else if (p === 4) {
         // underlined text
-        this.curAttr = this.curAttr | (4 << 8);
+        this.curAttr = this.curAttr | (2 << 8);
       } else if (p === 7 || p === 27) {
         // inverse and positive
         // test with: echo -e '\e[31m\e[42mhello\e[7mworld\e[27mhi\e[m'
         if (p === 7) {
-          if ((this.curAttr >> 8) & 2) continue;
-          this.curAttr = this.curAttr | (2 << 8);
+          if ((this.curAttr >> 8) & 4) continue;
+          this.curAttr = this.curAttr | (4 << 8);
         } else if (p === 27) {
-          if (!((this.curAttr >> 8) & 2)) continue;
-          this.curAttr = this.curAttr & ~(2 << 8);
+          if (!((this.curAttr >> 8) & 4)) continue;
+          this.curAttr = this.curAttr & ~(4 << 8);
         }
         var bg = this.curAttr & 15;
         var fg = (this.curAttr >> 4) & 15;
@@ -1959,7 +1949,7 @@ Terminal.prototype.charAttributes = function(params) {
         this.curAttr = this.curAttr & ~(1 << 8);
       } else if (p === 24) {
         // not underlined
-        this.curAttr = this.curAttr & ~(4 << 8);
+        this.curAttr = this.curAttr & ~(2 << 8);
       } else if (p === 39) {
         // reset fg
         this.curAttr = this.curAttr & ~(15 << 4);
