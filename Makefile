@@ -1,11 +1,11 @@
 all:
 	node-waf configure build
-	@mv -f build/Release/pty.node -t .
+	@mv -f build/Release/pty.node .
 
 gyp:
 	node-gyp configure
 	node-gyp build
-	@mv -f out/Release/pty.node -t .
+	@mv -f out/Release/pty.node .
 
 clean:
 	@rm -rf ./build .lock-wscript
