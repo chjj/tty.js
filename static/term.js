@@ -70,8 +70,7 @@ var Terminal = function(cols, rows, handler) {
   this.charset = null;
   this.normal = null;
 
-  this.defAttr = (7 << 4) | 0;
-  // this.defAttr = (8 << 8) | (16 << 8);
+  this.defAttr = (1 << 4) | (1 << 9);
   this.curAttr = this.defAttr;
   this.isMac = ~navigator.userAgent.indexOf('Mac');
   this.keyState = 0;
@@ -408,11 +407,10 @@ Terminal.prototype.bindMouse = function() {
 // In the screen buffer, each character
 // is stored as a 32-bit integer.
 // First 16 bits: a utf-16 character.
-// Next 4 bits: background color (0-15).
-// Next 4 bits: foreground color (0-15).
-// Next 8 bits: a mask for misc. flags:
-//   1=bold, 2=underline, 4=inverse,
-//   8=default-bg, 16=default-fg
+// Next 5 bits: background color (0-31).
+// Next 5 bits: foreground color (0-31).
+// Next 6 bits: a mask for misc. flags:
+//   1=bold, 2=underline, 4=inverse
 
 Terminal.prototype.refresh = function(start, end) {
   var x
@@ -465,9 +463,9 @@ Terminal.prototype.refresh = function(start, end) {
             out += '<span class="termReverse">';
           } else {
             out += '<span style="';
-            fgColor = (data >> 4) & 15;
-            bgColor = data & 15;
-            flags = data >> 8;
+            fgColor = (data >> 5) & 31;
+            bgColor = data & 31;
+            flags = data >> 10;
 
             if (flags & 1) {
               out += 'font-weight:bold;';
@@ -479,15 +477,13 @@ Terminal.prototype.refresh = function(start, end) {
               out += 'text-decoration:underline;';
             }
 
-            if (fgColor !== 7) {
-            // if (~flags & 16) {
+            if (fgColor < 16) {
               out += 'color:'
                 + Terminal.colors[fgColor]
                 + ';';
             }
 
-            if (bgColor !== 0) {
-            // if (~flags & 8) {
+            if (bgColor < 16) {
               out += 'background-color:'
                 + Terminal.colors[bgColor]
                 + ';';
@@ -1931,58 +1927,50 @@ Terminal.prototype.charAttributes = function(params) {
     for (i = 0; i < params.length; i++) {
       p = params[i];
       if (p >= 30 && p <= 37) {
-        this.curAttr = (this.curAttr & ~(15 << 4)) | ((p - 30) << 4);
-        // this.curAttr = this.curAttr & ~(16 << 8);
+        this.curAttr = (this.curAttr & ~(31 << 5)) | ((p - 30) << 5);
       } else if (p >= 40 && p <= 47) {
-        this.curAttr = (this.curAttr & ~15) | (p - 40);
-        // this.curAttr = this.curAttr & ~(8 << 8);
+        this.curAttr = (this.curAttr & ~31) | (p - 40);
       } else if (p >= 90 && p <= 97) {
-        this.curAttr = (this.curAttr & ~(15 << 4)) | ((p - 90) << 4);
-        this.curAttr = this.curAttr | (8 << 4);
-        // this.curAttr = this.curAttr & ~(16 << 8);
+        this.curAttr = (this.curAttr & ~(31 << 5)) | ((p - 90) << 5);
+        this.curAttr = this.curAttr | (8 << 5);
       } else if (p >= 100 && p <= 107) {
-        this.curAttr = (this.curAttr & ~15) | (p - 100);
+        this.curAttr = (this.curAttr & ~31) | (p - 100);
         this.curAttr = this.curAttr | 8;
-        // this.curAttr = this.curAttr & ~(8 << 8);
       } else if (p === 0) {
         this.curAttr = this.defAttr;
       } else if (p === 1) {
         // bold text
-        this.curAttr = this.curAttr | (1 << 8);
+        this.curAttr = this.curAttr | (1 << 10);
       } else if (p === 4) {
         // underlined text
-        this.curAttr = this.curAttr | (2 << 8);
+        this.curAttr = this.curAttr | (2 << 10);
       } else if (p === 7 || p === 27) {
         // inverse and positive
         // test with: echo -e '\e[31m\e[42mhello\e[7mworld\e[27mhi\e[m'
         if (p === 7) {
-          if ((this.curAttr >> 8) & 4) continue;
-          this.curAttr = this.curAttr | (4 << 8);
+          if ((this.curAttr >> 10) & 4) continue;
+          this.curAttr = this.curAttr | (4 << 10);
         } else if (p === 27) {
-          if (!((this.curAttr >> 8) & 4)) continue;
-          this.curAttr = this.curAttr & ~(4 << 8);
+          if (~(this.curAttr >> 10) & 4) continue;
+          this.curAttr = this.curAttr & ~(4 << 10);
         }
-        var bg = this.curAttr & 15;
-        var fg = (this.curAttr >> 4) & 15;
-        this.curAttr = (this.curAttr & ~0xff) | ((bg << 4) | fg);
+        var bg = this.curAttr & 31;
+        var fg = (this.curAttr >> 5) & 31;
+        this.curAttr = (this.curAttr & ~1023) | ((bg << 5) | fg);
       } else if (p === 22) {
         // not bold
-        this.curAttr = this.curAttr & ~(1 << 8);
+        this.curAttr = this.curAttr & ~(1 << 10);
       } else if (p === 24) {
         // not underlined
-        this.curAttr = this.curAttr & ~(2 << 8);
+        this.curAttr = this.curAttr & ~(2 << 10);
       } else if (p === 39) {
         // reset fg
-        this.curAttr = this.curAttr & ~(15 << 4);
-        this.curAttr = this.curAttr | (((this.defAttr >> 4) & 15) << 4);
-        // this.curAttr = this.curAttr | (16 << 8);
-        // this.curAttr = this.curAttr & ~(15 << 4);
+        this.curAttr = this.curAttr & ~(31 << 5);
+        this.curAttr = this.curAttr | (((this.defAttr >> 5) & 31) << 5);
       } else if (p === 49) {
         // reset bg
-        this.curAttr = this.curAttr & ~15;
-        this.curAttr = this.curAttr | (this.defAttr & 15);
-        // this.curAttr = this.curAttr | (8 << 8);
-        // this.curAttr = this.curAttr & ~15;
+        this.curAttr = this.curAttr & ~31;
+        this.curAttr = this.curAttr | (this.defAttr & 31);
       }
     }
   }
