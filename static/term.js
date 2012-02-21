@@ -71,6 +71,7 @@ var Terminal = function(cols, rows, handler) {
   this.normal = null;
 
   this.defAttr = (7 << 4) | 0;
+  // this.defAttr = (8 << 8) | (16 << 8);
   this.curAttr = this.defAttr;
   this.isMac = ~navigator.userAgent.indexOf('Mac');
   this.keyState = 0;
@@ -400,6 +401,19 @@ Terminal.prototype.bindMouse = function() {
   });
 };
 
+/**
+ * Rendering Engine
+ */
+
+// In the screen buffer, each character
+// is stored as a 32-bit integer.
+// First 16 bits: a utf-16 character.
+// Next 4 bits: background color (0-15).
+// Next 4 bits: foreground color (0-15).
+// Next 8 bits: a mask for misc. flags:
+//   1=bold, 2=underline, 4=inverse,
+//   8=default-bg, 16=default-fg
+
 Terminal.prototype.refresh = function(start, end) {
   var x
     , y
@@ -457,6 +471,7 @@ Terminal.prototype.refresh = function(start, end) {
 
             if (flags & 1) {
               out += 'font-weight:bold;';
+              // see: XTerm*boldColors
               fgColor |= 8;
             }
 
@@ -465,12 +480,14 @@ Terminal.prototype.refresh = function(start, end) {
             }
 
             if (fgColor !== 7) {
+            // if (~flags & 16) {
               out += 'color:'
                 + Terminal.colors[fgColor]
                 + ';';
             }
 
             if (bgColor !== 0) {
+            // if (~flags & 8) {
               out += 'background-color:'
                 + Terminal.colors[bgColor]
                 + ';';
@@ -1915,14 +1932,18 @@ Terminal.prototype.charAttributes = function(params) {
       p = params[i];
       if (p >= 30 && p <= 37) {
         this.curAttr = (this.curAttr & ~(15 << 4)) | ((p - 30) << 4);
+        // this.curAttr = this.curAttr & ~(16 << 8);
       } else if (p >= 40 && p <= 47) {
         this.curAttr = (this.curAttr & ~15) | (p - 40);
+        // this.curAttr = this.curAttr & ~(8 << 8);
       } else if (p >= 90 && p <= 97) {
         this.curAttr = (this.curAttr & ~(15 << 4)) | ((p - 90) << 4);
         this.curAttr = this.curAttr | (8 << 4);
+        // this.curAttr = this.curAttr & ~(16 << 8);
       } else if (p >= 100 && p <= 107) {
         this.curAttr = (this.curAttr & ~15) | (p - 100);
         this.curAttr = this.curAttr | 8;
+        // this.curAttr = this.curAttr & ~(8 << 8);
       } else if (p === 0) {
         this.curAttr = this.defAttr;
       } else if (p === 1) {
@@ -1954,10 +1975,14 @@ Terminal.prototype.charAttributes = function(params) {
         // reset fg
         this.curAttr = this.curAttr & ~(15 << 4);
         this.curAttr = this.curAttr | (((this.defAttr >> 4) & 15) << 4);
+        // this.curAttr = this.curAttr | (16 << 8);
+        // this.curAttr = this.curAttr & ~(15 << 4);
       } else if (p === 49) {
         // reset bg
         this.curAttr = this.curAttr & ~15;
         this.curAttr = this.curAttr | (this.defAttr & 15);
+        // this.curAttr = this.curAttr | (8 << 8);
+        // this.curAttr = this.curAttr & ~15;
       }
     }
   }

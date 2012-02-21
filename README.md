@@ -42,7 +42,7 @@ JSON file. An example configuration file looks like:
     "visualBell": false,
     "popOnBell": false,
     "cursorBlink": false,
-    "bgColors": [
+    "colors": [
       "#2e3436",
       "#cc0000",
       "#4e9a06",
@@ -51,8 +51,6 @@ JSON file. An example configuration file looks like:
       "#75507b",
       "#06989a",
       "#d3d7cf"
-    ],
-    "fgColors": [
       "#555753",
       "#ef2929",
       "#8ae234",
