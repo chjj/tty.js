@@ -430,9 +430,13 @@ Terminal.prototype.refresh = function(start, end) {
     , fgColor
     , bgColor
     , flags
-    , row;
+    , row
+    , parent;
 
   width = this.cols;
+
+  parent = this.element.parentNode;
+  parent.removeChild(this.element);
 
   for (y = start; y <= end; y++) {
     row = y + this.ydisp;
@@ -530,6 +534,8 @@ Terminal.prototype.refresh = function(start, end) {
 
     this.children[y].innerHTML = out;
   }
+
+  parent.appendChild(this.element);
 };
 
 Terminal.prototype.cursorBlink = function() {
