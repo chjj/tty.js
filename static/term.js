@@ -1962,12 +1962,12 @@ Terminal.prototype.charAttributes = function(params) {
         this.curAttr = this.curAttr & ~(4 << 8);
       } else if (p === 39) {
         // reset fg
-        p = this.curAttr & 15;
-        this.curAttr = (this.defAttr & ~15) | p;
+        this.curAttr = this.curAttr & ~(15 << 4);
+        this.curAttr = this.curAttr | (((this.defAttr >> 4) & 15) << 4);
       } else if (p === 49) {
         // reset bg
-        p = (this.curAttr >> 4) & 15;
-        this.curAttr = (this.defAttr & ~(15 << 4)) | (p << 4);
+        this.curAttr = this.curAttr & ~15;
+        this.curAttr = this.curAttr | (this.defAttr & 15);
       }
     }
   }
