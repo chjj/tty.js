@@ -193,6 +193,11 @@ Terminal.prototype.open = function() {
   });
 
   this.bindMouse();
+
+  // XXX - hack, move this somewhere else.
+  if (Terminal.brokenBold == null) {
+    Terminal.brokenBold = isBoldBroken();
+  }
 };
 
 // XTerm mouse events
@@ -1555,7 +1560,7 @@ Terminal.prototype.bell = function() {
   setTimeout(function() {
     self.element.style.borderColor = '';
   }, 10);
-  if (Terminal.popOnBell) term.focus();
+  if (Terminal.popOnBell) this.focus();
 };
 
 Terminal.prototype.resize = function(x, y) {
@@ -2892,7 +2897,7 @@ Terminal.prototype.setAttrInRectangle = function(params) {
   for (; t < b + 1; t++) {
     line = this.lines[this.ybase + t];
     for (i = l; i < r; i++) {
-      line[i] = (attr << 16) | (line[i] & 0xFFFF);
+      line[i] = (attr << 16) | (line[i] & 0xffff);
     }
   }
 };
@@ -3051,7 +3056,7 @@ Terminal.prototype.fillRectangle = function(params) {
   for (; t < b + 1; t++) {
     line = this.lines[this.ybase + t];
     for (i = l; i < r; i++) {
-      line[i] = ((line[i] >> 16) << 16) | ch;
+      line[i] = (line[i] & ~0xffff) | ch;
     }
   }
 };
@@ -3256,6 +3261,19 @@ function cancel(ev) {
   if (ev.stopPropagation) ev.stopPropagation();
   ev.cancelBubble = true;
   return false;
+}
+
+// if bold is broken, we can't
+// use it in the terminal.
+function isBoldBroken() {
+  var el = document.createElement('span');
+  el.innerHTML = 'hello world';
+  document.body.appendChild(el);
+  var w1 = el.scrollWidth;
+  el.style.fontWeight = 'bold';
+  var w2 = el.scrollWidth;
+  document.body.removeChild(el);
+  return w1 !== w2;
 }
 
 /**
