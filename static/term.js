@@ -1941,20 +1941,25 @@ Terminal.prototype.charAttributes = function(params) {
       } else if (p === 4) {
         // underlined text
         this.curAttr = this.curAttr | (4 << 8);
-      } else if (p === 7) {
-        // reverse video
-        // should maybe have this as
-        // an attr 1 byte to the left
-        this.curAttr = -1;
+      } else if (p === 7 || p === 27) {
+        // inverse and positive
+        // test with: echo -e '\e[31m\e[42mhello\e[7mworld\e[27mhi\e[m'
+        if (p === 7) {
+          if ((this.curAttr >> 8) & 2) continue;
+          this.curAttr = this.curAttr | (2 << 8);
+        } else if (p === 27) {
+          if (!((this.curAttr >> 8) & 2)) continue;
+          this.curAttr = this.curAttr & ~(2 << 8);
+        }
+        var bg = this.curAttr & 15;
+        var fg = (this.curAttr >> 4) & 15;
+        this.curAttr = (this.curAttr & ~0xff) | ((bg << 4) | fg);
       } else if (p === 22) {
         // not bold
         this.curAttr = this.curAttr & ~(1 << 8);
       } else if (p === 24) {
         // not underlined
         this.curAttr = this.curAttr & ~(4 << 8);
-      } else if (p === 27) {
-        // not reverse video
-        this.curAttr = this.defAttr;
       } else if (p === 39) {
         // reset fg
         p = this.curAttr & 15;
