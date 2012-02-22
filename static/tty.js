@@ -106,24 +106,25 @@ function bindGlobal() {
       var i = Terminal.focus.id;
 
       for (i++; i < terms.length; i++) {
-        if (terms[i]) return focus_(terms[i]);
+        if (terms[i]) return focus_(terms[i], ev);
       }
 
       for (i = 0; i < terms.length; i++) {
-        if (terms[i]) return focus_(terms[i]);
+        if (terms[i]) return focus_(terms[i], ev);
       }
 
-      return cancel(ev);
+      return focus_(Terminal.focus, ev);
     }
     return kd.call(this, ev);
   };
 
-  function focus_(term) {
+  function focus_(term, ev) {
     term.wrapper.style.borderColor = 'orange';
     setTimeout(function() {
       term.wrapper.style.borderColor = '';
     }, 200);
     term.focus();
+    cancel(ev);
   }
 }
 
