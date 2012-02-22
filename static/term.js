@@ -48,7 +48,6 @@ var Terminal = function(cols, rows, handler) {
   this.cols = cols;
   this.rows = rows;
   this.handler = handler;
-  this.scrollback = Terminal.scrollback;
   this.ybase = 0;
   this.ydisp = 0;
   this.x = 0;
@@ -574,7 +573,7 @@ Terminal.prototype.refreshBlink = function() {
 Terminal.prototype.scroll = function() {
   var row;
 
-  if (++this.ybase === this.scrollback) {
+  if (++this.ybase === Terminal.scrollback) {
     this.ybase = 0;
     this.lines = this.lines.slice(-this.rows + 1);
   }
