@@ -586,6 +586,11 @@ Terminal.prototype.scroll = function() {
   // subtract the bottom scroll region
   row -= this.rows - 1 - this.scrollBottom;
 
+  // potential optimization
+  // if (row === this.lines.length) {
+  //   this.lines.push(this.blankLine());
+  // } else
+
   // add our new line
   this.lines.splice(row, 0, this.blankLine());
 
