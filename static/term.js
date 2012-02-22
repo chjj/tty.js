@@ -435,8 +435,10 @@ Terminal.prototype.refresh = function(start, end) {
 
   width = this.cols;
 
-  parent = this.element.parentNode;
-  parent.removeChild(this.element);
+  if (end - start === this.rows - 1) {
+    parent = this.element.parentNode;
+    parent.removeChild(this.element);
+  }
 
   for (y = start; y <= end; y++) {
     row = y + this.ydisp;
@@ -535,7 +537,7 @@ Terminal.prototype.refresh = function(start, end) {
     this.children[y].innerHTML = out;
   }
 
-  parent.appendChild(this.element);
+  if (parent) parent.appendChild(this.element);
 };
 
 Terminal.prototype.cursorBlink = function() {
