@@ -69,7 +69,7 @@ var Terminal = function(cols, rows, handler) {
   this.charset = null;
   this.normal = null;
 
-  this.defAttr = (1 << 4) | (1 << 9);
+  this.defAttr = 16 | (17 << 5);
   this.curAttr = this.defAttr;
   this.keyState = 0;
   this.keyStr = '';
@@ -486,13 +486,13 @@ Terminal.prototype.refresh = function(start, end) {
               out += 'text-decoration:underline;';
             }
 
-            if (fgColor < 16) {
+            if (fgColor !== 17) {
               out += 'color:'
                 + Terminal.colors[fgColor]
                 + ';';
             }
 
-            if (bgColor < 16) {
+            if (bgColor !== 16) {
               out += 'background-color:'
                 + Terminal.colors[bgColor]
                 + ';';
