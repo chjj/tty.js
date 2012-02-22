@@ -486,7 +486,7 @@ Terminal.prototype.refresh = function(start, end) {
             if (flags & 1) {
               out += 'font-weight:bold;';
               // see: XTerm*boldColors
-              fgColor |= 8;
+              if (fgColor < 8) fgColor += 8;
             }
 
             if (flags & 2) {
