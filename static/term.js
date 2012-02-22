@@ -71,7 +71,6 @@ var Terminal = function(cols, rows, handler) {
 
   this.defAttr = (1 << 4) | (1 << 9);
   this.curAttr = this.defAttr;
-  this.isMac = ~navigator.userAgent.indexOf('Mac');
   this.keyState = 0;
   this.keyStr = '';
 
@@ -1484,7 +1483,7 @@ Terminal.prototype.keyDownHandler = function(ev) {
           // delete
           str = String.fromCharCode(127);
         }
-      } else if ((!this.isMac && ev.altKey) || (this.isMac && ev.metaKey)) {
+      } else if ((!isMac && ev.altKey) || (isMac && ev.metaKey)) {
         if (ev.keyCode >= 65 && ev.keyCode <= 90) {
           str = '\x1b' + String.fromCharCode(ev.keyCode + 32);
         } else if (ev.keyCode >= 48 && ev.keyCode <= 57) {
@@ -1531,8 +1530,8 @@ Terminal.prototype.keyPressHandler = function(ev) {
 
   if (key !== 0) {
     if (!ev.ctrlKey
-        && ((!this.isMac && !ev.altKey)
-        || (this.isMac && !ev.metaKey))) {
+        && ((!isMac && !ev.altKey)
+        || (isMac && !ev.metaKey))) {
       str = String.fromCharCode(key);
     }
   }
@@ -3277,6 +3276,8 @@ function cancel(ev) {
   ev.cancelBubble = true;
   return false;
 }
+
+var isMac = ~navigator.userAgent.indexOf('Mac');
 
 // if bold is broken, we can't
 // use it in the terminal.

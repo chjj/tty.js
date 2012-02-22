@@ -101,8 +101,8 @@ function bindGlobal() {
   var kd = Terminal.prototype.keyDownHandler;
   Terminal.prototype.keyDownHandler = function(ev) {
     if (ev.keyCode === 192
-        && ((!this.isMac && ev.altKey)
-        || (this.isMac && ev.metaKey))) {
+        && ((!isMac && ev.altKey)
+        || (isMac && ev.metaKey))) {
       var i = Terminal.focus.id;
 
       for (i++; i < terms.length; i++) {
@@ -289,6 +289,8 @@ function cancel(ev) {
   ev.cancelBubble = true;
   return false;
 }
+
+var isMac = ~navigator.userAgent.indexOf('Mac');
 
 /**
  * Load
