@@ -1584,14 +1584,16 @@ Terminal.prototype.resize = function(x, y) {
   if (this.y >= y) this.y = y - 1;
   if (this.x >= x) this.x = x - 1;
 
-  if (this.cols < x) {
+  // resize cols
+  j = this.cols;
+  if (j < x) {
     i = this.lines.length;
     while (i--) {
       while (this.lines[i].length < x) {
         this.lines[i].push((this.defAttr << 16) | 32);
       }
     }
-  } else if (this.cols > x) {
+  } else if (j > x) {
     i = this.lines.length;
     while (i--) {
       while (this.lines[i].length > x) {
@@ -1599,7 +1601,9 @@ Terminal.prototype.resize = function(x, y) {
       }
     }
   }
+  this.cols = x;
 
+  // resize rows
   j = this.rows;
   if (j < y) {
     el = this.element;
@@ -1626,9 +1630,8 @@ Terminal.prototype.resize = function(x, y) {
       }
     }
   }
-
-  this.cols = x;
   this.rows = y;
+
   this.scrollTop = 0;
   this.scrollBottom = y - 1;
   this.refreshStart = 0;
