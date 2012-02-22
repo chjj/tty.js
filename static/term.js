@@ -106,7 +106,14 @@ Terminal.colors = [
   '#729fcf',
   '#ad7fa8',
   '#34e2e2',
-  '#eeeeec'
+  '#eeeeec',
+  // default bg/fg
+  // dissonance between
+  // this file and the
+  // css file. fix this
+  // eventually.
+  '#000000',
+  '#ffffff'
 ];
 
 Terminal.cursorBlink = true;
