@@ -124,8 +124,6 @@ Window.prototype.bind = function() {
 
     if (ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) {
       self.destroy();
-      //socket.emit('kill', self.focused.id);
-      //self.focused.destroy();
     } else {
       self.resizing(ev);
     }
@@ -240,7 +238,6 @@ Window.prototype.resizing = function(ev) {
     var x, y;
 
     x = el.offsetWidth / resize.w;
-    //y = el.offsetHeight / resize.h;
     y = (el.offsetHeight - 15) / (resize.h - 15);
     x = (x * term.cols) | 0;
     y = (y * term.rows) | 0;
@@ -277,7 +274,8 @@ Window.prototype.maximize = function() {
     cols: term.cols,
     rows: term.rows,
     left: el.offsetLeft,
-    top: el.offsetTop
+    top: el.offsetTop,
+    root: root.className
   };
 
   this.minimize = function() {
@@ -288,27 +286,24 @@ Window.prototype.maximize = function() {
     el.style.width = '';
     el.style.height = '';
     el.style.boxSizing = '';
-    el.style.backgroundColor = '';
     self.grip.style.display = '';
+    root.className = m.root;
 
     self.resize(m.cols, m.rows);
   };
 
-  x = root.clientWidth / el.clientWidth;
-  y = root.clientHeight / el.clientHeight;
+  x = root.clientWidth / el.offsetWidth;
+  y = root.clientHeight / (el.offsetHeight - 15);
   x = (x * term.cols) | 0;
   y = (y * term.rows) | 0;
-
-  if (el.clientWidth > root.clientWidth / 1.2) x--;
-  if (el.clientHeight > root.clientHeight / 1.2) y--;
 
   el.style.left = '0px';
   el.style.top = '0px';
   el.style.width = '100%';
   el.style.height = '100%';
   el.style.boxSizing = 'border-box';
-  el.style.backgroundColor = Terminal.colors[16];
   this.grip.style.display = 'none';
+  root.className = 'maximized';
 
   this.resize(x, y);
 };
@@ -351,6 +346,8 @@ function Tab(win) {
   var button = document.createElement('div');
   button.className = 'tab';
   button.innerHTML = ++win.uid;
+  win.bar.appendChild(button);
+
   on(button, 'click', function(ev) {
     if (ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) {
       socket.emit('kill', self.id);
@@ -358,8 +355,8 @@ function Tab(win) {
     } else {
       self.focus();
     }
+    return cancel(ev);
   });
-  win.bar.appendChild(button);
 
   this.id = id;
   this.window = win;
@@ -422,33 +419,65 @@ Tab.prototype.destroy = function() {
   }
 };
 
-// Alt-` to quickly swap between terminals.
 Tab.prototype.keyDownHandler = function(ev) {
+  // Alt-` to quickly swap between terminals.
   if (ev.keyCode === 192
       && ((!isMac && ev.altKey)
       || (isMac && ev.metaKey))) {
-    var i = indexOf(windows, Terminal.focus.window);
+    var i = indexOf(windows, this.window)
+      , l = windows.length;
 
-    for (i++; i < windows.length; i++) {
+    cancel(ev);
+
+    for (i++; i < l; i++) {
       if (windows[i]) return focus_(windows[i], ev);
     }
 
-    for (i = 0; i < windows.length; i++) {
+    for (i = 0; i < l; i++) {
       if (windows[i]) return focus_(windows[i], ev);
     }
 
-    return focus_(Terminal.focus.window, ev);
+    return focus_(this.window, ev);
   }
+
+  // URXVT Keys for tab navigation and creation.
+  // Shift-Left, Shift-Right, Shift-Down
+  if (ev.shiftKey && (ev.keyCode >= 37 && ev.keyCode <= 40)) {
+    var tabs = this.window.tabs
+      , i = indexOf(tabs, this)
+      , l = tabs.length;
+
+    cancel(ev);
+
+    if (ev.keyCode === 37) {
+      while (i--) if (tabs[i]) return tabs[i].focus();
+      while (l--) if (tabs[l]) return tabs[l].focus();
+      return this.focus();
+    } else if (ev.keyCode === 39) {
+      for (i++; i < l; i++) {
+        if (tabs[i]) return tabs[i].focus();
+      }
+      for (i = 0; i < l; i++) {
+        if (tabs[i]) return tabs[i].focus();
+      }
+      return this.focus();
+    }
+
+    return this.window.createTab();
+  }
+
+  // Pass to terminal key handler.
   return Terminal.prototype.keyDownHandler.call(this, ev);
 };
 
 function focus_(win, ev) {
   win.element.style.borderColor = 'orange';
+  win.bar.style.backgroundColor = 'orange';
   setTimeout(function() {
     win.element.style.borderColor = '';
+    win.bar.style.backgroundColor = '';
   }, 200);
   win.focus();
-  cancel(ev);
 }
 
 /**
