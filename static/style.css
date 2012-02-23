@@ -53,16 +53,14 @@ body {
 .terminal {
   border: #000 solid 5px;
   background: #000;
-}
-
-.term {
+  /* for lines: */
   font-family: "DejaVu Sans Mono", monospace;
   font-size: 11px;
   color: #f0f0f0;
   background: #000;
 }
 
-.termReverse {
+.reverse-video {
   color: #000;
   background: #f0f0f0;
 }

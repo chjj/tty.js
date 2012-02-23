@@ -107,13 +107,9 @@ Terminal.colors = [
   '#ad7fa8',
   '#34e2e2',
   '#eeeeec',
-  // default bg/fg
-  // dissonance between
-  // this file and the
-  // css file. fix this
-  // eventually.
+  // default bg/fg:
   '#000000',
-  '#ffffff'
+  '#f0f0f0'
 ];
 
 Terminal.cursorBlink = true;
@@ -170,7 +166,6 @@ Terminal.prototype.open = function() {
 
   for (; i < this.rows; i++) {
     div = document.createElement('div');
-    div.className = 'term';
     this.element.appendChild(div);
     this.children.push(div);
   }
@@ -203,6 +198,14 @@ Terminal.prototype.open = function() {
   if (Terminal.brokenBold == null) {
     Terminal.brokenBold = isBoldBroken();
   }
+
+  // sync default bg/fg colors
+  this.element.style.backgroundColor = Terminal.colors[16];
+  this.element.style.color = Terminal.colors[17];
+
+  // otherwise:
+  // Terminal.colors[16] = css(this.element, 'background-color');
+  // Terminal.colors[17] = css(this.element, 'color');
 };
 
 // XTerm mouse events
@@ -476,7 +479,7 @@ Terminal.prototype.refresh = function(start, end) {
         }
         if (data !== this.defAttr) {
           if (data === -1) {
-            out += '<span class="termReverse">';
+            out += '<span class="reverse-video">';
           } else {
             out += '<span style="';
             fgColor = (data >> 5) & 31;
@@ -1623,7 +1626,6 @@ Terminal.prototype.resize = function(x, y) {
       }
       if (this.children.length < y) {
         line = document.createElement('div');
-        line.className = 'term';
         el.appendChild(line);
         this.children.push(line);
       }
