@@ -52,8 +52,6 @@ body {
 
 .terminal {
   border: #000 solid 5px;
-  background: #000;
-  /* for lines: */
   font-family: "DejaVu Sans Mono", monospace;
   font-size: 11px;
   color: #f0f0f0;

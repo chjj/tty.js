@@ -129,7 +129,8 @@ function bindGlobal() {
 }
 
 function bindMouse(term) {
-  var grip
+  var last = 0
+    , grip
     , el;
 
   el = document.createElement('div');
@@ -165,11 +166,18 @@ function bindMouse(term) {
 
     cancel(ev);
 
+    if (new Date - last < 600) {
+      return maximize(term);
+    }
+    last = new Date;
+
     drag(ev, term);
   });
 }
 
 function drag(ev, term) {
+  if (term.minimize) return;
+
   var el = term.wrapper;
 
   var drag = {
@@ -204,6 +212,8 @@ function drag(ev, term) {
 }
 
 function resize(ev, term) {
+  if (term.minimize) delete term.minimize;
+
   var el = term.wrapper;
 
   var resize = {
@@ -251,6 +261,55 @@ function resize(ev, term) {
 
   on(doc, 'mousemove', move);
   on(doc, 'mouseup', up);
+}
+
+function maximize(term) {
+  if (term.minimize) return term.minimize();
+
+  var el = term.wrapper
+    , x
+    , y;
+
+  var m = {
+    cols: term.cols,
+    rows: term.rows,
+    left: el.offsetLeft,
+    top: el.offsetTop
+  };
+
+  term.minimize = function() {
+    delete term.minimize;
+
+    el.style.left = m.left + 'px';
+    el.style.top = m.top + 'px';
+    el.style.width = '';
+    el.style.height = '';
+    el.style.boxSizing = '';
+    el.style.borderColor = '';
+    el.style.backgroundColor = '';
+
+    socket.emit('resize', m.cols, m.rows, term.id);
+    term.resize(m.cols, m.rows);
+  };
+
+  x = root.clientWidth / el.clientWidth;
+  y = root.clientHeight / el.clientHeight;
+  x = (x * term.cols) | 0;
+  y = (y * term.rows) | 0;
+
+  if (el.clientWidth > root.clientWidth / 1.2) x--;
+  if (el.clientHeight > root.clientHeight / 1.2) y--;
+
+  el.style.left = '0px';
+  el.style.top = '0px';
+  el.style.width = '100%';
+  el.style.height = '100%';
+  el.style.boxSizing = 'border-box';
+  el.style.borderColor = Terminal.colors[8];
+  el.style.backgroundColor = Terminal.colors[16];
+
+  socket.emit('resize', x, y, term.id);
+  term.resize(x, y);
 }
 
 var focus_ = Terminal.prototype.focus;
