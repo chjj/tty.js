@@ -36,6 +36,7 @@ JSON file. An example configuration file looks like:
   "hostname": "127.0.0.1",
   "shell": "sh",
   "stylesheet": "./my_custom_stylesheet.css",
+  "userStylesheet": "./user-stylesheet.css",
   "static": "./my_custom_static_directory/",
   "term": {
     "scrollback": 1000,
