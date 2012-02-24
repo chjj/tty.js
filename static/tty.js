@@ -167,8 +167,7 @@ Window.prototype.destroy = function() {
   this.element.parentNode.removeChild(this.element);
 
   this.each(function(term) {
-    socket.emit('kill', term.id);
-    term.destroy();
+    term.kill();
   });
 };
 
@@ -354,8 +353,7 @@ function Tab(win) {
 
   on(button, 'click', function(ev) {
     if (ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) {
-      socket.emit('kill', self.id);
-      self.destroy();
+      self.kill();
     } else {
       self.focus();
     }
@@ -421,6 +419,12 @@ Tab.prototype.destroy = function() {
   if (!win.tabs.length) {
     this.window.destroy();
   }
+};
+
+Tab.prototype.kill = function() {
+  if (this.destroyed) return;
+  socket.emit('kill', this.id);
+  this.destroy();
 };
 
 Tab.prototype.keyDownHandler = function(ev) {
@@ -503,8 +507,7 @@ Tab.prototype.specialKeyHandler = function(ev) {
       win.createTab();
       break;
     case 75: // k
-      socket.emit('kill', win.focused.id);
-      win.focused.destroy();
+      win.focused.kill();
       break;
     case 87: // w (tmux key)
     case 222: // " - mac (screen key)
