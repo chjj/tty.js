@@ -103,6 +103,11 @@ function Window() {
   });
   this.bar.appendChild(button);
 
+  this.title = document.createElement('div');
+  this.title.className = 'title';
+  this.title.innerHTML = '.';
+  this.bar.appendChild(this.title);
+
   windows.push(this);
 
   this.createTab();
@@ -372,16 +377,17 @@ function Tab(win) {
   this.window = win;
   this.button = button;
   this.element = null;
+  this.process = '';
   this.open();
 
   win.tabs.push(this);
   terms.push(this);
 
-  socket.emit('create', cols, rows);
-
-  //socket.emit('create', cols, rows, function(pty) {
-  //  self.pty = pty;
-  //});
+  socket.emit('create', cols, rows, function(pty, process) {
+    self.pty = pty;
+    self.process = process;
+    win.title.innerHTML = process;
+  });
 };
 
 inherits(Tab, Terminal);
@@ -403,6 +409,7 @@ Tab.prototype.focus = function() {
     win.element.appendChild(this.element);
     win.focused = this;
 
+    win.title.innerHTML = this.process;
     this.button.style.fontWeight = 'bold';
   }
 
@@ -545,10 +552,10 @@ Tab.prototype.specialKeyHandler = function(ev) {
 };
 
 Tab.prototype.getProcessName = function(func) {
-  // placeholder
-  var id = this.id;
-  socket.emit('process', id, function(name) {
-    terms[id].process = name;
+  var self = this;
+  socket.emit('process', this.id, function(name) {
+    self.process = name;
+    self.win.title.innerHTML = name;
     if (func) func(name);
   });
 };

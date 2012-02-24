@@ -51,21 +51,31 @@ body {
   right: 0;
   height: 13px;
   padding: 1px 0;
+  font-size: 12px;
+  font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
+  color: #000;
+  text-shadow: rgba(255, 255, 255, 0.5) 0 1px 5px;
+}
+
+.title {
+  position: absolute;
+  right: 5px;
+  top: 2px;
+  font-size: 11px;
+  cursor: default;
 }
 
 .tab {
   margin-left: 8px;
   margin-top: 1px;
-  color: #000;
   float: left;
-  font-size: 12px;
-  font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
   cursor: pointer;
 }
 
-.dark .tab,
-.maximized .tab {
+.dark .bar,
+.maximized .bar {
   color: #f0f0f0;
+  text-shadow: none;
 }
 
 .tab:hover {
