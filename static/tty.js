@@ -424,6 +424,17 @@ Tab.prototype.destroy = function() {
 };
 
 Tab.prototype.keyDownHandler = function(ev) {
+  if (this.pendingKey) {
+    this.pendingKey = false;
+    return this.specialKeyHandler(ev);
+  }
+
+  //if (Terminal.specialKey && ev.ctrlKey && ev.keyCode === 65) {
+  if (ev.ctrlKey && ev.keyCode === 65) {
+    this.pendingKey = true;
+    return cancel(ev);
+  }
+
   // Alt-` to quickly swap between terminals.
   if (ev.keyCode === 192
       && ((!isMac && ev.altKey)
@@ -481,6 +492,39 @@ function focus_(win, ev) {
   }, 200);
   win.focus();
 }
+
+// tmux/screen-like keys
+Tab.prototype.specialKeyHandler = function(ev) {
+  var win = this.window
+    , key = ev.keyCode;
+
+  switch (key) {
+    case 67: // c
+      win.createTab();
+      break;
+    case 75: // k
+      socket.emit('kill', win.focused.id);
+      win.focused.destroy();
+      break;
+    case 87: // w (tmux key)
+    case 222: // " - mac (screen key)
+    case 192: // " - windows (screen key)
+      break;
+    default: // 0 - 9
+      if (key >= 48 && key <= 57) {
+        key -= 48;
+        // 1-indexed
+        key--;
+        if (!~key) key = 10;
+        if (win.tabs[key]) {
+          win.tabs[key].focus();
+        }
+      }
+      break;
+  }
+
+  return cancel(ev);
+};
 
 /**
  * Helpers
