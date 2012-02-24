@@ -371,7 +371,7 @@ function Tab(win) {
   win.tabs.push(this);
   terms.push(this);
 
-  socket.emit('create');
+  socket.emit('create', cols, rows);
 };
 
 inherits(Tab, Terminal);
