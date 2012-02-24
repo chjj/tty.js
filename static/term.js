@@ -112,6 +112,7 @@ Terminal.colors = [
   '#f0f0f0'
 ];
 
+Terminal.termName = '';
 Terminal.cursorBlink = true;
 Terminal.visualBell = false;
 Terminal.popOnBell = false;

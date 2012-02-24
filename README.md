@@ -39,6 +39,7 @@ JSON file. An example configuration file looks like:
   "userStylesheet": "./user-stylesheet.css",
   "static": "./my_custom_static_directory/",
   "term": {
+    "termName": "xterm",
     "scrollback": 1000,
     "visualBell": false,
     "popOnBell": false,
