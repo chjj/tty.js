@@ -53,7 +53,7 @@ function open() {
 
   socket.on('kill', function(id) {
     if (!terms[id]) return;
-    terms[id].destroy();
+    terms[id]._destroy();
   });
 
 }
@@ -168,7 +168,7 @@ Window.prototype.destroy = function() {
   this.element.parentNode.removeChild(this.element);
 
   this.each(function(term) {
-    term.kill();
+    term.destroy();
   });
 };
 
@@ -293,7 +293,6 @@ Window.prototype.maximize = function() {
     self.resize(m.cols, m.rows);
   };
 
-
   x = el.offsetWidth - term.element.clientWidth;
   y = el.offsetHeight - term.element.clientHeight;
   x = (root.clientWidth - x) / term.element.clientWidth;
@@ -316,7 +315,6 @@ Window.prototype.resize = function(cols, rows) {
   this.cols = cols;
   this.rows = rows;
   this.each(function(term) {
-    socket.emit('resize', cols, rows, term.id);
     term.resize(cols, rows);
   });
 };
@@ -330,6 +328,15 @@ Window.prototype.each = function(func) {
 
 Window.prototype.createTab = function() {
   new Tab(this);
+};
+
+Window.prototype.highlight = function() {
+  var self = this;
+  this.element.style.borderColor = 'orange';
+  setTimeout(function() {
+    self.element.style.borderColor = '';
+  }, 200);
+  this.focus();
 };
 
 /**
@@ -354,7 +361,7 @@ function Tab(win) {
 
   on(button, 'click', function(ev) {
     if (ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) {
-      self.kill();
+      self.destroy();
     } else {
       self.focus();
     }
@@ -379,6 +386,8 @@ function Tab(win) {
 
 inherits(Tab, Terminal);
 
+Tab.prototype._focus = Tab.prototype.focus;
+
 Tab.prototype.focus = function() {
   if (Terminal.focus === this) return;
 
@@ -397,12 +406,19 @@ Tab.prototype.focus = function() {
     this.button.style.fontWeight = 'bold';
   }
 
-  Terminal.prototype.focus.call(this);
+  this._focus();
 
   win.focus();
 };
 
-Tab.prototype.destroy = function() {
+Tab.prototype._resize = Tab.prototype.resize;
+
+Tab.prototype.resize = function(cols, rows) {
+  socket.emit('resize', cols, rows, this.id);
+  this._resize(cols, rows);
+};
+
+Tab.prototype._destroy = function() {
   if (this.destroyed) return;
   this.destroyed = true;
 
@@ -426,11 +442,13 @@ Tab.prototype.destroy = function() {
   }
 };
 
-Tab.prototype.kill = function() {
+Tab.prototype.destroy = function() {
   if (this.destroyed) return;
   socket.emit('kill', this.id);
-  this.destroy();
+  this._destroy();
 };
+
+Tab.prototype._keyDownHandler = Tab.prototype.keyDownHandler;
 
 Tab.prototype.keyDownHandler = function(ev) {
   if (this.pendingKey) {
@@ -438,12 +456,13 @@ Tab.prototype.keyDownHandler = function(ev) {
     return this.specialKeyHandler(ev);
   }
 
+  // ^A for screen-key-like prefix.
   if (Terminal.screenKeys && ev.ctrlKey && ev.keyCode === 65) {
     this.pendingKey = true;
     return cancel(ev);
   }
 
-  // Alt-` to quickly swap between terminals.
+  // Alt-` to quickly swap between windows.
   if (ev.keyCode === 192
       && ((!isMac && ev.altKey)
       || (isMac && ev.metaKey))) {
@@ -453,14 +472,14 @@ Tab.prototype.keyDownHandler = function(ev) {
     cancel(ev);
 
     for (i++; i < l; i++) {
-      if (windows[i]) return focus_(windows[i], ev);
+      if (windows[i]) return windows[i].highlight();
     }
 
     for (i = 0; i < l; i++) {
-      if (windows[i]) return focus_(windows[i], ev);
+      if (windows[i]) return windows[i].highlight();
     }
 
-    return focus_(this.window, ev);
+    return this.window.highlight();
   }
 
   // URXVT Keys for tab navigation and creation.
@@ -490,16 +509,8 @@ Tab.prototype.keyDownHandler = function(ev) {
   }
 
   // Pass to terminal key handler.
-  return Terminal.prototype.keyDownHandler.call(this, ev);
+  return this._keyDownHandler(ev);
 };
-
-function focus_(win, ev) {
-  win.element.style.borderColor = 'orange';
-  setTimeout(function() {
-    win.element.style.borderColor = '';
-  }, 200);
-  win.focus();
-}
 
 // tmux/screen-like keys
 Tab.prototype.specialKeyHandler = function(ev) {
@@ -511,7 +522,7 @@ Tab.prototype.specialKeyHandler = function(ev) {
       win.createTab();
       break;
     case 75: // k
-      win.focused.kill();
+      win.focused.destroy();
       break;
     case 87: // w (tmux key)
     case 222: // " - mac (screen key)
