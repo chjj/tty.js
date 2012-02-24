@@ -22,19 +22,22 @@ html.dark {
   background: #333;
 }
 
+html.maximized {
+  overflow: hidden;
+}
+
 body {
   margin: 25px;
 }
 
 .window {
   border: 6px solid;
+  border-top: 15px solid;
   color: rgba(112, 128, 144, 0.5);
   position: absolute;
   top: 20px;
   left: 20px;
   z-index: 1000;
-  border-top: none;
-  padding-top: 15px;
 }
 
 .maximized .window {
@@ -43,12 +46,11 @@ body {
 
 .bar {
   position: absolute;
-  top: 0;
+  top: -15px;
   left: 0;
   right: 0;
   height: 13px;
   padding: 1px 0;
-  background: rgba(112, 128, 144, 0.5);
 }
 
 .tab {

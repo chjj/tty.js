@@ -345,15 +345,15 @@ Terminal.prototype.bindMouse = function() {
     y = ev.pageY;
     el = self.element;
 
-    while (el !== document.body) {
+    while (el !== document.documentElement) {
       x -= el.offsetLeft;
       y -= el.offsetTop;
       el = el.parentNode;
     }
 
     // convert to cols/rows
-    w = self.element.clientWidth;
-    h = self.element.clientHeight;
+    w = self.element.offsetWidth;
+    h = self.element.offsetHeight;
     x = ((x / w) * self.cols) | 0;
     y = ((y / h) * self.rows) | 0;
 

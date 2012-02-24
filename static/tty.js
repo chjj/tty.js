@@ -89,7 +89,6 @@ function Window() {
 
   this.cols = 80;
   this.rows = 30;
-  this.uid = 0;
 
   el.appendChild(grip);
   el.appendChild(bar);
@@ -97,7 +96,7 @@ function Window() {
 
   var button = document.createElement('div');
   button.className = 'tab';
-  button.innerHTML = '+';
+  button.innerHTML = '~';
   on(button, 'click', function(ev) {
     self.createTab();
   });
@@ -160,6 +159,8 @@ Window.prototype.destroy = function() {
   if (this.destroyed) return;
   this.destroyed = true;
 
+  if (this.minimize) this.minimize();
+
   splice(windows, this);
   if (windows.length) windows[0].focus();
 
@@ -215,8 +216,8 @@ Window.prototype.resizing = function(ev) {
   if (this.minimize) delete this.minimize;
 
   var resize = {
-    w: el.offsetWidth,
-    h: el.offsetHeight
+    w: el.clientWidth,
+    h: el.clientHeight
   };
 
   el.style.overflow = 'hidden';
@@ -237,8 +238,8 @@ Window.prototype.resizing = function(ev) {
   function up(ev) {
     var x, y;
 
-    x = el.offsetWidth / resize.w;
-    y = (el.offsetHeight - 15) / (resize.h - 15);
+    x = el.clientWidth / resize.w;
+    y = el.clientHeight / resize.h;
     x = (x * term.cols) | 0;
     y = (y * term.rows) | 0;
 
@@ -292,8 +293,11 @@ Window.prototype.maximize = function() {
     self.resize(m.cols, m.rows);
   };
 
-  x = root.clientWidth / el.offsetWidth;
-  y = root.clientHeight / (el.offsetHeight - 15);
+
+  x = el.offsetWidth - term.element.clientWidth;
+  y = el.offsetHeight - term.element.clientHeight;
+  x = (root.clientWidth - x) / term.element.clientWidth;
+  y = (root.clientHeight - y) / term.element.clientHeight;
   x = (x * term.cols) | 0;
   y = (y * term.rows) | 0;
 
@@ -345,7 +349,7 @@ function Tab(win) {
 
   var button = document.createElement('div');
   button.className = 'tab';
-  button.innerHTML = ++win.uid;
+  button.innerHTML = '\u2022';
   win.bar.appendChild(button);
 
   on(button, 'click', function(ev) {
@@ -472,10 +476,8 @@ Tab.prototype.keyDownHandler = function(ev) {
 
 function focus_(win, ev) {
   win.element.style.borderColor = 'orange';
-  win.bar.style.backgroundColor = 'orange';
   setTimeout(function() {
     win.element.style.borderColor = '';
-    win.bar.style.backgroundColor = '';
   }, 200);
   win.focus();
 }
