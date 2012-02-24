@@ -44,6 +44,7 @@ JSON file. An example configuration file looks like:
     "visualBell": false,
     "popOnBell": false,
     "cursorBlink": false,
+    "screenKeys": false,
     "colors": [
       "#2e3436",
       "#cc0000",

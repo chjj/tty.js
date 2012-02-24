@@ -55,6 +55,7 @@ function open() {
     if (!terms[id]) return;
     terms[id].destroy();
   });
+
 }
 
 /**
@@ -370,6 +371,10 @@ function Tab(win) {
   terms.push(this);
 
   socket.emit('create', cols, rows);
+
+  //socket.emit('create', cols, rows, function(pty) {
+  //  self.pty = pty;
+  //});
 };
 
 inherits(Tab, Terminal);
@@ -433,8 +438,7 @@ Tab.prototype.keyDownHandler = function(ev) {
     return this.specialKeyHandler(ev);
   }
 
-  //if (Terminal.specialKey && ev.ctrlKey && ev.keyCode === 65) {
-  if (ev.ctrlKey && ev.keyCode === 65) {
+  if (Terminal.screenKeys && ev.ctrlKey && ev.keyCode === 65) {
     this.pendingKey = true;
     return cancel(ev);
   }
@@ -527,6 +531,15 @@ Tab.prototype.specialKeyHandler = function(ev) {
   }
 
   return cancel(ev);
+};
+
+Tab.prototype.getProcessName = function(func) {
+  // placeholder
+  var id = this.id;
+  socket.emit('process', id, function(name) {
+    terms[id].process = name;
+    if (func) func(name);
+  });
 };
 
 /**
