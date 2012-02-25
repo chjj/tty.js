@@ -3,13 +3,17 @@
 A terminal in your browser using node.js and socket.io. Based on Fabrice
 Bellard's vt100 for [jslinux](http://bellard.org/jslinux/).
 
-### bash
+## Screenshots
 
-![tty.js can run bash well](http://i.imgur.com/D5x3k.png)
+![](http://i.imgur.com/Zg1Jq.png)
 
-### vim
+![](http://i.imgur.com/HimZb.png)
 
-![possible to run vim](http://i.imgur.com/K0dXe.png)
+## Features
+
+- Tabs, Stacking Windows
+- Screen/Tmux-like keys (optional)
+- Support for xterm mouse events
 
 ## Install
 
@@ -87,13 +91,9 @@ but you.
 ## TERM
 
 The main goal of tty.js is to eventually write a full xterm emulator.
-
-`TERM` is now set to `xterm` by default, if you experience any compatibility
-issues, try setting it to `linux`.
-
-tty.js now includes experimental support for
-[xterm mouse csi codes][1]. This feature is slightly unstable right now. If
-you have problems with it, switch your `TERM` to `linux`.
+This goal has almost been reached, but there are a few control sequences
+not implemented fully. `TERM` should render everything fine when set to
+`xterm`.
 
 ## Portability
 
