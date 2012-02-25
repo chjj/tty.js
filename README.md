@@ -5,14 +5,23 @@ Bellard's vt100 for [jslinux](http://bellard.org/jslinux/).
 
 ## Screenshots
 
+### irssi
+
+![](http://i.imgur.com/wqare.png)
+
+### vim & alsamixer
+
 ![](http://i.imgur.com/Zg1Jq.png)
+
+### bash
 
 ![](http://i.imgur.com/HimZb.png)
 
 ## Features
 
-- Tabs, Stacking Windows
+- Tabs, Stacking Windows, Maximizable Terminals
 - Screen/Tmux-like keys (optional)
+- Ability to efficiently render programs: vim, mc, irssi, vifm, etc.
 - Support for xterm mouse events
 
 ## Install
