@@ -347,6 +347,8 @@ Terminal.prototype.bindMouse = function() {
     y = ev.pageY;
     el = self.element;
 
+    // should probably check offsetParent
+    // but this is more portable
     while (el !== document.documentElement) {
       x -= el.offsetLeft;
       y -= el.offsetTop;
@@ -354,8 +356,8 @@ Terminal.prototype.bindMouse = function() {
     }
 
     // convert to cols/rows
-    w = self.element.offsetWidth;
-    h = self.element.offsetHeight;
+    w = self.element.clientWidth;
+    h = self.element.clientHeight;
     x = ((x / w) * self.cols) | 0;
     y = ((y / h) * self.rows) | 0;
 

@@ -30,31 +30,44 @@ body {
   margin: 25px;
 }
 
+/**
+ * Terminal
+ */
+
 .window {
-  border: 6px solid;
-  border-top: 15px solid;
-  color: rgba(112, 128, 144, 0.5);
+  padding-top: 15px;
+  border: #fafafa solid 1px;
+  background: #272829;
   position: absolute;
   top: 20px;
   left: 20px;
   z-index: 1000;
+  box-shadow: rgba(0, 0, 0, 0.8) 2px 2px 20px;
 }
 
 .maximized .window {
-  background: #000;
+  border: none;
+  box-shadow: none;
+}
+
+.dark .window {
+  box-shadow: none;
 }
 
 .bar {
   position: absolute;
-  top: -15px;
+  top: 0;
   left: 0;
   right: 0;
   height: 13px;
   padding: 1px 0;
   font-size: 12px;
   font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
-  color: #000;
-  text-shadow: rgba(255, 255, 255, 0.5) 0 1px 5px;
+  color: #fafafa;
+}
+
+.dark .bar,
+.maximized .bar {
 }
 
 .title {
@@ -72,29 +85,22 @@ body {
   cursor: pointer;
 }
 
-.dark .bar,
-.maximized .bar {
-  color: #f0f0f0;
-  text-shadow: none;
-}
-
 .tab:hover {
   font-weight: bold;
 }
 
 .grip {
-  background: rgba(112, 128, 144, 0.8);
   position: absolute;
-  bottom: -6px;
-  right: -6px;
+  bottom: -10px;
+  right: -10px;
   width: 22px;
   height: 22px;
   cursor: se-resize;
   z-index: -1;
+  background: transparent;
 }
 
 .grip:hover {
-  border: #333 solid 1px;
 }
 
 .terminal {
@@ -110,6 +116,10 @@ body {
   background: #f0f0f0;
 }
 
+/**
+ * Page
+ */
+
 h1 {
   font: 20px/1.5 sans-serif;
   background: #333;
@@ -117,7 +127,7 @@ h1 {
   height: 30px;
   padding: 10px 25px;
   color: white;
-  border-top: slategrey solid 10px;
+  border-top: #e15729 solid 10px;
 }
 
 #open, #lights {
@@ -156,7 +166,7 @@ h1 {
 }
 
 #help {
-  font: 15px/1.5 sans-serif;
+  font: 12px/1.5 sans-serif;
   color: #999;
   position: fixed;
   bottom: 10px;

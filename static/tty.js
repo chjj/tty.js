@@ -19,6 +19,7 @@ var doc = this.document
  */
 
 var socket
+  , windows
   , terms;
 
 function open() {
@@ -28,6 +29,7 @@ function open() {
   body = doc.body;
 
   socket = io.connect();
+  windows = [];
   terms = [];
 
   var open = doc.getElementById('open')
@@ -55,16 +57,11 @@ function open() {
     if (!terms[id]) return;
     terms[id]._destroy();
   });
-
 }
 
 /**
  * Window
  */
-
-var dummy = document.createElement('div');
-
-var windows = [];
 
 function Window() {
   var self = this;
@@ -99,7 +96,11 @@ function Window() {
   button.className = 'tab';
   button.innerHTML = '~';
   on(button, 'click', function(ev) {
-    self.createTab();
+    if (ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) {
+      self.destroy();
+    } else {
+      self.createTab();
+    }
   });
   this.bar.appendChild(button);
 
@@ -124,17 +125,16 @@ Window.prototype.bind = function() {
 
   on(grip, 'mousedown', function(ev) {
     self.focus();
-
+    self.resizing(ev);
     cancel(ev);
-
-    if (ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) {
-      self.destroy();
-    } else {
-      self.resizing(ev);
-    }
   });
 
   on(el, 'mousedown', function(ev) {
+    //if (ev.ctrlKey) {
+    //  self.resizing(ev);
+    //  return cancel(ev);
+    //}
+
     if (ev.target !== el && ev.target !== bar) return;
 
     self.focus();
@@ -233,9 +233,9 @@ Window.prototype.resizing = function(ev) {
 
   function move(ev) {
     var x, y;
+    y = el.offsetHeight - term.element.clientHeight;
     x = ev.pageX - el.offsetLeft;
-    y = ev.pageY - el.offsetTop;
-    y -= 15;
+    y = (ev.pageY - el.offsetTop) - y;
     el.style.width = x + 'px';
     el.style.height = y + 'px';
   }
@@ -298,6 +298,8 @@ Window.prototype.maximize = function() {
     self.resize(m.cols, m.rows);
   };
 
+  window.scrollTo(0, 0);
+
   x = el.offsetWidth - term.element.clientWidth;
   y = el.offsetHeight - term.element.clientHeight;
   x = (root.clientWidth - x) / term.element.clientWidth;
@@ -310,7 +312,7 @@ Window.prototype.maximize = function() {
   el.style.width = '100%';
   el.style.height = '100%';
   el.style.boxSizing = 'border-box';
-  this.grip.style.display = 'none';
+  //this.grip.style.display = 'none';
   root.className = 'maximized';
 
   this.resize(x, y);
@@ -602,6 +604,8 @@ function cancel(ev) {
 }
 
 var isMac = ~navigator.userAgent.indexOf('Mac');
+
+var dummy = document.createElement('div');
 
 /**
  * Load
