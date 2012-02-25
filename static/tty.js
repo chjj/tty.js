@@ -57,6 +57,19 @@ function open() {
     if (!terms[id]) return;
     terms[id]._destroy();
   });
+
+  // we would need to poll the os on the serverside
+  // anyway. there's really no clean way to do this.
+  // this is just easier to do on the
+  // clientside, rather than poll on the
+  // server, and *then* send it to the client.
+  setInterval(function() {
+    var i = terms.length;
+    while (i--) {
+      if (!terms[i]) continue;
+      terms[i].getProcessName();
+    }
+  }, 2 * 1000);
 }
 
 /**
@@ -66,9 +79,11 @@ function open() {
 function Window() {
   var self = this;
 
-  var bar
+  var el
     , grip
-    , el;
+    , bar
+    , button
+    , title;
 
   el = document.createElement('div');
   el.className = 'window';
@@ -79,9 +94,20 @@ function Window() {
   bar = document.createElement('div');
   bar.className = 'bar';
 
+  button = document.createElement('div');
+  button.innerHTML = '~';
+  button.className = 'tab';
+
+  title = document.createElement('div');
+  title.className = 'title';
+  title.innerHTML = '';
+
   this.element = el;
   this.grip = grip;
   this.bar = bar;
+  this.button = button;
+  this.title = title;
+
   this.tabs = [];
   this.focused = null;
 
@@ -90,24 +116,9 @@ function Window() {
 
   el.appendChild(grip);
   el.appendChild(bar);
+  bar.appendChild(button);
+  bar.appendChild(title);
   body.appendChild(el);
-
-  var button = document.createElement('div');
-  button.className = 'tab';
-  button.innerHTML = '~';
-  on(button, 'click', function(ev) {
-    if (ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) {
-      self.destroy();
-    } else {
-      self.createTab();
-    }
-  });
-  this.bar.appendChild(button);
-
-  this.title = document.createElement('div');
-  this.title.className = 'title';
-  this.title.innerHTML = '.';
-  this.bar.appendChild(this.title);
 
   windows.push(this);
 
@@ -121,7 +132,16 @@ Window.prototype.bind = function() {
     , el = this.element
     , bar = this.bar
     , grip = this.grip
+    , button = this.button
     , last = 0;
+
+  on(button, 'click', function(ev) {
+    if (ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) {
+      self.destroy();
+    } else {
+      self.createTab();
+    }
+  });
 
   on(grip, 'mousedown', function(ev) {
     self.focus();
@@ -557,7 +577,7 @@ Tab.prototype.getProcessName = function(func) {
   var self = this;
   socket.emit('process', this.id, function(name) {
     self.process = name;
-    self.win.title.innerHTML = name;
+    self.window.title.innerHTML = name;
     if (func) func(name);
   });
 };
