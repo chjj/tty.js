@@ -68,10 +68,10 @@ function open() {
   // clientside, rather than poll on the
   // server, and *then* send it to the client.
   setInterval(function() {
-    var i = terms.length;
+    var i = windows.length;
     while (i--) {
-      if (!terms[i]) continue;
-      terms[i].pollProcessName();
+      if (!windows[i].focused) continue;
+      windows[i].focused.pollProcessName();
     }
   }, 2 * 1000);
 }
@@ -591,7 +591,9 @@ Tab.prototype.pollProcessName = function(func) {
   socket.emit('process', this.id, function(name) {
     self.process = name;
     self.button.title = name;
-    self.window.title.innerHTML = name;
+    if (self.window.focused === self) {
+      self.window.title.innerHTML = name;
+    }
     if (func) func(name);
   });
 };
