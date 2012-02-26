@@ -61,7 +61,6 @@ body {
   right: 0;
   height: 13px;
   padding: 1px 0;
-  font-size: 12px;
   font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
   color: #fafafa;
 }
@@ -79,8 +78,9 @@ body {
 }
 
 .tab {
+  font-size: 16px;
   margin-left: 8px;
-  margin-top: 1px;
+  margin-top: -2px;
   float: left;
   cursor: pointer;
 }

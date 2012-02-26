@@ -414,6 +414,13 @@ function Tab(win) {
 
 inherits(Tab, Terminal);
 
+Tab.prototype._write = Tab.prototype.write;
+
+Tab.prototype.write = function(data) {
+  if (this.window.focused !== this) this.button.style.color = 'red';
+  return this._write(data);
+};
+
 Tab.prototype._focus = Tab.prototype.focus;
 
 Tab.prototype.focus = function() {
@@ -433,6 +440,7 @@ Tab.prototype.focus = function() {
 
     win.title.innerHTML = this.process;
     this.button.style.fontWeight = 'bold';
+    this.button.style.color = '';
   }
 
   this._focus();
