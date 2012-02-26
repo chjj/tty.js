@@ -15,12 +15,16 @@ var doc = this.document
   , body;
 
 /**
- * Open
+ * Shared
  */
 
 var socket
   , windows
   , terms;
+
+/**
+ * Open
+ */
 
 function open() {
   if (socket) return;
@@ -67,7 +71,7 @@ function open() {
     var i = terms.length;
     while (i--) {
       if (!terms[i]) continue;
-      terms[i].getProcessName();
+      terms[i].pollProcessName();
     }
   }, 2 * 1000);
 }
@@ -96,6 +100,7 @@ function Window() {
 
   button = document.createElement('div');
   button.innerHTML = '~';
+  button.title = 'new/close';
   button.className = 'tab';
 
   title = document.createElement('div');
@@ -150,11 +155,6 @@ Window.prototype.bind = function() {
   });
 
   on(el, 'mousedown', function(ev) {
-    //if (ev.ctrlKey) {
-    //  self.resizing(ev);
-    //  return cancel(ev);
-    //}
-
     if (ev.target !== el && ev.target !== bar) return;
 
     self.focus();
@@ -547,6 +547,11 @@ Tab.prototype.specialKeyHandler = function(ev) {
     , key = ev.keyCode;
 
   switch (key) {
+    case 65: // a
+      if (ev.ctrlKey) {
+        return this._keyDownHandler(ev);
+      }
+      break;
     case 67: // c
       win.createTab();
       break;
@@ -573,10 +578,11 @@ Tab.prototype.specialKeyHandler = function(ev) {
   return cancel(ev);
 };
 
-Tab.prototype.getProcessName = function(func) {
+Tab.prototype.pollProcessName = function(func) {
   var self = this;
   socket.emit('process', this.id, function(name) {
     self.process = name;
+    self.button.title = name;
     self.window.title.innerHTML = name;
     if (func) func(name);
   });
