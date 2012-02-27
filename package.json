@@ -5,6 +5,7 @@
   "version": "0.1.7",
   "main": "./lib/tty.js",
   "bin": "./bin/tty.js",
+  "man": "./man/tty.js.1",
   "preferGlobal": false,
   "scripts": { "install": "make" },
   "repository": "git://github.com/chjj/tty.js.git",

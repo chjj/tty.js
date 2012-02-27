@@ -22,6 +22,9 @@ for arg in "$@"; do
       daemonize=1
       break
     ;;
+    -h | --help)
+      exec man ../man/tty.js.1
+    ;;
   esac
 done
 
