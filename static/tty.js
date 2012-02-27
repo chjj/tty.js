@@ -40,7 +40,7 @@ function open() {
     , lights = doc.getElementById('lights');
 
   on(open, 'click', function() {
-    new Window();
+    new Window;
   });
 
   on(lights, 'click', function() {
@@ -50,10 +50,10 @@ function open() {
   });
 
   socket.on('connect', function() {
-    new Window();
+    new Window;
   });
 
-  socket.on('data', function(data, id) {
+  socket.on('data', function(id, data) {
     terms[id].write(data);
   });
 
@@ -378,7 +378,7 @@ function Tab(win) {
     , rows = win.rows;
 
   Terminal.call(this, cols, rows, function(data) {
-    socket.emit('data', data, id);
+    socket.emit('data', id, data);
   });
 
   var button = document.createElement('div');
@@ -451,7 +451,7 @@ Tab.prototype.focus = function() {
 Tab.prototype._resize = Tab.prototype.resize;
 
 Tab.prototype.resize = function(cols, rows) {
-  socket.emit('resize', cols, rows, this.id);
+  socket.emit('resize', this.id, cols, rows);
   this._resize(cols, rows);
 };
 
@@ -607,7 +607,7 @@ function inherits(child, parent) {
     this.constructor = child;
   }
   f.prototype = parent.prototype;
-  child.prototype = new f();
+  child.prototype = new f;
 }
 
 function indexOf(obj, el) {
