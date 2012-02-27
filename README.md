@@ -53,6 +53,7 @@ JSON file. An example configuration file looks like:
   "static": "./my_custom_static_directory/",
   "term": {
     "termName": "xterm",
+    "geometry": [80, 30],
     "scrollback": 1000,
     "visualBell": false,
     "popOnBell": false,

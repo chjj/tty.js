@@ -113,6 +113,7 @@ Terminal.colors = [
 ];
 
 Terminal.termName = '';
+Terminal.geometry = [80, 30];
 Terminal.cursorBlink = true;
 Terminal.visualBell = false;
 Terminal.popOnBell = false;

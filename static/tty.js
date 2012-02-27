@@ -116,8 +116,8 @@ function Window() {
   this.tabs = [];
   this.focused = null;
 
-  this.cols = 80;
-  this.rows = 30;
+  this.cols = Terminal.geometry[0];
+  this.rows = Terminal.geometry[1];
 
   el.appendChild(grip);
   el.appendChild(bar);
