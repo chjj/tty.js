@@ -258,14 +258,16 @@ PtyGetProc(const Arguments& args) {
 
   String::Utf8Value tty_(args[1]->ToString());
   char *tty = strdup(*tty_);
-
   char *name = pty_getproc(fd, tty);
+  free(tty);
 
   if (name == NULL) {
     return Undefined();
   }
 
-  return scope.Close(String::New(name));
+  Local<String> name_ = String::New(name);
+  free(name);
+  return scope.Close(name_);
 }
 
 /**
