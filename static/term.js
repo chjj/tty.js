@@ -1379,6 +1379,7 @@ Terminal.prototype.keyDownHandler = function(ev) {
       }
       if (ev.ctrlKey) {
         this.scrollDisp(-1);
+        return cancel(ev);
       } else {
         str = '\x1b[A';
       }
@@ -1391,6 +1392,7 @@ Terminal.prototype.keyDownHandler = function(ev) {
       }
       if (ev.ctrlKey) {
         this.scrollDisp(1);
+        return cancel(ev);
       } else {
         str = '\x1b[B';
       }
@@ -1421,16 +1423,18 @@ Terminal.prototype.keyDownHandler = function(ev) {
       break;
     // page up
     case 33:
-      if (ev.ctrlKey) {
+      if (ev.shiftKey) {
         this.scrollDisp(-(this.rows - 1));
+        return cancel(ev);
       } else {
         str = '\x1b[5~';
       }
       break;
     // page down
     case 34:
-      if (ev.ctrlKey) {
+      if (ev.shiftKey) {
         this.scrollDisp(this.rows - 1);
+        return cancel(ev);
       } else {
         str = '\x1b[6~';
       }
