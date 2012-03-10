@@ -1501,6 +1501,12 @@ Terminal.prototype.keyDownHandler = function(ev) {
         } else if (ev.keyCode === 56) {
           // delete
           str = String.fromCharCode(127);
+        } else if (ev.keyCode === 219) {
+          // ^[ - escape
+          str = String.fromCharCode(27);
+        } else if (ev.keyCode === 221) {
+          // ^] - group sep
+          str = String.fromCharCode(29);
         }
       } else if ((!isMac && ev.altKey) || (isMac && ev.metaKey)) {
         if (ev.keyCode >= 65 && ev.keyCode <= 90) {
