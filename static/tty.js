@@ -63,9 +63,9 @@ function open() {
     terms[id]._destroy();
   });
 
-  // we would need to poll the os on the serverside
+  // We would need to poll the os on the serverside
   // anyway. there's really no clean way to do this.
-  // this is just easier to do on the
+  // This is just easier to do on the
   // clientside, rather than poll on the
   // server, and *then* send it to the client.
   setInterval(function() {
@@ -75,6 +75,20 @@ function open() {
       windows[i].focused.pollProcessName();
     }
   }, 2 * 1000);
+
+  // Keep windows maximized.
+  on(window, 'resize', function(ev) {
+    var i = windows.length
+      , win;
+
+    while (i--) {
+      win = windows[i];
+      if (win && win.minimize) {
+        win.minimize();
+        win.maximize();
+      }
+    }
+  });
 }
 
 function reset() {
