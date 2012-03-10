@@ -20,7 +20,8 @@ var doc = this.document
 
 var socket
   , windows
-  , terms;
+  , terms
+  , uid;
 
 /**
  * Open
@@ -34,7 +35,8 @@ function open() {
 
   socket = io.connect();
   windows = [];
-  terms = [];
+  terms = {};
+  uid = 0;
 
   var open = doc.getElementById('open')
     , lights = doc.getElementById('lights');
@@ -83,7 +85,7 @@ function open() {
 
     while (i--) {
       win = windows[i];
-      if (win && win.minimize) {
+      if (win.minimize) {
         win.minimize();
         win.maximize();
       }
@@ -94,10 +96,11 @@ function open() {
 function reset() {
   var i = windows.length;
   while (i--) {
-    if (windows[i]) windows[i].destroy();
+    windows[i].destroy();
   }
   windows = [];
-  terms = [];
+  terms = {};
+  uid = 0;
 }
 
 /**
@@ -196,6 +199,7 @@ Window.prototype.bind = function() {
 
 Window.prototype.focus = function() {
   var i = windows.length;
+
   while (i--) {
     windows[i].element.style.zIndex = windows[i] === this
       ? '1000'
@@ -373,7 +377,7 @@ Window.prototype.resize = function(cols, rows) {
 Window.prototype.each = function(func) {
   var i = this.tabs.length;
   while (i--) {
-    if (this.tabs[i]) func(this.tabs[i], i);
+    func(this.tabs[i], i);
   }
 };
 
@@ -390,6 +394,30 @@ Window.prototype.highlight = function() {
   this.focus();
 };
 
+Window.prototype.focusTab = function(next) {
+  var tabs = this.tabs
+    , i = indexOf(tabs, this.focused)
+    , l = tabs.length;
+
+  if (!next) {
+    if (tabs[--i]) return tabs[i].focus();
+    if (tabs[--l]) return tabs[l].focus();
+  } else {
+    if (tabs[++i]) return tabs[i].focus();
+    if (tabs[0]) return tabs[0].focus();
+  }
+
+  return this.focused && this.focused.focus();
+};
+
+Window.prototype.nextTab = function() {
+  return this.focusTab(true);
+};
+
+Window.prototype.previousTab = function() {
+  return this.focusTab(false);
+};
+
 /**
  * Tab
  */
@@ -397,7 +425,7 @@ Window.prototype.highlight = function() {
 function Tab(win) {
   var self = this;
 
-  var id = terms.length
+  var id = uid++
     , cols = win.cols
     , rows = win.rows;
 
@@ -427,7 +455,7 @@ function Tab(win) {
   this.open();
 
   win.tabs.push(this);
-  terms.push(this);
+  terms[id] = this;
 
   socket.emit('create', cols, rows, function(pty, process) {
     self.pty = pty;
@@ -488,18 +516,15 @@ Tab.prototype._destroy = function() {
   this.button.parentNode.removeChild(this.button);
   this.element.parentNode.removeChild(this.element);
 
-  terms[this.id] = null; // don't splice!
+  delete terms[this.id];
   splice(win.tabs, this);
 
-  if (this.window.focused === this) {
-    var i = win.tabs.length;
-    while (i--) {
-      if (win.tabs[i]) return win.tabs[i].focus();
-    }
+  if (win.focused === this) {
+    win.previousTab();
   }
 
   if (!win.tabs.length) {
-    this.window.destroy();
+    win.destroy();
   }
 };
 
@@ -527,18 +552,11 @@ Tab.prototype.keyDownHandler = function(ev) {
   if (ev.keyCode === 192
       && ((!isMac && ev.altKey)
       || (isMac && ev.metaKey))) {
-    var i = indexOf(windows, this.window)
-      , l = windows.length;
-
     cancel(ev);
 
-    for (i++; i < l; i++) {
-      if (windows[i]) return windows[i].highlight();
-    }
-
-    for (i = 0; i < l; i++) {
-      if (windows[i]) return windows[i].highlight();
-    }
+    var i = indexOf(windows, this.window) + 1;
+    if (windows[i]) return windows[i].highlight();
+    if (windows[0]) return windows[0].highlight();
 
     return this.window.highlight();
   }
@@ -546,24 +564,12 @@ Tab.prototype.keyDownHandler = function(ev) {
   // URXVT Keys for tab navigation and creation.
   // Shift-Left, Shift-Right, Shift-Down
   if (ev.shiftKey && (ev.keyCode >= 37 && ev.keyCode <= 40)) {
-    var tabs = this.window.tabs
-      , i = indexOf(tabs, this)
-      , l = tabs.length;
-
     cancel(ev);
 
     if (ev.keyCode === 37) {
-      while (i--) if (tabs[i]) return tabs[i].focus();
-      while (l--) if (tabs[l]) return tabs[l].focus();
-      return this.focus();
+      return this.window.previousTab();
     } else if (ev.keyCode === 39) {
-      for (i++; i < l; i++) {
-        if (tabs[i]) return tabs[i].focus();
-      }
-      for (i = 0; i < l; i++) {
-        if (tabs[i]) return tabs[i].focus();
-      }
-      return this.focus();
+      return this.window.nextTab();
     }
 
     return this.window.createTab();
