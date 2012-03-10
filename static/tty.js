@@ -50,6 +50,7 @@ function open() {
   });
 
   socket.on('connect', function() {
+    reset();
     new Window;
   });
 
@@ -74,6 +75,15 @@ function open() {
       windows[i].focused.pollProcessName();
     }
   }, 2 * 1000);
+}
+
+function reset() {
+  var i = windows.length;
+  while (i--) {
+    if (windows[i]) windows[i].destroy();
+  }
+  windows = [];
+  terms = [];
 }
 
 /**
