@@ -198,14 +198,11 @@ Window.prototype.bind = function() {
 };
 
 Window.prototype.focus = function() {
-  var i = windows.length;
-
-  while (i--) {
-    windows[i].element.style.zIndex = windows[i] === this
-      ? '1000'
-      : '0';
+  var parent = this.element.parentNode;
+  if (parent) {
+    parent.removeChild(this.element);
+    parent.appendChild(this.element);
   }
-
   this.focused.focus();
 };
 
