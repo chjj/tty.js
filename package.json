@@ -7,7 +7,6 @@
   "bin": "./bin/tty.js",
   "man": "./man/tty.js.1",
   "preferGlobal": false,
-  "scripts": { "install": "make" },
   "repository": "git://github.com/chjj/tty.js.git",
   "homepage": "https://github.com/chjj/tty.js",
   "bugs": { "url": "https://github.com/chjj/tty.js/issues" },
@@ -15,6 +14,7 @@
   "tags": [ "tty", "terminal" ],
   "dependencies": {
     "express": ">= 2.5.8",
-    "socket.io": ">= 0.8.7"
+    "socket.io": ">= 0.8.7",
+    "pty.js": ">= 0.0.5"
   }
 }
