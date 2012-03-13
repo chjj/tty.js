@@ -44,7 +44,7 @@ var normal = 0
  * Terminal
  */
 
-var Terminal = function(cols, rows, handler) {
+var Terminal = function(cols, rows, handler, keyMap) {
   this.cols = cols;
   this.rows = rows;
   this.handler = handler;
@@ -82,6 +82,8 @@ var Terminal = function(cols, rows, handler) {
   while (i--) {
     this.lines.push(this.lines[0].slice());
   }
+
+  this.keyMap = new KeyMap(keyMap || defaultMap);
 };
 
 /**
@@ -1335,187 +1337,31 @@ Terminal.prototype.writeln = function(str) {
 };
 
 Terminal.prototype.keyDownHandler = function(ev) {
-  var str = '';
-  switch (ev.keyCode) {
-    // backspace
-    case 8:
-      str = '\x7f'; // ^?
-      //str = '\x08'; // ^H
-      break;
-    // tab
-    case 9:
-      str = '\t';
-      break;
-    // return/enter
-    case 13:
-      str = '\r';
-      break;
-    // escape
-    case 27:
-      str = '\x1b';
-      break;
-    // left-arrow
-    case 37:
-      if (this.applicationKeypad) {
-        str = '\x1bOD'; // SS3 as ^O for 7-bit
-        //str = '\x8fD'; // SS3 as 0x8f for 8-bit
-        break;
-      }
-      str = '\x1b[D';
-      break;
-    // right-arrow
-    case 39:
-      if (this.applicationKeypad) {
-        str = '\x1bOC';
-        break;
-      }
-      str = '\x1b[C';
-      break;
-    // up-arrow
-    case 38:
-      if (this.applicationKeypad) {
-        str = '\x1bOA';
-        break;
-      }
-      if (ev.ctrlKey) {
+  var str = this.keyMap.lookup(ev, this.applicationKeypad);
+
+  if (str === true) {
+    switch (ev.keyCode) {
+      // up-arrow
+      case 38:
         this.scrollDisp(-1);
         return cancel(ev);
-      } else {
-        str = '\x1b[A';
-      }
-      break;
-    // down-arrow
-    case 40:
-      if (this.applicationKeypad) {
-        str = '\x1bOB';
         break;
-      }
-      if (ev.ctrlKey) {
+      // down-arrow
+      case 40:
         this.scrollDisp(1);
         return cancel(ev);
-      } else {
-        str = '\x1b[B';
-      }
-      break;
-    // delete
-    case 46:
-      str = '\x1b[3~';
-      break;
-    // insert
-    case 45:
-      str = '\x1b[2~';
-      break;
-    // home
-    case 36:
-      if (this.applicationKeypad) {
-        str = '\x1bOH';
         break;
-      }
-      str = '\x1bOH';
-      break;
-    // end
-    case 35:
-      if (this.applicationKeypad) {
-        str = '\x1bOF';
-        break;
-      }
-      str = '\x1bOF';
-      break;
-    // page up
-    case 33:
-      if (ev.shiftKey) {
+      // page up
+      case 33:
         this.scrollDisp(-(this.rows - 1));
         return cancel(ev);
-      } else {
-        str = '\x1b[5~';
-      }
-      break;
-    // page down
-    case 34:
-      if (ev.shiftKey) {
+        break;
+      // page down
+      case 34:
         this.scrollDisp(this.rows - 1);
         return cancel(ev);
-      } else {
-        str = '\x1b[6~';
-      }
-      break;
-    // F1
-    case 112:
-      str = '\x1bOP';
-      break;
-    // F2
-    case 113:
-      str = '\x1bOQ';
-      break;
-    // F3
-    case 114:
-      str = '\x1bOR';
-      break;
-    // F4
-    case 115:
-      str = '\x1bOS';
-      break;
-    // F5
-    case 116:
-      str = '\x1b[15~';
-      break;
-    // F6
-    case 117:
-      str = '\x1b[17~';
-      break;
-    // F7
-    case 118:
-      str = '\x1b[18~';
-      break;
-    // F8
-    case 119:
-      str = '\x1b[19~';
-      break;
-    // F9
-    case 120:
-      str = '\x1b[20~';
-      break;
-    // F10
-    case 121:
-      str = '\x1b[21~';
-      break;
-    // F11
-    case 122:
-      str = '\x1b[23~';
-      break;
-    // F12
-    case 123:
-      str = '\x1b[24~';
-      break;
-    default:
-      // a-z and space
-      if (ev.ctrlKey) {
-        if (ev.keyCode >= 65 && ev.keyCode <= 90) {
-          str = String.fromCharCode(ev.keyCode - 64);
-        } else if (ev.keyCode === 32) {
-          // NUL
-          str = String.fromCharCode(0);
-        } else if (ev.keyCode >= 51 && ev.keyCode <= 55) {
-          // escape, file sep, group sep, record sep, unit sep
-          str = String.fromCharCode(ev.keyCode - 51 + 27);
-        } else if (ev.keyCode === 56) {
-          // delete
-          str = String.fromCharCode(127);
-        } else if (ev.keyCode === 219) {
-          // ^[ - escape
-          str = String.fromCharCode(27);
-        } else if (ev.keyCode === 221) {
-          // ^] - group sep
-          str = String.fromCharCode(29);
-        }
-      } else if ((!isMac && ev.altKey) || (isMac && ev.metaKey)) {
-        if (ev.keyCode >= 65 && ev.keyCode <= 90) {
-          str = '\x1b' + String.fromCharCode(ev.keyCode + 32);
-        } else if (ev.keyCode >= 48 && ev.keyCode <= 57) {
-          str = '\x1b' + (ev.keyCode - 48);
-        }
-      }
-      break;
+        break;
+    }
   }
 
   if (str) {
