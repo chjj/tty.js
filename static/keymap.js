@@ -13,6 +13,8 @@ var defaultMap = {
   13: '\r',
   // escape
   27: ESC_SEQ,
+  // space
+  32: { ctrl: String.fromCharCode(0) },
   // page-up
   33: { default: ESC_SEQ + '[5~', shift: true },
   // page-down
@@ -33,6 +35,8 @@ var defaultMap = {
   45: ESC_SEQ + '[2~',
   // delete
   46: ESC_SEQ + '[3~',
+  // 8
+  56: { ctrl: String.fromCharCode(127) },
   // f1
   112: ESC_SEQ + 'OP',
   113: ESC_SEQ + 'OQ',
@@ -47,8 +51,10 @@ var defaultMap = {
   122: ESC_SEQ + '[23~',
   // f12
   123: ESC_SEQ + '[24~',
-  219: { default: '[', shift: '{', ctrl: String.fromCharCode(27) },
-  221: { default: ']', shift: '}', ctrl: String.fromCharCode(29) },
+  // [
+  219: { ctrl: String.fromCharCode(27) },
+  // ]
+  221: { ctrl: String.fromCharCode(29) },
 };
 
 var KeyMap = function (map) {
@@ -64,35 +70,38 @@ var KeyMap = function (map) {
 };
 
 KeyMap.prototype.lookup = function (ev, keypad) {
-  var key, str;
+  var key, str, mask = [];
 
   key = ev.keyCode;
   str = '';
 
-  if (this._map[key]) {
-    if (ev.ctrlKey && ev.shiftKey) {
-      str = this._map[key].ctrlShift || this._map[key].default;
-    } else if (ev.ctrlKey && this._map[key].ctrl) {
-      str = this._map[key].ctrl;
-    } else if (ev.shiftKey && this._map[key].shift) {
-      str = this._map[key].shift;
+  if (ev.ctrlKey)
+    mask.push('ctrl');
+
+  if (ev.shiftKey)
+    mask.push('shift');
+
+  if (ev.altKey || ev.metaKey)
+    mask.push('alt');
+
+  if (!mask.length) {
+    if (keypad) {
+      mask.push('keypad');
     } else {
-      if (!keypad) {
-        str = this._map[key].default;
-      } else {
-        str = this._map[key].keypad || this._map[key].default;
-      }
+      mask.push('default');
     }
+  }
+
+  mask = mask.join('_');
+
+  if (this._map[key] && this._map[key][mask]) {
+    str = this._map[key][mask];
   } else {
     if (ev.ctrlKey) {
       if (key >= 65 && key <= 90) {
         str = String.fromCharCode(key - 64);
-      } else if (key === 32) {
-        str = String.fromCharCode(0);
       } else if (key >= 51 && key <= 55) {
         str = String.fromCharCode(key - 51 + 27);
-      } else if (key === 56) {
-        str = String.fromCharCode(127);
       }
     } else if ((!isMac && ev.altKey) || (isMac && ev.metaKey)) {
       if (key >= 65 && key <= 90) {
