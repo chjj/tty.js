@@ -48,6 +48,7 @@ JSON file. An example configuration file looks like:
   "port": 8080,
   "hostname": "127.0.0.1",
   "shell": "sh",
+  "shellArgs": ["arg1", "arg2"],
   "stylesheet": "./my_custom_stylesheet.css",
   "userStylesheet": "./user-stylesheet.css",
   "static": "./my_custom_static_directory/",
