@@ -30,6 +30,13 @@ body {
   margin: 25px;
 }
 
+/* Only allow plaintext?
+[contenteditable=""],
+[contenteditable="true"] {
+  -webkit-user-modify: read-write-plaintext-only !important;
+}
+*/
+
 /**
  * Terminal
  */
