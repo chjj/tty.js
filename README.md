@@ -37,9 +37,8 @@ JSON file. An example configuration file looks like:
 
 ``` json
 {
-  "auth": {
-    "username": "hello",
-    "password": "world"
+  "users": {
+    "hello": "world"
   },
   "https": {
     "key": "./server.key",
