@@ -52,6 +52,8 @@ JSON file. An example configuration file looks like:
   "stylesheet": "./my_custom_stylesheet.css",
   "userStylesheet": "./user-stylesheet.css",
   "static": "./my_custom_static_directory/",
+  "limitGlobal": 10000,
+  "limitPerUser": 1000,
   "term": {
     "termName": "xterm",
     "geometry": [80, 30],

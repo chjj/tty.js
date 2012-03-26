@@ -454,10 +454,11 @@ function Tab(win) {
   win.tabs.push(this);
   terms[id] = this;
 
-  socket.emit('create', cols, rows, function(pty, process) {
-    self.pty = pty;
-    self.process = process;
-    win.title.innerHTML = process;
+  socket.emit('create', cols, rows, function(err, data) {
+    if (err) return self._destroy();
+    self.pty = data.pty;
+    self.process = data.process;
+    win.title.innerHTML = data.process;
   });
 };
 
@@ -615,7 +616,7 @@ Tab.prototype.specialKeyHandler = function(ev) {
 
 Tab.prototype.pollProcessName = function(func) {
   var self = this;
-  socket.emit('process', this.id, function(name) {
+  socket.emit('process', this.id, function(err, name) {
     self.process = name;
     self.button.title = name;
     if (self.window.focused === self) {
