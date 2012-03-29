@@ -82,6 +82,7 @@ function open() {
 
     for (; i < l; i++) {
       terms_[keys[i]] = (new Window).focused;
+      terms_[keys[i]].id = +keys[i];
     }
 
     socket.emit = emit;

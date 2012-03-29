@@ -53,6 +53,7 @@ JSON file. An example configuration file looks like:
   "static": "./my_custom_static_directory/",
   "limitGlobal": 10000,
   "limitPerUser": 1000,
+  "hooks": "./hooks.js",
   "term": {
     "termName": "xterm",
     "geometry": [80, 30],
@@ -86,6 +87,19 @@ JSON file. An example configuration file looks like:
 ```
 
 Usernames and passwords can be plaintext or sha1 hashes.
+
+### Example Hooks File
+
+``` js
+var db = require('./db');
+
+module.exports = {
+  auth: function(user, pass, next) {
+    // Do database auth
+    next(null, pass === password);
+  }
+};
+```
 
 ## Security
 
