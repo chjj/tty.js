@@ -65,34 +65,6 @@ function open() {
     terms[id]._destroy();
   });
 
-  // The problem with syncing: we never inform the
-  // server whether a terminal is in a tab
-  // or a window. We just use windows here.
-  // Possibly rename to 'login' (?)
-  socket.on('sync', function(session) {
-    var emit = socket.emit
-      , terms_ = {}
-      , uid_ = session.uid
-      , keys = session.terms
-      , l = keys.length
-      , i = 0;
-
-    // temporary hack
-    socket.emit = function() {};
-
-    reset();
-
-    for (; i < l; i++) {
-      terms_[keys[i]] = (new Window).focused;
-      terms_[keys[i]].id = +keys[i];
-    }
-
-    socket.emit = emit;
-
-    terms = terms_;
-    uid = uid_;
-  });
-
   // We would need to poll the os on the serverside
   // anyway. there's really no clean way to do this.
   // This is just easier to do on the
