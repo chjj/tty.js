@@ -69,16 +69,18 @@ function open() {
   // server whether a terminal is in a tab
   // or a window. We just use windows here.
   // Possibly rename to 'login' (?)
-  socket.on('sync', function(keys, uid_) {
+  socket.on('sync', function(session) {
     var emit = socket.emit
       , terms_ = {}
+      , uid_ = session.uid
+      , keys = session.terms
       , l = keys.length
       , i = 0;
 
-    reset();
-
     // temporary hack
     socket.emit = function() {};
+
+    reset();
 
     for (; i < l; i++) {
       terms_[keys[i]] = (new Window).focused;
@@ -453,7 +455,7 @@ function Tab(win) {
     , rows = win.rows;
 
   Terminal.call(this, cols, rows, function(data) {
-    socket.emit('data', id, data);
+    socket.emit('data', self.id, data);
   });
 
   var button = document.createElement('div');
