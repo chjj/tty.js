@@ -689,4 +689,14 @@ on(doc, 'load', load);
 on(doc, 'DOMContentLoaded', load);
 setTimeout(load, 200);
 
+/**
+ * Expose
+ */
+
+this.tty = {
+  Window: Window,
+  Tab: Tab,
+  Terminal: Terminal
+};
+
 }).call(this);

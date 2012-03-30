@@ -50,6 +50,7 @@ JSON file. An example configuration file looks like:
   "shellArgs": ["arg1", "arg2"],
   "stylesheet": "./my_custom_stylesheet.css",
   "userStylesheet": "./user-stylesheet.css",
+  "userScript": "./user-script.js",
   "static": "./my_custom_static_directory/",
   "limitGlobal": 10000,
   "limitPerUser": 1000,
