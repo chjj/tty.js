@@ -1,11 +1,10 @@
 #!/bin/bash
 
-r=$(readlink "$0")
-if [ -n "$r" ]; then
-  cd $(dirname "$r")
-else
-  cd $(dirname "$0")
-fi
+f=$0
+while test -L "$f"; do
+  f=$(readlink "$f")
+done
+dir="$(dirname "$f")/.."
 
 node=$(which node 2>/dev/null)
 if [ -z "$node" ]; then
@@ -23,13 +22,13 @@ for arg in "$@"; do
       break
     ;;
     -h | --help)
-      exec man ../man/tty.js.1
+      exec man "$dir/man/tty.js.1"
     ;;
   esac
 done
 
 if [ -n "$daemonize" ]; then
-  (setsid "$node" ../index.js $@ > /dev/null 2>&1 &)
+  (setsid "$node" "$dir/index.js" $@ > /dev/null 2>&1 &)
 else
-  exec "$node" ../index.js $@
+  exec "$node" "$dir/index.js" $@
 fi

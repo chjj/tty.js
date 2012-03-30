@@ -54,6 +54,7 @@ JSON file. An example configuration file looks like:
   "limitGlobal": 10000,
   "limitPerUser": 1000,
   "hooks": "./hooks.js",
+  "cwd": ".",
   "term": {
     "termName": "xterm",
     "geometry": [80, 30],
