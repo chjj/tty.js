@@ -41,15 +41,19 @@ function open() {
   var open = doc.getElementById('open')
     , lights = doc.getElementById('lights');
 
-  on(open, 'click', function() {
-    new Window;
-  });
+  if (open) {
+    on(open, 'click', function() {
+      new Window;
+    });
+  }
 
-  on(lights, 'click', function() {
-    root.className = !root.className
-      ? 'dark'
-      : '';
-  });
+  if (lights) {
+    on(lights, 'click', function() {
+      root.className = !root.className
+        ? 'dark'
+        : '';
+    });
+  }
 
   socket.on('connect', function() {
     reset();
