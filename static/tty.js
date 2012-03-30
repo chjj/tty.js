@@ -336,8 +336,8 @@ Window.prototype.maximize = function() {
   this.minimize = function() {
     delete this.minimize;
 
-    el.style.left = m.left + 'px';
-    el.style.top = m.top + 'px';
+    el.style.left = '';
+    el.style.top = '';
     el.style.width = '';
     el.style.height = '';
     el.style.boxSizing = '';
