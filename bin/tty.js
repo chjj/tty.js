@@ -7,9 +7,9 @@ done
 dir="$(dirname "$f")/.."
 
 node=$(which node 2>/dev/null)
-if [ -z "$node" ]; then
+if test -z "$node"; then
   node="/usr/local/bin/node"
-  if [ ! -f "$node" ]; then
+  if test ! -f "$node"; then
     echo "Node not found."
     exit 1
   fi
@@ -27,7 +27,7 @@ for arg in "$@"; do
   esac
 done
 
-if [ -n "$daemonize" ]; then
+if test -n "$daemonize"; then
   (setsid "$node" "$dir/index.js" $@ > /dev/null 2>&1 &)
 else
   exec "$node" "$dir/index.js" $@

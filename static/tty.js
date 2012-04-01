@@ -336,8 +336,8 @@ Window.prototype.maximize = function() {
   this.minimize = function() {
     delete this.minimize;
 
-    el.style.left = '';
-    el.style.top = '';
+    el.style.left = m.left + 'px';
+    el.style.top = m.top + 'px';
     el.style.width = '';
     el.style.height = '';
     el.style.boxSizing = '';
@@ -485,7 +485,7 @@ Tab.prototype.focus = function() {
   // maybe move to Tab.prototype.switch
   if (win.focused !== this) {
     if (win.focused) {
-      dummy.appendChild(win.focused.element);
+      win.focused.element.parentNode.removeChild(win.focused.element);
       win.focused.button.style.fontWeight = '';
     }
 
@@ -607,7 +607,7 @@ Tab.prototype.specialKeyHandler = function(ev) {
         key -= 48;
         // 1-indexed
         key--;
-        if (!~key) key = 10;
+        if (!~key) key = 9;
         if (win.tabs[key]) {
           win.tabs[key].focus();
         }
@@ -672,8 +672,6 @@ function cancel(ev) {
 }
 
 var isMac = ~navigator.userAgent.indexOf('Mac');
-
-var dummy = document.createElement('div');
 
 /**
  * Load

@@ -475,7 +475,7 @@ Terminal.prototype.refresh = function(start, end) {
 
   if (end - start === this.rows - 1) {
     parent = this.element.parentNode;
-    parent.removeChild(this.element);
+    if (parent) parent.removeChild(this.element);
   }
 
   for (y = start; y <= end; y++) {
@@ -1382,7 +1382,7 @@ Terminal.prototype.keyDownHandler = function(ev) {
     // left-arrow
     case 37:
       if (this.applicationKeypad) {
-        str = '\x1bOD'; // SS3 as ^O for 7-bit
+        str = '\x1bOD'; // SS3 as ^[O for 7-bit
         //str = '\x8fD'; // SS3 as 0x8f for 8-bit
         break;
       }
