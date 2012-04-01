@@ -361,7 +361,7 @@ Window.prototype.maximize = function() {
   el.style.width = '100%';
   el.style.height = '100%';
   el.style.boxSizing = 'border-box';
-  //this.grip.style.display = 'none';
+  this.grip.style.display = 'none';
   root.className = 'maximized';
 
   this.resize(x, y);
