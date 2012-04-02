@@ -613,8 +613,8 @@ Terminal.prototype.scroll = function() {
   var row;
 
   if (++this.ybase === Terminal.scrollback) {
-    this.ybase = 0;
-    this.lines = this.lines.slice(-this.rows + 1);
+    this.ybase = this.ybase / 2 | 0;
+    this.lines = this.lines.slice(-(this.ybase + this.rows) + 1);
   }
 
   this.ydisp = this.ybase;
