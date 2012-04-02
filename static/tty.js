@@ -485,7 +485,9 @@ Tab.prototype.focus = function() {
   // maybe move to Tab.prototype.switch
   if (win.focused !== this) {
     if (win.focused) {
-      win.focused.element.parentNode.removeChild(win.focused.element);
+      if (win.focused.element.parentNode) {
+        win.focused.element.parentNode.removeChild(win.focused.element);
+      }
       win.focused.button.style.fontWeight = '';
     }
 
@@ -516,7 +518,9 @@ Tab.prototype._destroy = function() {
   var win = this.window;
 
   this.button.parentNode.removeChild(this.button);
-  this.element.parentNode.removeChild(this.element);
+  if (this.element.parentNode) {
+    this.element.parentNode.removeChild(this.element);
+  }
 
   delete terms[this.id];
   splice(win.tabs, this);
