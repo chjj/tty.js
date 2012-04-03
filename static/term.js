@@ -149,6 +149,7 @@ Terminal.colors = function() {
   i = 0;
   for (; i < 256; i++) {
     c = colors[i];
+
     c[0] = c[0].toString(16);
     c[1] = c[1].toString(16);
     c[2] = c[2].toString(16);
@@ -173,14 +174,14 @@ Terminal.colors = function() {
   return colors;
 }();
 
-Terminal.defaultColors = [
-  // default bg/fg:
-  '#000000',
-  '#f0f0f0'
-];
+// save fallback
+Terminal._colors = Terminal.colors;
 
-Terminal.colors[256] = Terminal.defaultColors[0];
-Terminal.colors[257] = Terminal.defaultColors[1];
+// default bg/fg
+Terminal.defaultColors = {
+  bg: '#000000',
+  fg: '#f0f0f0'
+};
 
 Terminal.termName = '';
 Terminal.geometry = [80, 30];
@@ -298,12 +299,8 @@ Terminal.prototype.open = function() {
   }
 
   // sync default bg/fg colors
-  this.element.style.backgroundColor = Terminal.colors[256];
-  this.element.style.color = Terminal.colors[257];
-
-  // otherwise:
-  // Terminal.colors[256] = css(this.element, 'background-color');
-  // Terminal.colors[257] = css(this.element, 'color');
+  this.element.style.backgroundColor = Terminal.defaultColors.bg;
+  this.element.style.color = Terminal.defaultColors.fg;
 };
 
 // XTerm mouse events
@@ -597,13 +594,15 @@ Terminal.prototype.refresh = function(start, end) {
 
             if (bgColor !== 256) {
               out += 'background-color:'
-                + (Terminal.colors[bgColor] || 'pink')
+                + (Terminal.colors[bgColor]
+                  || Terminal._colors[bgColor])
                 + ';';
             }
 
             if (fgColor !== 257) {
               out += 'color:'
-                + (Terminal.colors[fgColor] || 'pink')
+                + (Terminal.colors[fgColor]
+                  || Terminal._colors[fgColor])
                 + ';';
             }
 
