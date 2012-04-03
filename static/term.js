@@ -497,11 +497,11 @@ Terminal.prototype.refresh = function(start, end) {
 
     for (i = 0; i < width; i++) {
       ch = line[i];
+
       data = ch >> 16;
       ch &= 0xffff;
-      if (i === x) {
-        data = -1;
-      }
+
+      if (i === x) data = -1;
 
       if (data !== attr) {
         if (attr !== this.defAttr) {
@@ -512,8 +512,9 @@ Terminal.prototype.refresh = function(start, end) {
             out += '<span class="reverse-video">';
           } else {
             out += '<span style="';
-            fgColor = (data >> 5) & 31;
+
             bgColor = data & 31;
+            fgColor = (data >> 5) & 31;
             flags = data >> 10;
 
             if (flags & 1) {
@@ -526,15 +527,15 @@ Terminal.prototype.refresh = function(start, end) {
               out += 'text-decoration:underline;';
             }
 
-            if (fgColor !== 17) {
-              out += 'color:'
-                + Terminal.colors[fgColor]
-                + ';';
-            }
-
             if (bgColor !== 16) {
               out += 'background-color:'
                 + Terminal.colors[bgColor]
+                + ';';
+            }
+
+            if (fgColor !== 17) {
+              out += 'color:'
+                + Terminal.colors[fgColor]
                 + ';';
             }
 
@@ -1990,21 +1991,27 @@ Terminal.prototype.eraseInLine = function(params) {
 Terminal.prototype.charAttributes = function(params) {
   var i, p;
   if (params.length === 0) {
+    // default
     this.curAttr = this.defAttr;
   } else {
     for (i = 0; i < params.length; i++) {
       p = params[i];
       if (p >= 30 && p <= 37) {
+        // fg color 8
         this.curAttr = (this.curAttr & ~(31 << 5)) | ((p - 30) << 5);
       } else if (p >= 40 && p <= 47) {
+        // bg color 8
         this.curAttr = (this.curAttr & ~31) | (p - 40);
       } else if (p >= 90 && p <= 97) {
+        // fg color 16
         this.curAttr = (this.curAttr & ~(31 << 5)) | ((p - 90) << 5);
         this.curAttr = this.curAttr | (8 << 5);
       } else if (p >= 100 && p <= 107) {
+        // bg color 16
         this.curAttr = (this.curAttr & ~31) | (p - 100);
         this.curAttr = this.curAttr | 8;
       } else if (p === 0) {
+        // default
         this.curAttr = this.defAttr;
       } else if (p === 1) {
         // bold text
@@ -2039,6 +2046,24 @@ Terminal.prototype.charAttributes = function(params) {
         // reset bg
         this.curAttr = this.curAttr & ~31;
         this.curAttr = this.curAttr | (this.defAttr & 31);
+      } else if (p === 38) {
+        // fg color 256
+        if (params[i+1] !== 5) continue;
+        i += 2;
+        this.highFg = params[i];
+        // attempt to set
+        this.highFg = (this.highFg + 18) & 31;
+        this.curAttr = this.curAttr & ~(31 << 5);
+        this.curAttr = this.curAttr | (this.highFg << 5);
+      } else if (p === 48) {
+        // bg color 256
+        if (params[i+1] !== 5) continue;
+        i += 2;
+        this.highBg = params[i];
+        // attempt to set
+        this.highBg = (this.highBg + 18) & 31;
+        this.curAttr = this.curAttr & ~31;
+        this.curAttr = this.curAttr | this.highBg;
       }
     }
   }
@@ -3340,6 +3365,8 @@ function isBoldBroken() {
   document.body.removeChild(el);
   return w1 !== w2;
 }
+
+var String = this.String;
 
 /**
  * Expose
