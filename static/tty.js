@@ -177,12 +177,13 @@ Window.prototype.bind = function() {
     } else {
       self.createTab();
     }
+    return cancel(ev);
   });
 
   on(grip, 'mousedown', function(ev) {
     self.focus();
     self.resizing(ev);
-    cancel(ev);
+    return cancel(ev);
   });
 
   on(el, 'mousedown', function(ev) {
@@ -198,6 +199,8 @@ Window.prototype.bind = function() {
     last = new Date;
 
     self.drag(ev);
+
+    return cancel(ev);
   });
 };
 
@@ -340,6 +343,8 @@ Window.prototype.maximize = function() {
     el.style.top = m.top + 'px';
     el.style.width = '';
     el.style.height = '';
+    term.element.style.width = '';
+    term.element.style.height = '';
     el.style.boxSizing = '';
     self.grip.style.display = '';
     root.className = m.root;
@@ -349,10 +354,8 @@ Window.prototype.maximize = function() {
 
   window.scrollTo(0, 0);
 
-  x = el.offsetWidth - term.element.clientWidth;
-  y = el.offsetHeight - term.element.clientHeight;
-  x = (root.clientWidth - x) / term.element.clientWidth;
-  y = (root.clientHeight - y) / term.element.clientHeight;
+  x = root.clientWidth / term.element.offsetWidth;
+  y = root.clientHeight / term.element.offsetHeight;
   x = (x * term.cols) | 0;
   y = (y * term.rows) | 0;
 
@@ -360,6 +363,8 @@ Window.prototype.maximize = function() {
   el.style.top = '0px';
   el.style.width = '100%';
   el.style.height = '100%';
+  term.element.style.width = '100%';
+  term.element.style.height = '100%';
   el.style.boxSizing = 'border-box';
   this.grip.style.display = 'none';
   root.className = 'maximized';
