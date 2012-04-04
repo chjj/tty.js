@@ -541,14 +541,15 @@ Terminal.prototype.refresh = function(start, end) {
     , row
     , parent;
 
-  width = this.cols;
-
-  if (end - start === this.rows - 1) {
+  if (end - start >= this.rows / 2) {
     parent = this.element.parentNode;
     if (parent) parent.removeChild(this.element);
   }
 
-  for (y = start; y <= end; y++) {
+  width = this.cols;
+  y = start;
+
+  for (; y <= end; y++) {
     row = y + this.ydisp;
 
     line = this.lines[row];
@@ -696,13 +697,16 @@ Terminal.prototype.scroll = function() {
   // subtract the bottom scroll region
   row -= this.rows - 1 - this.scrollBottom;
 
-  // potential optimization
-  // if (row === this.lines.length) {
-  //   this.lines.push(this.blankLine());
-  // } else
-
-  // add our new line
-  this.lines.splice(row, 0, this.blankLine());
+  if (row === this.lines.length) {
+    // potential optimization:
+    // pushing is faster than splicing
+    // when they amount to the same
+    // behavior.
+    this.lines.push(this.blankLine());
+  } else {
+    // add our new line
+    this.lines.splice(row, 0, this.blankLine());
+  }
 
   if (this.scrollTop !== 0) {
     if (this.ybase !== 0) {
@@ -726,23 +730,22 @@ Terminal.prototype.scrollDisp = function(disp) {
 };
 
 Terminal.prototype.write = function(str) {
-  // console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
-
   var l = str.length
     , i = 0
     , ch
     , param
     , row;
 
-  this.refreshStart = this.rows;
-  this.refreshEnd = -1;
-  this.getRows(this.y);
+  this.refreshStart = this.y;
+  this.refreshEnd = this.y;
 
   if (this.ybase !== this.ydisp) {
     this.ydisp = this.ybase;
     this.refreshStart = 0;
     this.refreshEnd = this.rows - 1;
   }
+
+  // console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
 
   for (; i < l; i++) {
     ch = str[i];
@@ -1490,6 +1493,8 @@ Terminal.prototype.write = function(str) {
 
         this.prefix = '';
         this.postfix = '';
+
+        this.getRows(this.y);
         break;
     }
   }
@@ -1832,8 +1837,6 @@ Terminal.prototype.resize = function(x, y) {
 
   this.scrollTop = 0;
   this.scrollBottom = y - 1;
-  this.refreshStart = 0;
-  this.refreshEnd = y - 1;
 
   this.refresh(0, this.rows - 1);
 
@@ -1849,20 +1852,25 @@ Terminal.prototype.getRows = function(y) {
   this.refreshEnd = Math.max(this.refreshEnd, y);
 };
 
-Terminal.prototype.eraseLine = function(x, y) {
-  var line, i, ch, row;
+Terminal.prototype.eraseRight = function(x, y) {
+  var line = this.lines[this.ybase + y]
+    , ch = [this.curAttr, ' '];
 
-  row = this.ybase + y;
-
-  line = this.lines[row];
-  // xterm, linux:
-  ch = [this.curAttr, ' '];
-
-  for (i = x; i < this.cols; i++) {
-    line[i] = ch;
+  for (; x < this.cols; x++) {
+    line[x] = ch;
   }
+};
 
-  this.getRows(y);
+Terminal.prototype.eraseLeft = function(x, y) {
+  var line = this.lines[this.ybase + y]
+    , ch = [this.curAttr, ' '];
+
+  x++;
+  while (x--) line[x] = ch;
+};
+
+Terminal.prototype.eraseLine = function(y) {
+  this.eraseRight(0, y);
 };
 
 Terminal.prototype.blankLine = function(cur) {
@@ -2010,24 +2018,25 @@ Terminal.prototype.cursorPos = function(params) {
 //     Ps = 1  -> Selective Erase Above.
 //     Ps = 2  -> Selective Erase All.
 Terminal.prototype.eraseInDisplay = function(params) {
-  var param, row, j;
+  var j;
   switch (params[0] || 0) {
     case 0:
-      this.eraseLine(this.x, this.y);
-      for (j = this.y + 1; j < this.rows; j++) {
-        this.eraseLine(0, j);
+      this.eraseRight(this.x, this.y);
+      j = this.y + 1;
+      for (; j < this.rows; j++) {
+        this.eraseLine(j);
       }
       break;
     case 1:
-      this.eraseInLine([1]);
+      this.eraseLeft(this.x, this.y);
       j = this.y;
       while (j--) {
-        this.eraseLine(0, j);
+        this.eraseLine(j);
       }
       break;
     case 2:
-      this.eraseInDisplay([0]);
-      this.eraseInDisplay([1]);
+      j = this.rows;
+      while (j--) this.eraseLine(j);
       break;
     case 3:
       ; // no saved lines
@@ -2047,21 +2056,13 @@ Terminal.prototype.eraseInDisplay = function(params) {
 Terminal.prototype.eraseInLine = function(params) {
   switch (params[0] || 0) {
     case 0:
-      this.eraseLine(this.x, this.y);
+      this.eraseRight(this.x, this.y);
       break;
     case 1:
-      var x = this.x + 1;
-      var line = this.lines[this.ybase + this.y];
-      // xterm, linux:
-      var ch = [this.curAttr, ' '];
-      while (x--) line[x] = ch;
+      this.eraseLeft(this.x, this.y);
       break;
     case 2:
-      var x = this.cols;
-      var line = this.lines[this.ybase + this.y];
-      // xterm, linux:
-      var ch = [this.curAttr, ' '];
-      while (x--) line[x] = ch;
+      this.eraseLine(this.y);
       break;
   }
 };
@@ -3518,6 +3519,7 @@ function isBoldBroken() {
 }
 
 var String = this.String;
+var Math = this.Math;
 
 /**
  * Expose
