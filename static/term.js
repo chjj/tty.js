@@ -175,14 +175,17 @@ Terminal.colors = function() {
   return colors;
 }();
 
-// save fallback
-Terminal._colors = Terminal.colors;
-
 // default bg/fg
 Terminal.defaultColors = {
   bg: '#000000',
   fg: '#f0f0f0'
 };
+
+Terminal.colors[256] = Terminal.defaultColors.bg;
+Terminal.colors[257] = Terminal.defaultColors.fg;
+
+// save fallback
+Terminal._colors = Terminal.colors.slice();
 
 Terminal.termName = '';
 Terminal.geometry = [80, 30];
