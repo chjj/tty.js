@@ -932,21 +932,21 @@ Terminal.prototype.write = function(str) {
 
           // ESC = Application Keypad (DECPAM).
           case '=':
-            console.log('Serial port requested application keypad.');
+            this.log('Serial port requested application keypad.');
             this.applicationKeypad = true;
             this.state = normal;
             break;
 
           // ESC > Normal Keypad (DECPNM).
           case '>':
-            console.log('Switching back to normal keypad.');
+            this.log('Switching back to normal keypad.');
             this.applicationKeypad = false;
             this.state = normal;
             break;
 
           default:
             this.state = normal;
-            console.log('Unknown ESC control: ' + ch + '.');
+            this.error('Unknown ESC control: ' + ch + '.');
             break;
         }
         break;
@@ -1489,7 +1489,7 @@ Terminal.prototype.write = function(str) {
           //   break;
 
           default:
-            console.log('Unknown CSI code: %s', ch, this.params);
+            this.error('Unknown CSI code: %s', ch, this.params);
             break;
         }
 
@@ -1777,6 +1777,18 @@ Terminal.prototype.bell = function() {
   if (Terminal.popOnBell) this.focus();
 };
 
+Terminal.prototype.log = function(data) {
+  if (!Terminal.debug) return;
+  if (!window.console || !window.console.log) return;
+  window.console.log(data);
+};
+
+Terminal.prototype.error = function(data) {
+  if (!Terminal.debug) return;
+  if (!window.console || !window.console.error) return;
+  window.console.error(data);
+};
+
 Terminal.prototype.resize = function(x, y) {
   var line
     , el
@@ -1942,8 +1954,7 @@ Terminal.prototype.reset = function() {
 // CSI Ps A
 // Cursor Up Ps Times (default = 1) (CUU).
 Terminal.prototype.cursorUp = function(params) {
-  var param, row;
-  param = params[0];
+  var param = params[0];
   if (param < 1) param = 1;
   this.y -= param;
   if (this.y < 0) this.y = 0;
@@ -1952,8 +1963,7 @@ Terminal.prototype.cursorUp = function(params) {
 // CSI Ps B
 // Cursor Down Ps Times (default = 1) (CUD).
 Terminal.prototype.cursorDown = function(params) {
-  var param, row;
-  param = params[0];
+  var param = params[0];
   if (param < 1) param = 1;
   this.y += param;
   if (this.y >= this.rows) {
@@ -1964,8 +1974,7 @@ Terminal.prototype.cursorDown = function(params) {
 // CSI Ps C
 // Cursor Forward Ps Times (default = 1) (CUF).
 Terminal.prototype.cursorForward = function(params) {
-  var param, row;
-  param = params[0];
+  var param = params[0];
   if (param < 1) param = 1;
   this.x += param;
   if (this.x >= this.cols - 1) {
@@ -1976,8 +1985,7 @@ Terminal.prototype.cursorForward = function(params) {
 // CSI Ps D
 // Cursor Backward Ps Times (default = 1) (CUB).
 Terminal.prototype.cursorBackward = function(params) {
-  var param, row;
-  param = params[0];
+  var param = params[0];
   if (param < 1) param = 1;
   this.x -= param;
   if (this.x < 0) this.x = 0;
@@ -2135,76 +2143,83 @@ Terminal.prototype.eraseInLine = function(params) {
 //     Ps = 4 8  ; 5  ; Ps -> Set background color to the second
 //     Ps.
 Terminal.prototype.charAttributes = function(params) {
-  var i, p;
+  var i, l, p, bg, fg;
+
   if (params.length === 0) {
     // default
     this.curAttr = this.defAttr;
-  } else {
-    for (i = 0; i < params.length; i++) {
-      p = params[i];
-      if (p >= 30 && p <= 37) {
-        // fg color 8
-        this.curAttr = (this.curAttr & ~(0x1ff << 9)) | ((p - 30) << 9);
-      } else if (p >= 40 && p <= 47) {
-        // bg color 8
-        this.curAttr = (this.curAttr & ~0x1ff) | (p - 40);
-      } else if (p >= 90 && p <= 97) {
-        // fg color 16
-        p += 8;
-        this.curAttr = (this.curAttr & ~(0x1ff << 9)) | ((p - 90) << 9);
-      } else if (p >= 100 && p <= 107) {
-        // bg color 16
-        p += 8;
-        this.curAttr = (this.curAttr & ~0x1ff) | (p - 100);
-      } else if (p === 0) {
-        // default
-        this.curAttr = this.defAttr;
-      } else if (p === 1) {
-        // bold text
-        this.curAttr = this.curAttr | (1 << 18);
-      } else if (p === 4) {
-        // underlined text
-        this.curAttr = this.curAttr | (2 << 18);
-      } else if (p === 7 || p === 27) {
-        // inverse and positive
-        // test with: echo -e '\e[31m\e[42mhello\e[7mworld\e[27mhi\e[m'
-        if (p === 7) {
-          if ((this.curAttr >> 18) & 4) continue;
-          this.curAttr = this.curAttr | (4 << 18);
-        } else if (p === 27) {
-          if (~(this.curAttr >> 18) & 4) continue;
-          this.curAttr = this.curAttr & ~(4 << 18);
-        }
-        var bg = this.curAttr & 0x1ff;
-        var fg = (this.curAttr >> 9) & 0x1ff;
-        this.curAttr = (this.curAttr & ~0x3ffff) | ((bg << 9) | fg);
-      } else if (p === 22) {
-        // not bold
-        this.curAttr = this.curAttr & ~(1 << 18);
-      } else if (p === 24) {
-        // not underlined
-        this.curAttr = this.curAttr & ~(2 << 18);
-      } else if (p === 39) {
-        // reset fg
-        this.curAttr = this.curAttr & ~(0x1ff << 9);
-        this.curAttr = this.curAttr | (((this.defAttr >> 9) & 0x1ff) << 9);
-      } else if (p === 49) {
-        // reset bg
-        this.curAttr = this.curAttr & ~0x1ff;
-        this.curAttr = this.curAttr | (this.defAttr & 0x1ff);
-      } else if (p === 38) {
-        // fg color 256
-        if (params[i+1] !== 5) continue;
-        i += 2;
-        p = params[i];
-        this.curAttr = (this.curAttr & ~(0x1ff << 9)) | (p << 9);
-      } else if (p === 48) {
-        // bg color 256
-        if (params[i+1] !== 5) continue;
-        i += 2;
-        p = params[i];
-        this.curAttr = (this.curAttr & ~0x1ff) | p;
+    return;
+  }
+
+  l = params.length;
+  i = 0;
+
+  for (; i < l; i++) {
+    p = params[i];
+    if (p >= 30 && p <= 37) {
+      // fg color 8
+      this.curAttr = (this.curAttr & ~(0x1ff << 9)) | ((p - 30) << 9);
+    } else if (p >= 40 && p <= 47) {
+      // bg color 8
+      this.curAttr = (this.curAttr & ~0x1ff) | (p - 40);
+    } else if (p >= 90 && p <= 97) {
+      // fg color 16
+      p += 8;
+      this.curAttr = (this.curAttr & ~(0x1ff << 9)) | ((p - 90) << 9);
+    } else if (p >= 100 && p <= 107) {
+      // bg color 16
+      p += 8;
+      this.curAttr = (this.curAttr & ~0x1ff) | (p - 100);
+    } else if (p === 0) {
+      // default
+      this.curAttr = this.defAttr;
+    } else if (p === 1) {
+      // bold text
+      this.curAttr = this.curAttr | (1 << 18);
+    } else if (p === 4) {
+      // underlined text
+      this.curAttr = this.curAttr | (2 << 18);
+    } else if (p === 7 || p === 27) {
+      // inverse and positive
+      // test with: echo -e '\e[31m\e[42mhello\e[7mworld\e[27mhi\e[m'
+      if (p === 7) {
+        if ((this.curAttr >> 18) & 4) continue;
+        this.curAttr = this.curAttr | (4 << 18);
+      } else if (p === 27) {
+        if (~(this.curAttr >> 18) & 4) continue;
+        this.curAttr = this.curAttr & ~(4 << 18);
       }
+
+      bg = this.curAttr & 0x1ff;
+      fg = (this.curAttr >> 9) & 0x1ff;
+
+      this.curAttr = (this.curAttr & ~0x3ffff) | ((bg << 9) | fg);
+    } else if (p === 22) {
+      // not bold
+      this.curAttr = this.curAttr & ~(1 << 18);
+    } else if (p === 24) {
+      // not underlined
+      this.curAttr = this.curAttr & ~(2 << 18);
+    } else if (p === 39) {
+      // reset fg
+      this.curAttr = this.curAttr & ~(0x1ff << 9);
+      this.curAttr = this.curAttr | (((this.defAttr >> 9) & 0x1ff) << 9);
+    } else if (p === 49) {
+      // reset bg
+      this.curAttr = this.curAttr & ~0x1ff;
+      this.curAttr = this.curAttr | (this.defAttr & 0x1ff);
+    } else if (p === 38) {
+      // fg color 256
+      if (params[i+1] !== 5) continue;
+      i += 2;
+      p = params[i];
+      this.curAttr = (this.curAttr & ~(0x1ff << 9)) | (p << 9);
+    } else if (p === 48) {
+      // bg color 256
+      if (params[i+1] !== 5) continue;
+      i += 2;
+      p = params[i];
+      this.curAttr = (this.curAttr & ~0x1ff) | p;
     }
   }
 };
@@ -2282,10 +2297,13 @@ Terminal.prototype.deviceStatus = function(params) {
 // Insert Ps (Blank) Character(s) (default = 1) (ICH).
 Terminal.prototype.insertChars = function(params) {
   var param, row, j;
+
   param = params[0];
   if (param < 1) param = 1;
+
   row = this.y + this.ybase;
   j = this.x;
+
   while (param-- && j < this.cols) {
     // xterm, linux:
     this.lines[row].splice(j++, 0, [this.curAttr, ' ']);
@@ -2295,35 +2313,32 @@ Terminal.prototype.insertChars = function(params) {
 
 // CSI Ps E
 // Cursor Next Line Ps Times (default = 1) (CNL).
+// same as CSI Ps B ?
 Terminal.prototype.cursorNextLine = function(params) {
-  var param, row;
-  param = params[0];
+  var param = params[0];
   if (param < 1) param = 1;
   this.y += param;
   if (this.y >= this.rows) {
     this.y = this.rows - 1;
   }
-  // above is the same as CSI Ps B
   this.x = 0;
 };
 
 // CSI Ps F
 // Cursor Preceding Line Ps Times (default = 1) (CNL).
+// reuse CSI Ps A ?
 Terminal.prototype.cursorPrecedingLine = function(params) {
-  var param, row;
-  param = params[0];
+  var param = params[0];
   if (param < 1) param = 1;
   this.y -= param;
   if (this.y < 0) this.y = 0;
-  // above is the same as CSI Ps A
   this.x = 0;
 };
 
 // CSI Ps G
 // Cursor Character Absolute  [column] (default = [row,1]) (CHA).
 Terminal.prototype.cursorCharAbsolute = function(params) {
-  var param, row;
-  param = params[0];
+  var param = params[0];
   if (param < 1) param = 1;
   this.x = param - 1;
 };
@@ -2332,6 +2347,7 @@ Terminal.prototype.cursorCharAbsolute = function(params) {
 // Insert Ps Line(s) (default = 1) (IL).
 Terminal.prototype.insertLines = function(params) {
   var param, row, j;
+
   param = params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
@@ -2353,6 +2369,7 @@ Terminal.prototype.insertLines = function(params) {
 // Delete Ps Line(s) (default = 1) (DL).
 Terminal.prototype.deleteLines = function(params) {
   var param, row, j;
+
   param = params[0];
   if (param < 1) param = 1;
   row = this.y + this.ybase;
@@ -2374,9 +2391,12 @@ Terminal.prototype.deleteLines = function(params) {
 // Delete Ps Character(s) (default = 1) (DCH).
 Terminal.prototype.deleteChars = function(params) {
   var param, row;
+
   param = params[0];
   if (param < 1) param = 1;
+
   row = this.y + this.ybase;
+
   while (param--) {
     this.lines[row].splice(this.x, 1);
     // xterm, linux:
@@ -2388,10 +2408,13 @@ Terminal.prototype.deleteChars = function(params) {
 // Erase Ps Character(s) (default = 1) (ECH).
 Terminal.prototype.eraseChars = function(params) {
   var param, row, j;
+
   param = params[0];
   if (param < 1) param = 1;
+
   row = this.y + this.ybase;
   j = this.x;
+
   while (param-- && j < this.cols) {
     // xterm, linux:
     this.lines[row][j++] = [this.curAttr, ' '];
@@ -2401,8 +2424,7 @@ Terminal.prototype.eraseChars = function(params) {
 // CSI Pm `  Character Position Absolute
 //   [column] (default = [row,1]) (HPA).
 Terminal.prototype.charPosAbsolute = function(params) {
-  var param, row;
-  param = params[0];
+  var param = params[0];
   if (param < 1) param = 1;
   this.x = param - 1;
   if (this.x >= this.cols) {
@@ -2412,15 +2434,14 @@ Terminal.prototype.charPosAbsolute = function(params) {
 
 // 141 61 a * HPR -
 // Horizontal Position Relative
+// reuse CSI Ps C ?
 Terminal.prototype.HPositionRelative = function(params) {
-  var param, row;
-  param = params[0];
+  var param = params[0];
   if (param < 1) param = 1;
   this.x += param;
   if (this.x >= this.cols - 1) {
     this.x = this.cols - 1;
   }
-  // above is the same as CSI Ps C
 };
 
 // CSI Ps c  Send Device Attributes (Primary DA).
@@ -2475,8 +2496,7 @@ Terminal.prototype.sendDeviceAttributes = function(params) {
 // CSI Pm d
 // Line Position Absolute  [row] (default = [1,column]) (VPA).
 Terminal.prototype.linePosAbsolute = function(params) {
-  var param, row;
-  param = params[0];
+  var param = params[0];
   if (param < 1) param = 1;
   this.y = param - 1;
   if (this.y >= this.rows) {
@@ -2485,15 +2505,14 @@ Terminal.prototype.linePosAbsolute = function(params) {
 };
 
 // 145 65 e * VPR - Vertical Position Relative
+// reuse CSI Ps B ?
 Terminal.prototype.VPositionRelative = function(params) {
-  var param, row;
-  param = params[0];
+  var param = params[0];
   if (param < 1) param = 1;
   this.y += param;
   if (this.y >= this.rows) {
     this.y = this.rows - 1;
   }
-  // above is same as CSI Ps B
 };
 
 // CSI Ps ; Ps f
@@ -2641,7 +2660,7 @@ Terminal.prototype.setMode = function(params) {
       case 1003: // any event mouse
         // button press, release, wheel, and motion.
         // no modifiers except control.
-        console.log('binding to mouse events - warning: experimental!');
+        this.log('Binding to mouse events.');
         this.mouseEvents = true;
         this.element.style.cursor = 'default';
         break;
@@ -2912,7 +2931,7 @@ Terminal.prototype.scrollDown = function(params) {
 //   [func;startx;starty;firstrow;lastrow].  See the section Mouse
 //   Tracking.
 Terminal.prototype.initMouseTracking = function(params) {
-  console.log('mouse tracking');
+  this.log('Enable Mouse Tracking');
 };
 
 // CSI > Ps; Ps T
