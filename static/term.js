@@ -587,7 +587,9 @@ Terminal.prototype.refresh = function(start, end) {
             flags = data >> 18;
 
             if (flags & 1) {
-              out += 'font-weight:bold;';
+              if (!Terminal.brokenBold) {
+                out += 'font-weight:bold;';
+              }
               // see: XTerm*boldColors
               if (fgColor < 8) fgColor += 8;
             }
@@ -616,9 +618,6 @@ Terminal.prototype.refresh = function(start, end) {
       }
 
       switch (ch) {
-        case ' ':
-          out += '&nbsp;';
-          break;
         case '&':
           out += '&amp;';
           break;
@@ -629,7 +628,7 @@ Terminal.prototype.refresh = function(start, end) {
           out += '&gt;';
           break;
         default:
-          if (ch < ' ') {
+          if (ch <= ' ') {
             out += '&nbsp;';
           } else {
             out += ch;
@@ -741,8 +740,7 @@ Terminal.prototype.write = function(str) {
 
   if (this.ybase !== this.ydisp) {
     this.ydisp = this.ybase;
-    this.refreshStart = 0;
-    this.refreshEnd = this.rows - 1;
+    this.maxRange();
   }
 
   // console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
@@ -772,8 +770,7 @@ Terminal.prototype.write = function(str) {
             if (this.y >= this.scrollBottom + 1) {
               this.y--;
               this.scroll();
-              this.refreshStart = 0;
-              this.refreshEnd = this.rows - 1;
+              this.maxRange();
             }
             break;
 
@@ -815,14 +812,13 @@ Terminal.prototype.write = function(str) {
                 if (this.y >= this.scrollBottom + 1) {
                   this.y--;
                   this.scroll();
-                  this.refreshStart = 0;
-                  this.refreshEnd = this.rows - 1;
+                  this.maxRange();
                 }
               }
               row = this.y + this.ybase;
               this.lines[row][this.x] = [this.curAttr, ch];
               this.x++;
-              this.getRows(this.y);
+              this.updateRange();
             }
             break;
         }
@@ -845,16 +841,22 @@ Terminal.prototype.write = function(str) {
 
           // ESC P Device Control String ( DCS is 0x90).
           case 'P':
+            this.params = [-1];
+            this.currentParam = 0;
             this.state = osc;
             break;
 
           // ESC _ Application Program Command ( APC is 0x9f).
           case '_':
+            this.params = [-1];
+            this.currentParam = 0;
             this.state = osc;
             break;
 
           // ESC ^ Privacy Message ( PM is 0x9e).
           case '^':
+            this.params = [-1];
+            this.currentParam = 0;
             this.state = osc;
             break;
 
@@ -1494,12 +1496,12 @@ Terminal.prototype.write = function(str) {
         this.prefix = '';
         this.postfix = '';
 
-        this.getRows(this.y);
+        this.updateRange();
         break;
     }
   }
 
-  this.getRows(this.y);
+  this.updateRange();
 
   if (this.refreshEnd >= this.refreshStart) {
     this.refresh(this.refreshStart, this.refreshEnd);
@@ -1847,9 +1849,14 @@ Terminal.prototype.resize = function(x, y) {
   this.normal = null;
 };
 
-Terminal.prototype.getRows = function(y) {
-  this.refreshStart = Math.min(this.refreshStart, y);
-  this.refreshEnd = Math.max(this.refreshEnd, y);
+Terminal.prototype.updateRange = function() {
+  this.refreshStart = Math.min(this.refreshStart, this.y);
+  this.refreshEnd = Math.max(this.refreshEnd, this.y);
+};
+
+Terminal.prototype.maxRange = function() {
+  this.refreshStart = 0;
+  this.refreshEnd = this.rows - 1;
 };
 
 Terminal.prototype.eraseRight = function(x, y) {
@@ -1902,8 +1909,7 @@ Terminal.prototype.index = function() {
   if (this.y >= this.scrollBottom + 1) {
     this.y--;
     this.scroll();
-    this.refreshStart = 0;
-    this.refreshEnd = this.rows - 1;
+    this.maxRange();
   }
   this.state = normal;
 };
@@ -1919,8 +1925,7 @@ Terminal.prototype.reverseIndex = function() {
     this.lines.splice(this.y + this.ybase, 0, this.blankLine(true));
     j = this.rows - 1 - this.scrollBottom;
     this.lines.splice(this.rows - 1 + this.ybase - j + 1, 1);
-    this.refreshStart = 0;
-    this.refreshEnd = this.rows - 1;
+    this.maxRange();
   }
   this.state = normal;
 };
@@ -2341,8 +2346,7 @@ Terminal.prototype.insertLines = function(params) {
     this.lines.splice(j, 1);
   }
 
-  this.refreshStart = 0;
-  this.refreshEnd = this.rows - 1;
+  this.maxRange();
 };
 
 // CSI Ps M
@@ -2363,8 +2367,7 @@ Terminal.prototype.deleteLines = function(params) {
     this.lines.splice(row, 1);
   }
 
-  this.refreshStart = 0;
-  this.refreshEnd = this.rows - 1;
+  this.maxRange();
 };
 
 // CSI Ps P
@@ -2891,8 +2894,7 @@ Terminal.prototype.scrollUp = function(params) {
     this.lines.splice(this.ybase + this.scrollTop, 1);
     this.lines.splice(this.ybase + this.scrollBottom, 0, this.blankLine());
   }
-  this.refreshStart = 0;
-  this.refreshEnd = this.rows - 1;
+  this.maxRange();
 };
 
 // CSI Ps T  Scroll down Ps lines (default = 1) (SD).
@@ -2902,8 +2904,7 @@ Terminal.prototype.scrollDown = function(params) {
     this.lines.splice(this.ybase + this.scrollBottom, 1);
     this.lines.splice(this.ybase + this.scrollTop, 0, this.blankLine());
   }
-  this.refreshStart = 0;
-  this.refreshEnd = this.rows - 1;
+  this.maxRange();
 };
 
 // CSI Ps ; Ps ; Ps ; Ps ; Ps T
