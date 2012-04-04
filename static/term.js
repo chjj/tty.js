@@ -2604,6 +2604,7 @@ Terminal.prototype.setMode = function(params) {
           };
           this.reset();
           this.normal = normal;
+          this.showCursor();
         }
         break;
     }
@@ -2747,6 +2748,7 @@ Terminal.prototype.resetMode = function(params) {
           //   this.y = this.savedY;
           // }
           this.refresh(0, this.rows - 1);
+          this.showCursor();
         }
         break;
     }
