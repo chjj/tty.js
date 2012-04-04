@@ -23,6 +23,7 @@ Bellard's vt100 for [jslinux](http://bellard.org/jslinux/).
 - Screen/Tmux-like keys (optional)
 - Ability to efficiently render programs: vim, mc, irssi, vifm, etc.
 - Support for xterm mouse events
+- 256 color support
 
 ## Install
 
@@ -86,6 +87,11 @@ JSON file. An example configuration file looks like:
 ```
 
 Usernames and passwords can be plaintext or sha1 hashes.
+
+### 256 colors
+
+If tty.js fails to check your terminfo properly, you can force your `TERM`
+to `xterm-256color` by setting `"termName": "xterm-256color"` in your config.
 
 ### Example Hooks File
 

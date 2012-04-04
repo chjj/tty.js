@@ -515,11 +515,13 @@ Terminal.prototype.bindMouse = function() {
  */
 
 // In the screen buffer, each character
-// is stored as a 32-bit integer.
-// First 16 bits: a utf-16 character.
-// Next 5 bits: background color (0-31).
-// Next 5 bits: foreground color (0-31).
-// Next 6 bits: a mask for misc. flags:
+// is stored as a an array with a character
+// and a 32-bit integer.
+// First value: a utf-16 character.
+// Second value:
+// Next 9 bits: background color (0-511).
+// Next 9 bits: foreground color (0-511).
+// Next 14 bits: a mask for misc. flags:
 //   1=bold, 2=underline, 4=inverse
 
 Terminal.prototype.refresh = function(start, end) {
@@ -1156,12 +1158,14 @@ Terminal.prototype.write = function(str) {
             this.setScrollRegion(this.params);
             break;
 
-          // CSI s     Save cursor (ANSI.SYS).
+          // CSI s
+          //   Save cursor (ANSI.SYS).
           case 's':
             this.saveCursor(this.params);
             break;
 
-          // CSI u     Restore cursor (ANSI.SYS).
+          // CSI u
+          //   Restore cursor (ANSI.SYS).
           case 'u':
             this.restoreCursor(this.params);
             break;
@@ -1825,12 +1829,10 @@ Terminal.prototype.reverseIndex = function() {
   this.y--;
   if (this.y < this.scrollTop) {
     this.y++;
-    // echo -ne '\e[1;1H\e[44m\eM\e[0m'
-    // use this.blankLine(false) for screen behavior
+    // test: echo -ne '\e[1;1H\e[44m\eM\e[0m'
+    // blankLine(true) is xterm/linux behavior
     this.lines.splice(this.y + this.ybase, 0, this.blankLine(true));
     j = this.rows - 1 - this.scrollBottom;
-    // add an extra one because we just added a line
-    // maybe put this above
     this.lines.splice(this.rows - 1 + this.ybase - j + 1, 1);
     this.refreshStart = 0;
     this.refreshEnd = this.rows - 1;
@@ -2252,18 +2254,15 @@ Terminal.prototype.insertLines = function(params) {
   row = this.y + this.ybase;
 
   j = this.rows - 1 - this.scrollBottom;
-  // add an extra one because we added one
-  // above
   j = this.rows - 1 + this.ybase - j + 1;
 
   while (param--) {
-    // this.blankLine(false) for screen behavior
     // test: echo -e '\e[44m\e[1L\e[0m'
+    // blankLine(true) - xterm/linux behavior
     this.lines.splice(row, 0, this.blankLine(true));
     this.lines.splice(j, 1);
   }
 
-  //this.refresh(0, this.rows - 1);
   this.refreshStart = 0;
   this.refreshEnd = this.rows - 1;
 };
@@ -2280,13 +2279,12 @@ Terminal.prototype.deleteLines = function(params) {
   j = this.rows - 1 + this.ybase - j;
 
   while (param--) {
-    // this.blankLine(false) for screen behavior
     // test: echo -e '\e[44m\e[1M\e[0m'
+    // blankLine(true) - xterm/linux behavior
     this.lines.splice(j + 1, 0, this.blankLine(true));
     this.lines.splice(row, 1);
   }
 
-  //this.refresh(0, this.rows - 1);
   this.refreshStart = 0;
   this.refreshEnd = this.rows - 1;
 };
@@ -2767,13 +2765,15 @@ Terminal.prototype.setScrollRegion = function(params) {
   this.y = 0;
 };
 
-// CSI s     Save cursor (ANSI.SYS).
+// CSI s
+//   Save cursor (ANSI.SYS).
 Terminal.prototype.saveCursor = function(params) {
   this.savedX = this.x;
   this.savedY = this.y;
 };
 
-// CSI u     Restore cursor (ANSI.SYS).
+// CSI u
+//   Restore cursor (ANSI.SYS).
 Terminal.prototype.restoreCursor = function(params) {
   this.x = this.savedX || 0;
   this.y = this.savedY || 0;
@@ -2783,7 +2783,8 @@ Terminal.prototype.restoreCursor = function(params) {
  * Lesser Used
  */
 
-// CSI Ps I  Cursor Forward Tabulation Ps tab stops (default = 1) (CHT).
+// CSI Ps I
+//   Cursor Forward Tabulation Ps tab stops (default = 1) (CHT).
 Terminal.prototype.cursorForwardTab = function(params) {
   var row, param, line, ch;
 
@@ -2807,10 +2808,7 @@ Terminal.prototype.cursorForwardTab = function(params) {
 Terminal.prototype.scrollUp = function(params) {
   var param = params[0] || 1;
   while (param--) {
-    //this.lines.shift();
-    //this.lines.push(this.blankLine());
     this.lines.splice(this.ybase + this.scrollTop, 1);
-    // no need to add 1 here, because we removed a line
     this.lines.splice(this.ybase + this.scrollBottom, 0, this.blankLine());
   }
   this.refreshStart = 0;
@@ -2821,8 +2819,6 @@ Terminal.prototype.scrollUp = function(params) {
 Terminal.prototype.scrollDown = function(params) {
   var param = params[0] || 1;
   while (param--) {
-    //this.lines.pop();
-    //this.lines.unshift(this.blankLine());
     this.lines.splice(this.ybase + this.scrollBottom, 1);
     this.lines.splice(this.ybase + this.scrollTop, 0, this.blankLine());
   }
@@ -2850,6 +2846,7 @@ Terminal.prototype.initMouseTracking = function(params) {
 //     Ps = 3  -> Do not query window/icon labels using UTF-8.
 //   (See discussion of "Title Modes").
 Terminal.prototype.resetTitleModes = function(params) {
+  ;
 };
 
 // CSI Ps Z  Cursor Backward Tabulation Ps tab stops (default = 1) (CBT).
@@ -2883,6 +2880,7 @@ Terminal.prototype.repeatPrecedingCharacter = function(params) {
 //     Ps = 0  -> Clear Current Column (default).
 //     Ps = 3  -> Clear All.
 Terminal.prototype.tabClear = function(params) {
+  ;
 };
 
 // CSI Pm i  Media Copy (MC).
@@ -2897,6 +2895,7 @@ Terminal.prototype.tabClear = function(params) {
 //     Ps = 1  0  -> Print composed display, ignores DECPEX.
 //     Ps = 1  1  -> Print all pages.
 Terminal.prototype.mediaCopy = function(params) {
+  ;
 };
 
 // CSI > Ps; Ps m
@@ -2912,6 +2911,7 @@ Terminal.prototype.mediaCopy = function(params) {
 //   If no parameters are given, all resources are reset to their
 //   initial values.
 Terminal.prototype.setResources = function(params) {
+  ;
 };
 
 // CSI > Ps n
@@ -2928,6 +2928,7 @@ Terminal.prototype.setResources = function(params) {
 //   adding a parameter to each function key to denote the modi-
 //   fiers.
 Terminal.prototype.disableModifiers = function(params) {
+  ;
 };
 
 // CSI > Ps p
@@ -2939,6 +2940,7 @@ Terminal.prototype.disableModifiers = function(params) {
 //     Ps = 2  -> always hide the pointer.  If no parameter is
 //     given, xterm uses the default, which is 1 .
 Terminal.prototype.setPointerMode = function(params) {
+  ;
 };
 
 // CSI ! p   Soft terminal reset (DECSTR).
@@ -2957,6 +2959,7 @@ Terminal.prototype.softReset = function(params) {
 //     3 - permanently set
 //     4 - permanently reset
 Terminal.prototype.requestAnsiMode = function(params) {
+  ;
 };
 
 // CSI ? Ps$ p
@@ -2965,6 +2968,7 @@ Terminal.prototype.requestAnsiMode = function(params) {
 //   where Ps is the mode number as in DECSET, Pm is the mode value
 //   as in the ANSI DECRQM.
 Terminal.prototype.requestPrivateMode = function(params) {
+  ;
 };
 
 // CSI Ps ; Ps " p
@@ -2978,6 +2982,7 @@ Terminal.prototype.requestPrivateMode = function(params) {
 //     Ps = 1  -> 7-bit controls (always set for VT100).
 //     Ps = 2  -> 8-bit controls.
 Terminal.prototype.setConformanceLevel = function(params) {
+  ;
 };
 
 // CSI Ps q  Load LEDs (DECLL).
@@ -2989,6 +2994,7 @@ Terminal.prototype.setConformanceLevel = function(params) {
 //     Ps = 2  2  -> Extinguish Caps Lock.
 //     Ps = 2  3  -> Extinguish Scroll Lock.
 Terminal.prototype.loadLEDs = function(params) {
+  ;
 };
 
 // CSI Ps SP q
@@ -2999,6 +3005,7 @@ Terminal.prototype.loadLEDs = function(params) {
 //     Ps = 3  -> blinking underline.
 //     Ps = 4  -> steady underline.
 Terminal.prototype.setCursorStyle = function(params) {
+  ;
 };
 
 // CSI Ps " q
@@ -3008,12 +3015,14 @@ Terminal.prototype.setCursorStyle = function(params) {
 //     Ps = 1  -> DECSED and DECSEL cannot erase.
 //     Ps = 2  -> DECSED and DECSEL can erase.
 Terminal.prototype.setCharProtectionAttr = function(params) {
+  ;
 };
 
 // CSI ? Pm r
 //   Restore DEC Private Mode Values.  The value of Ps previously
 //   saved is restored.  Ps values are the same as for DECSET.
 Terminal.prototype.restorePrivateValues = function(params) {
+  ;
 };
 
 // CSI Pt; Pl; Pb; Pr; Ps$ r
@@ -3043,6 +3052,7 @@ Terminal.prototype.setAttrInRectangle = function(params) {
 //   Save DEC Private Mode Values.  Ps values are the same as for
 //   DECSET.
 Terminal.prototype.savePrivateValues = function(params) {
+  ;
 };
 
 // CSI Ps ; Ps ; Ps t
@@ -3092,6 +3102,7 @@ Terminal.prototype.savePrivateValues = function(params) {
 //     Ps = 2 3  ;  2  -> Restore xterm window title from stack.
 //     Ps >= 2 4  -> Resize to Ps lines (DECSLPP).
 Terminal.prototype.manipulateWindow = function(params) {
+  ;
 };
 
 // CSI Pt; Pl; Pb; Pr; Ps$ t
@@ -3101,6 +3112,7 @@ Terminal.prototype.manipulateWindow = function(params) {
 //     Ps denotes the attributes to reverse, i.e.,  1, 4, 5, 7.
 // NOTE: xterm doesn't enable this code by default.
 Terminal.prototype.reverseAttrInRectangle = function(params) {
+  ;
 };
 
 // CSI > Ps; Ps t
@@ -3112,6 +3124,7 @@ Terminal.prototype.reverseAttrInRectangle = function(params) {
 //     Ps = 3  -> Query window/icon labels using UTF-8.  (See dis-
 //     cussion of "Title Modes")
 Terminal.prototype.setTitleModeFeature = function(params) {
+  ;
 };
 
 // CSI Ps SP t
@@ -3120,6 +3133,7 @@ Terminal.prototype.setTitleModeFeature = function(params) {
 //     Ps = 2 , 3  or 4  -> low.
 //     Ps = 5 , 6 , 7 , or 8  -> high.
 Terminal.prototype.setWarningBellVolume = function(params) {
+  ;
 };
 
 // CSI Ps SP u
@@ -3128,6 +3142,7 @@ Terminal.prototype.setWarningBellVolume = function(params) {
 //     Ps = 2 , 3  or 4  -> low.
 //     Ps = 0 , 5 , 6 , 7 , or 8  -> high.
 Terminal.prototype.setMarginBellVolume = function(params) {
+  ;
 };
 
 // CSI Pt; Pl; Pb; Pr; Pp; Pt; Pl; Pp$ v
@@ -3138,6 +3153,7 @@ Terminal.prototype.setMarginBellVolume = function(params) {
 //     Pp denotes the target page.
 // NOTE: xterm doesn't enable this code by default.
 Terminal.prototype.copyRectangle = function(params) {
+  ;
 };
 
 // CSI Pt ; Pl ; Pb ; Pr ' w
@@ -3152,6 +3168,7 @@ Terminal.prototype.copyRectangle = function(params) {
 //   ted, any locator motion will be reported.  DECELR always can-
 //   cels any prevous rectangle definition.
 Terminal.prototype.enableFilterRectangle = function(params) {
+  ;
 };
 
 // CSI Ps x  Request Terminal Parameters (DECREQTPARM).
@@ -3166,13 +3183,15 @@ Terminal.prototype.enableFilterRectangle = function(params) {
 //     Pn = 1  <- clock multiplier.
 //     Pn = 0  <- STP flags.
 Terminal.prototype.requestParameters = function(params) {
+  ;
 };
 
 // CSI Ps x  Select Attribute Change Extent (DECSACE).
 //     Ps = 0  -> from start to end position, wrapped.
 //     Ps = 1  -> from start to end position, wrapped.
 //     Ps = 2  -> rectangle (exact).
-Terminal.prototype.__ = function(params) {
+Terminal.prototype.selectChangeExtent = function(params) {
+  ;
 };
 
 // CSI Pc; Pt; Pl; Pb; Pr$ x
@@ -3211,6 +3230,7 @@ Terminal.prototype.fillRectangle = function(params) {
 //     Pu = 1  <- device physical pixels.
 //     Pu = 2  <- character cells.
 Terminal.prototype.enableLocatorReporting = function(params) {
+  ;
 };
 
 // CSI Pt; Pl; Pb; Pr$ z
@@ -3247,12 +3267,14 @@ Terminal.prototype.eraseRectangle = function(params) {
 //     Ps = 3  -> report button up transitions.
 //     Ps = 4  -> do not report button up transitions.
 Terminal.prototype.setLocatorEvents = function(params) {
+  ;
 };
 
 // CSI Pt; Pl; Pb; Pr$ {
 //   Selective Erase Rectangular Area (DECSERA), VT400 and up.
 //     Pt; Pl; Pb; Pr denotes the rectangle.
 Terminal.prototype.selectiveEraseRectangle = function(params) {
+  ;
 };
 
 // CSI Ps ' |
@@ -3296,6 +3318,7 @@ Terminal.prototype.selectiveEraseRectangle = function(params) {
 //   The ``page'' parameter is not used by xterm, and will be omit-
 //   ted.
 Terminal.prototype.requestLocatorPosition = function(params) {
+  ;
 };
 
 // CSI P m SP }
