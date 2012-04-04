@@ -483,13 +483,17 @@ Tab.prototype.handleTitle = function(title) {
   if (!title) return;
 
   title = sanitize(title);
-  document.title = title;
-  this.window.bar.title = title;
-
   this.title = title;
-  // this.setProcessName(this.process);
 
-  // if (h1) h1.innerHTML = title;
+  if (Terminal.focus === this) {
+    document.title = title;
+    // if (h1) h1.innerHTML = title;
+  }
+
+  if (this.window.focused === this) {
+    this.window.bar.title = title;
+    // this.setProcessName(this.process);
+  }
 };
 
 Tab.prototype._write = Tab.prototype.write;

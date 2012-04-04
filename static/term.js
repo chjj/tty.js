@@ -31,6 +31,12 @@
 'use strict';
 
 /**
+ * Shared
+ */
+
+var window = this;
+
+/**
  * States
  */
 
@@ -1780,16 +1786,18 @@ Terminal.prototype.bell = function() {
   if (Terminal.popOnBell) this.focus();
 };
 
-Terminal.prototype.log = function(data) {
+Terminal.prototype.log = function() {
   if (!Terminal.debug) return;
   if (!window.console || !window.console.log) return;
-  window.console.log(data);
+  var args = Array.prototype.slice.call(arguments);
+  window.console.log.apply(window.console, args);
 };
 
-Terminal.prototype.error = function(data) {
+Terminal.prototype.error = function() {
   if (!Terminal.debug) return;
   if (!window.console || !window.console.error) return;
-  window.console.error(data);
+  var args = Array.prototype.slice.call(arguments);
+  window.console.error.apply(window.console, args);
 };
 
 Terminal.prototype.resize = function(x, y) {
