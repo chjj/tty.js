@@ -955,7 +955,7 @@ Terminal.prototype.write = function(str) {
 
           default:
             this.state = normal;
-            this.error('Unknown ESC control: ' + ch + '.');
+            this.error('Unknown ESC control: %s.', ch);
             break;
         }
         break;
@@ -1804,7 +1804,8 @@ Terminal.prototype.resize = function(x, y) {
   var line
     , el
     , i
-    , j;
+    , j
+    , ch;
 
   if (x < 1) x = 1;
   if (y < 1) y = 1;
@@ -1812,10 +1813,11 @@ Terminal.prototype.resize = function(x, y) {
   // resize cols
   j = this.cols;
   if (j < x) {
+    ch = [this.defAttr, ' '];
     i = this.lines.length;
     while (i--) {
       while (this.lines[i].length < x) {
-        this.lines[i].push([this.defAttr, ' ']);
+        this.lines[i].push(ch);
       }
     }
   } else if (j > x) {
@@ -1917,6 +1919,12 @@ Terminal.prototype.blankLine = function(cur) {
   }
 
   return line;
+};
+
+Terminal.prototype.ch = function(cur) {
+  return cur
+    ? [this.curAttr, ' ']
+    : [this.defAttr, ' '];
 };
 
 Terminal.prototype.handler = function() {};
@@ -2307,17 +2315,17 @@ Terminal.prototype.deviceStatus = function(params) {
 // CSI Ps @
 // Insert Ps (Blank) Character(s) (default = 1) (ICH).
 Terminal.prototype.insertChars = function(params) {
-  var param, row, j;
+  var param, row, j, ch;
 
   param = params[0];
   if (param < 1) param = 1;
 
   row = this.y + this.ybase;
   j = this.x;
+  ch = [this.curAttr, ' ']; // xterm
 
   while (param-- && j < this.cols) {
-    // xterm, linux:
-    this.lines[row].splice(j++, 0, [this.curAttr, ' ']);
+    this.lines[row].splice(j++, 0, ch);
     this.lines[row].pop();
   }
 };
@@ -2401,34 +2409,34 @@ Terminal.prototype.deleteLines = function(params) {
 // CSI Ps P
 // Delete Ps Character(s) (default = 1) (DCH).
 Terminal.prototype.deleteChars = function(params) {
-  var param, row;
+  var param, row, ch;
 
   param = params[0];
   if (param < 1) param = 1;
 
   row = this.y + this.ybase;
+  ch = [this.curAttr, ' ']; // xterm
 
   while (param--) {
     this.lines[row].splice(this.x, 1);
-    // xterm, linux:
-    this.lines[row].push([this.curAttr, ' ']);
+    this.lines[row].push(ch);
   }
 };
 
 // CSI Ps X
 // Erase Ps Character(s) (default = 1) (ECH).
 Terminal.prototype.eraseChars = function(params) {
-  var param, row, j;
+  var param, row, j, ch;
 
   param = params[0];
   if (param < 1) param = 1;
 
   row = this.y + this.ybase;
   j = this.x;
+  ch = [this.curAttr, ' ']; // xterm
 
   while (param-- && j < this.cols) {
-    // xterm, linux:
-    this.lines[row][j++] = [this.curAttr, ' '];
+    this.lines[row][j++] = ch;
   }
 };
 
@@ -2981,9 +2989,10 @@ Terminal.prototype.cursorBackwardTab = function(params) {
 
 // CSI Ps b  Repeat the preceding graphic character Ps times (REP).
 Terminal.prototype.repeatPrecedingCharacter = function(params) {
-  var param = params[0] || 1;
-  var line = this.lines[this.ybase + this.y];
-  var ch = line[this.x - 1] || [this.defAttr, ' '];
+  var param = params[0] || 1
+    , line = this.lines[this.ybase + this.y]
+    , ch = line[this.x - 1] || [this.defAttr, ' '];
+
   while (param--) line[this.x++] = ch;
 };
 
@@ -3355,13 +3364,15 @@ Terminal.prototype.eraseRectangle = function(params) {
     , r = params[3];
 
   var line
-    , i;
+    , i
+    , ch;
+
+  ch = [this.curAttr, ' ']; // xterm?
 
   for (; t < b + 1; t++) {
     line = this.lines[this.ybase + t];
     for (i = l; i < r; i++) {
-      // curAttr for xterm behavior?
-      line[i] = [this.curAttr, ' '];
+      line[i] = ch;
     }
   }
 };
@@ -3436,15 +3447,14 @@ Terminal.prototype.requestLocatorPosition = function(params) {
 // Insert P s Column(s) (default = 1) (DECIC), VT420 and up.
 // NOTE: xterm doesn't enable this code by default.
 Terminal.prototype.insertColumns = function() {
-  param = params[0];
-
-  var l = this.ybase + this.rows
+  var param = params[0]
+    , l = this.ybase + this.rows
+    , ch = [this.curAttr, ' '] // xterm?
     , i;
 
   while (param--) {
     for (i = this.ybase; i < l; i++) {
-      // xterm behavior uses curAttr?
-      this.lines[i].splice(this.x + 1, 0, [this.curAttr, ' ']);
+      this.lines[i].splice(this.x + 1, 0, ch);
       this.lines[i].pop();
     }
   }
@@ -3454,16 +3464,15 @@ Terminal.prototype.insertColumns = function() {
 // Delete P s Column(s) (default = 1) (DECDC), VT420 and up
 // NOTE: xterm doesn't enable this code by default.
 Terminal.prototype.deleteColumns = function() {
-  param = params[0];
-
-  var l = this.ybase + this.rows
+  var param = params[0]
+    , l = this.ybase + this.rows
+    , ch = [this.curAttr, ' '] // xterm?
     , i;
 
   while (param--) {
     for (i = this.ybase; i < l; i++) {
       this.lines[i].splice(this.x, 1);
-      // xterm behavior uses curAttr?
-      this.lines[i].push([this.curAttr, ' ']);
+      this.lines[i].push(ch);
     }
   }
 };
