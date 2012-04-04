@@ -754,7 +754,7 @@ Terminal.prototype.write = function(str) {
     this.maxRange();
   }
 
-  // console.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
+  // this.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
 
   for (; i < l; i++) {
     ch = str[i];
@@ -778,7 +778,7 @@ Terminal.prototype.write = function(str) {
               this.x = 0;
             }
             this.y++;
-            if (this.y >= this.scrollBottom + 1) {
+            if (this.y > this.scrollBottom) {
               this.y--;
               this.scroll();
             }
@@ -819,7 +819,7 @@ Terminal.prototype.write = function(str) {
               if (this.x >= this.cols) {
                 this.x = 0;
                 this.y++;
-                if (this.y >= this.scrollBottom + 1) {
+                if (this.y > this.scrollBottom) {
                   this.y--;
                   this.scroll();
                 }
@@ -1942,7 +1942,7 @@ Terminal.prototype.handleTitle = function() {};
 // ESC D Index (IND is 0x84).
 Terminal.prototype.index = function() {
   this.y++;
-  if (this.y >= this.scrollBottom + 1) {
+  if (this.y > this.scrollBottom) {
     this.y--;
     this.scroll();
   }
@@ -2001,7 +2001,7 @@ Terminal.prototype.cursorForward = function(params) {
   var param = params[0];
   if (param < 1) param = 1;
   this.x += param;
-  if (this.x >= this.cols - 1) {
+  if (this.x >= this.cols) {
     this.x = this.cols - 1;
   }
 };
@@ -2465,7 +2465,7 @@ Terminal.prototype.HPositionRelative = function(params) {
   var param = params[0];
   if (param < 1) param = 1;
   this.x += param;
-  if (this.x >= this.cols - 1) {
+  if (this.x >= this.cols) {
     this.x = this.cols - 1;
   }
 };
