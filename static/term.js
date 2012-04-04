@@ -47,7 +47,8 @@ var normal = 0
 var Terminal = function(cols, rows, handler) {
   this.cols = cols;
   this.rows = rows;
-  this.handler = handler;
+  if (handler) this.handler = handler;
+
   this.ybase = 0;
   this.ydisp = 0;
   this.x = 0;
@@ -961,11 +962,84 @@ Terminal.prototype.write = function(str) {
         break;
 
       case osc:
-        if (ch !== '\x1b' && ch !== '\x07') break;
-        console.log('Unknown OSC code.');
-        this.state = normal;
-        // increment for the trailing slash in ST
-        if (ch === '\x1b') i++;
+        // OSC Ps ; Pt ST
+        // OSC Ps ; Pt BEL
+        //   Set Text Parameters.
+        if (ch === '\x1b' || ch === '\x07') {
+          if (ch === '\x1b') i++;
+
+          this.params.push(this.currentParam);
+
+          switch (this.params[0]) {
+            case 0:
+            case 1:
+            case 2:
+              if (this.params[1]) {
+                this.handleTitle(this.params[1]);
+              }
+              break;
+            case 3:
+              // set X property
+              break;
+            case 4:
+            case 5:
+              // change dynamic colors
+              break;
+            case 10:
+            case 11:
+            case 12:
+            case 13:
+            case 14:
+            case 15:
+            case 16:
+            case 17:
+            case 18:
+            case 19:
+              // change dynamic ui colors
+              break;
+            case 46:
+              // change log file
+              break;
+            case 50:
+              // dynamic font
+              break;
+            case 51:
+              // emacs shell
+              break;
+            case 52:
+              // manipulate selection data
+              break;
+            case 104:
+            case 105:
+            case 110:
+            case 111:
+            case 112:
+            case 113:
+            case 114:
+            case 115:
+            case 116:
+            case 117:
+            case 118:
+              // reset colors
+              break;
+          }
+
+          this.params = [];
+          this.currentParam = 0;
+          this.state = normal;
+        } else {
+          if (!this.params.length) {
+            if (ch >= '0' && ch <= '9') {
+              this.currentParam =
+                this.currentParam * 10 + ch.charCodeAt(0) - 48;
+            } else if (ch === ';') {
+              this.params.push(this.currentParam);
+              this.currentParam = '';
+            }
+          } else {
+            this.currentParam += ch;
+          }
+        }
         break;
 
       case csi:
@@ -988,8 +1062,8 @@ Terminal.prototype.write = function(str) {
           break;
         }
 
-        this.params[this.params.length] = this.currentParam;
-        // this.params[this.params.length] = +this.currentParam;
+        this.params.push(this.currentParam);
+        // this.params.push(+this.currentParam);
         this.currentParam = 0;
 
         // ';'
@@ -1806,6 +1880,9 @@ Terminal.prototype.blankLine = function(cur) {
 
   return line;
 };
+
+Terminal.prototype.handler = function() {};
+Terminal.prototype.handleTitle = function() {};
 
 /**
  * ESC

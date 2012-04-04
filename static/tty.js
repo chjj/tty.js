@@ -12,7 +12,9 @@
 var doc = this.document
   , win = this
   , root
-  , body;
+  , body
+  , h1
+  , initialTitle = doc.title;
 
 /**
  * Shared
@@ -32,6 +34,7 @@ function open() {
 
   root = doc.documentElement;
   body = doc.body;
+  h1 = doc.getElementsByTagName('h1')[0];
 
   socket = io.connect();
   windows = [];
@@ -435,9 +438,8 @@ function Tab(win) {
     , cols = win.cols
     , rows = win.rows;
 
-  Terminal.call(this, cols, rows, function(data) {
-    socket.emit('data', self.id, data);
-  });
+  // TODO: make this an EventEmitter
+  Terminal.call(this, cols, rows);
 
   var button = document.createElement('div');
   button.className = 'tab';
@@ -466,12 +468,28 @@ function Tab(win) {
   socket.emit('create', cols, rows, function(err, data) {
     if (err) return self._destroy();
     self.pty = data.pty;
-    self.process = data.process;
-    win.title.innerHTML = data.process;
+    self.setProcessName(data.process);
   });
 };
 
 inherits(Tab, Terminal);
+
+Tab.prototype.handler = function(data) {
+  socket.emit('data', this.id, data);
+};
+
+Tab.prototype.handleTitle = function(title) {
+  if (!title) return;
+
+  title = sanitize(title);
+  document.title = title;
+  this.window.bar.title = title;
+
+  this.title = title;
+  // this.setProcessName(this.process);
+
+  // if (h1) h1.innerHTML = title;
+};
 
 Tab.prototype._write = Tab.prototype.write;
 
@@ -503,6 +521,8 @@ Tab.prototype.focus = function() {
     this.button.style.fontWeight = 'bold';
     this.button.style.color = '';
   }
+
+  this.handleTitle(this.title);
 
   this._focus();
 
@@ -536,6 +556,11 @@ Tab.prototype._destroy = function() {
 
   if (!win.tabs.length) {
     win.destroy();
+  }
+
+  if (!windows.length) {
+    document.title = initialTitle;
+    if (h1) h1.innerHTML = initialTitle;
   }
 };
 
@@ -630,13 +655,21 @@ Tab.prototype.specialKeyHandler = function(ev) {
 Tab.prototype.pollProcessName = function(func) {
   var self = this;
   socket.emit('process', this.id, function(err, name) {
-    self.process = name;
-    self.button.title = name;
-    if (self.window.focused === self) {
-      self.window.title.innerHTML = name;
-    }
-    if (func) func(name);
+    if (!err) self.setProcessName(name);
+    if (func) func(err, name);
   });
+};
+
+Tab.prototype.setProcessName = function(name) {
+  name = sanitize(name);
+  this.process = name;
+  this.button.title = name;
+  if (this.window.focused === this) {
+    // if (this.title) {
+    //   name += ' (' + this.title + ')';
+    // }
+    this.window.title.innerHTML = name;
+  }
 };
 
 /**
@@ -681,6 +714,11 @@ function cancel(ev) {
 }
 
 var isMac = ~navigator.userAgent.indexOf('Mac');
+
+function sanitize(text) {
+  if (!text) return '';
+  return (text + '').replace(/[&<>]/g, '')
+}
 
 /**
  * Load
