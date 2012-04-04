@@ -69,7 +69,7 @@ var Terminal = function(cols, rows, handler) {
   this.charset = null;
   this.normal = null;
 
-  this.defAttr = 16 | (17 << 5);
+  this.defAttr = (257 << 9) | 256;
   this.curAttr = this.defAttr;
   this.keyState = 0;
   this.keyStr = '';
@@ -106,11 +106,82 @@ Terminal.colors = [
   '#729fcf',
   '#ad7fa8',
   '#34e2e2',
-  '#eeeeec',
-  // default bg/fg:
-  '#000000',
-  '#f0f0f0'
+  '#eeeeec'
 ];
+
+// Convert xterm 256 color codes into CSS hex codes.
+// Much thanks to TooTallNate for writing this.
+Terminal.colors = function() {
+  var colors
+    , r
+    , i
+    , c;
+
+  // Basic first 16 colors
+  colors = [
+    [0x00, 0x00, 0x00], [0xcd, 0x00, 0x00],
+    [0x00, 0xcd, 0x00], [0xcd, 0xcd, 0x00],
+    [0x00, 0x00, 0xee], [0xcd, 0x00, 0xcd],
+    [0x00, 0xcd, 0xcd], [0xe5, 0xe5, 0xe5],
+    [0x7f, 0x7f, 0x7f], [0xff, 0x00, 0x00],
+    [0x00, 0xff, 0x00], [0xff, 0xff, 0x00],
+    [0x5c, 0x5c, 0xff], [0xff, 0x00, 0xff],
+    [0x00, 0xff, 0xff], [0xff, 0xff, 0xff]
+  ];
+
+  // Numbers used to generate the conversion table
+  r = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
+
+  // Middle 218 colors, 6 sets of 6 tables of 6
+  i = 0;
+  for (; i < 217; i++) {
+    colors.push([r[(i / 36) % 6 | 0], r[(i / 6) % 6 | 0], r[i % 6]]);
+  }
+
+  // Ending with grayscale for the remainder
+  i = 0;
+  for (; i < 23; i++){
+    r = 8 + i * 10;
+    colors.push([r, r, r]);
+  }
+
+  // Now convert to CSS hex codes
+  i = 0;
+  for (; i < 256; i++) {
+    c = colors[i];
+
+    c[0] = c[0].toString(16);
+    c[1] = c[1].toString(16);
+    c[2] = c[2].toString(16);
+
+    if (c[0].length < 2) {
+      c[0] = '0' + c[0];
+    }
+
+    if (c[1].length < 2) {
+      c[1] = '0' + c[1];
+    }
+
+    if (c[2].length < 2) {
+      c[2] = '0' + c[2];
+    }
+
+    colors[i] = '#' + c.join('');
+  }
+
+  colors = Terminal.colors.concat(colors.slice(16));
+
+  return colors;
+}();
+
+// save fallback
+Terminal._colors = Terminal.colors;
+
+// default bg/fg
+Terminal.defaultColors = {
+  bg: '#000000',
+  fg: '#f0f0f0'
+};
 
 Terminal.termName = '';
 Terminal.geometry = [80, 30];
@@ -228,12 +299,8 @@ Terminal.prototype.open = function() {
   }
 
   // sync default bg/fg colors
-  this.element.style.backgroundColor = Terminal.colors[16];
-  this.element.style.color = Terminal.colors[17];
-
-  // otherwise:
-  // Terminal.colors[16] = css(this.element, 'background-color');
-  // Terminal.colors[17] = css(this.element, 'color');
+  this.element.style.backgroundColor = Terminal.defaultColors.bg;
+  this.element.style.color = Terminal.defaultColors.fg;
 };
 
 // XTerm mouse events
@@ -496,10 +563,8 @@ Terminal.prototype.refresh = function(start, end) {
     attr = this.defAttr;
 
     for (i = 0; i < width; i++) {
-      ch = line[i];
-
-      data = ch >> 16;
-      ch &= 0xffff;
+      data = line[i][0];
+      ch = line[i][1];
 
       if (i === x) data = -1;
 
@@ -513,9 +578,9 @@ Terminal.prototype.refresh = function(start, end) {
           } else {
             out += '<span style="';
 
-            bgColor = data & 31;
-            fgColor = (data >> 5) & 31;
-            flags = data >> 10;
+            bgColor = data & 0x1ff;
+            fgColor = (data >> 9) & 0x1ff;
+            flags = data >> 18;
 
             if (flags & 1) {
               out += 'font-weight:bold;';
@@ -527,15 +592,17 @@ Terminal.prototype.refresh = function(start, end) {
               out += 'text-decoration:underline;';
             }
 
-            if (bgColor !== 16) {
+            if (bgColor !== 256) {
               out += 'background-color:'
-                + Terminal.colors[bgColor]
+                + (Terminal.colors[bgColor]
+                  || Terminal._colors[bgColor])
                 + ';';
             }
 
-            if (fgColor !== 17) {
+            if (fgColor !== 257) {
               out += 'color:'
-                + Terminal.colors[fgColor]
+                + (Terminal.colors[fgColor]
+                  || Terminal._colors[fgColor])
                 + ';';
             }
 
@@ -545,23 +612,23 @@ Terminal.prototype.refresh = function(start, end) {
       }
 
       switch (ch) {
-        case 32:
+        case ' ':
           out += '&nbsp;';
           break;
-        case 38:
+        case '&':
           out += '&amp;';
           break;
-        case 60:
+        case '<':
           out += '&lt;';
           break;
-        case 62:
+        case '>':
           out += '&gt;';
           break;
         default:
-          if (ch < 32) {
+          if (ch < ' ') {
             out += '&nbsp;';
           } else {
-            out += String.fromCharCode(ch);
+            out += ch;
           }
           break;
       }
@@ -747,8 +814,7 @@ Terminal.prototype.write = function(str) {
                 }
               }
               row = this.y + this.ybase;
-              this.lines[row][this.x] =
-                (this.curAttr << 16) | (ch.charCodeAt(0) & 0xffff);
+              this.lines[row][this.x] = [this.curAttr, ch];
               this.x++;
               this.getRows(this.y);
             }
@@ -1641,7 +1707,7 @@ Terminal.prototype.resize = function(x, y) {
     i = this.lines.length;
     while (i--) {
       while (this.lines[i].length < x) {
-        this.lines[i].push((this.defAttr << 16) | 32);
+        this.lines[i].push([this.defAttr, ' ']);
       }
     }
   } else if (j > x) {
@@ -1712,7 +1778,7 @@ Terminal.prototype.eraseLine = function(x, y) {
 
   line = this.lines[row];
   // xterm, linux:
-  ch = (this.curAttr << 16) | 32;
+  ch = [this.curAttr, ' '];
 
   for (i = x; i < this.cols; i++) {
     line[i] = ch;
@@ -1726,7 +1792,7 @@ Terminal.prototype.blankLine = function(cur) {
     ? this.curAttr
     : this.defAttr;
 
-  var ch = (attr << 16) | 32
+  var ch = [attr, ' ']
     , line = []
     , i = 0;
 
@@ -1908,14 +1974,14 @@ Terminal.prototype.eraseInLine = function(params) {
       var x = this.x + 1;
       var line = this.lines[this.ybase + this.y];
       // xterm, linux:
-      var ch = (this.curAttr << 16) | 32;
+      var ch = [this.curAttr, ' '];
       while (x--) line[x] = ch;
       break;
     case 2:
       var x = this.cols;
       var line = this.lines[this.ybase + this.y];
       // xterm, linux:
-      var ch = (this.curAttr << 16) | 32;
+      var ch = [this.curAttr, ' '];
       while (x--) line[x] = ch;
       break;
   }
@@ -1993,66 +2059,66 @@ Terminal.prototype.charAttributes = function(params) {
       p = params[i];
       if (p >= 30 && p <= 37) {
         // fg color 8
-        this.curAttr = (this.curAttr & ~(31 << 5)) | ((p - 30) << 5);
+        this.curAttr = (this.curAttr & ~(0x1ff << 9)) | ((p - 30) << 9);
       } else if (p >= 40 && p <= 47) {
         // bg color 8
-        this.curAttr = (this.curAttr & ~31) | (p - 40);
+        this.curAttr = (this.curAttr & ~0x1ff) | (p - 40);
       } else if (p >= 90 && p <= 97) {
         // fg color 16
         p += 8;
-        this.curAttr = (this.curAttr & ~(31 << 5)) | ((p - 90) << 5);
+        this.curAttr = (this.curAttr & ~(0x1ff << 9)) | ((p - 90) << 9);
       } else if (p >= 100 && p <= 107) {
         // bg color 16
         p += 8;
-        this.curAttr = (this.curAttr & ~31) | (p - 100);
+        this.curAttr = (this.curAttr & ~0x1ff) | (p - 100);
       } else if (p === 0) {
         // default
         this.curAttr = this.defAttr;
       } else if (p === 1) {
         // bold text
-        this.curAttr = this.curAttr | (1 << 10);
+        this.curAttr = this.curAttr | (1 << 18);
       } else if (p === 4) {
         // underlined text
-        this.curAttr = this.curAttr | (2 << 10);
+        this.curAttr = this.curAttr | (2 << 18);
       } else if (p === 7 || p === 27) {
         // inverse and positive
         // test with: echo -e '\e[31m\e[42mhello\e[7mworld\e[27mhi\e[m'
         if (p === 7) {
-          if ((this.curAttr >> 10) & 4) continue;
-          this.curAttr = this.curAttr | (4 << 10);
+          if ((this.curAttr >> 18) & 4) continue;
+          this.curAttr = this.curAttr | (4 << 18);
         } else if (p === 27) {
-          if (~(this.curAttr >> 10) & 4) continue;
-          this.curAttr = this.curAttr & ~(4 << 10);
+          if (~(this.curAttr >> 18) & 4) continue;
+          this.curAttr = this.curAttr & ~(4 << 18);
         }
-        var bg = this.curAttr & 31;
-        var fg = (this.curAttr >> 5) & 31;
-        this.curAttr = (this.curAttr & ~1023) | ((bg << 5) | fg);
+        var bg = this.curAttr & 0x1ff;
+        var fg = (this.curAttr >> 9) & 0x1ff;
+        this.curAttr = (this.curAttr & ~0x3ffff) | ((bg << 9) | fg);
       } else if (p === 22) {
         // not bold
-        this.curAttr = this.curAttr & ~(1 << 10);
+        this.curAttr = this.curAttr & ~(1 << 18);
       } else if (p === 24) {
         // not underlined
-        this.curAttr = this.curAttr & ~(2 << 10);
+        this.curAttr = this.curAttr & ~(2 << 18);
       } else if (p === 39) {
         // reset fg
-        this.curAttr = this.curAttr & ~(31 << 5);
-        this.curAttr = this.curAttr | (((this.defAttr >> 5) & 31) << 5);
+        this.curAttr = this.curAttr & ~(0x1ff << 9);
+        this.curAttr = this.curAttr | (((this.defAttr >> 9) & 0x1ff) << 9);
       } else if (p === 49) {
         // reset bg
-        this.curAttr = this.curAttr & ~31;
-        this.curAttr = this.curAttr | (this.defAttr & 31);
+        this.curAttr = this.curAttr & ~0x1ff;
+        this.curAttr = this.curAttr | (this.defAttr & 0x1ff);
       } else if (p === 38) {
         // fg color 256
         if (params[i+1] !== 5) continue;
         i += 2;
         p = params[i];
-        this.curAttr = (this.curAttr & ~(31 << 5)) | (p << 5);
+        this.curAttr = (this.curAttr & ~(0x1ff << 9)) | (p << 9);
       } else if (p === 48) {
         // bg color 256
         if (params[i+1] !== 5) continue;
         i += 2;
         p = params[i];
-        this.curAttr = (this.curAttr & ~31) | p;
+        this.curAttr = (this.curAttr & ~0x1ff) | p;
       }
     }
   }
@@ -2137,7 +2203,7 @@ Terminal.prototype.insertChars = function(params) {
   j = this.x;
   while (param-- && j < this.cols) {
     // xterm, linux:
-    this.lines[row].splice(j++, 0, (this.curAttr << 16) | 32);
+    this.lines[row].splice(j++, 0, [this.curAttr, ' ']);
     this.lines[row].pop();
   }
 };
@@ -2235,7 +2301,7 @@ Terminal.prototype.deleteChars = function(params) {
   while (param--) {
     this.lines[row].splice(this.x, 1);
     // xterm, linux:
-    this.lines[row].push((this.curAttr << 16) | 32);
+    this.lines[row].push([this.curAttr, ' ']);
   }
 };
 
@@ -2249,7 +2315,7 @@ Terminal.prototype.eraseChars = function(params) {
   j = this.x;
   while (param-- && j < this.cols) {
     // xterm, linux:
-    this.lines[row][j++] = (this.curAttr << 16) | 32;
+    this.lines[row][j++] = [this.curAttr, ' '];
   }
 };
 
@@ -2725,7 +2791,7 @@ Terminal.prototype.cursorForwardTab = function(params) {
   param = param * 8;
   row = this.y + this.ybase;
   line = this.lines[row];
-  ch = (this.defAttr << 16) | 32;
+  ch = [this.defAttr, ' '];
 
   while (param--) {
     line.splice(this.x++, 0, ch);
@@ -2794,7 +2860,7 @@ Terminal.prototype.cursorBackwardTab = function(params) {
   param = param * 8;
   row = this.y + this.ybase;
   line = this.lines[row];
-  ch = (this.defAttr << 16) | 32;
+  ch = [this.defAttr, ' '];
 
   while (param--) {
     line.splice(--this.x, 1);
@@ -2809,7 +2875,7 @@ Terminal.prototype.cursorBackwardTab = function(params) {
 Terminal.prototype.repeatPrecedingCharacter = function(params) {
   var param = params[0] || 1;
   var line = this.lines[this.ybase + this.y];
-  var ch = line[this.x - 1] || ((this.defAttr << 16) | 32);
+  var ch = line[this.x - 1] || [this.defAttr, ' '];
   while (param--) line[this.x++] = ch;
 };
 
@@ -2968,7 +3034,7 @@ Terminal.prototype.setAttrInRectangle = function(params) {
   for (; t < b + 1; t++) {
     line = this.lines[this.ybase + t];
     for (i = l; i < r; i++) {
-      line[i] = (attr << 16) | (line[i] & 0xffff);
+      line[i] = [attr, line[i][1]];
     }
   }
 };
@@ -3127,7 +3193,7 @@ Terminal.prototype.fillRectangle = function(params) {
   for (; t < b + 1; t++) {
     line = this.lines[this.ybase + t];
     for (i = l; i < r; i++) {
-      line[i] = (line[i] & ~0xffff) | ch;
+      line[i] = [line[i][0], String.fromCharCode(ch)];
     }
   }
 };
@@ -3164,7 +3230,7 @@ Terminal.prototype.eraseRectangle = function(params) {
     line = this.lines[this.ybase + t];
     for (i = l; i < r; i++) {
       // curAttr for xterm behavior?
-      line[i] = (this.curAttr << 16) | 32;
+      line[i] = [this.curAttr, ' '];
     }
   }
 };
@@ -3244,7 +3310,7 @@ Terminal.prototype.insertColumns = function() {
   while (param--) {
     for (i = this.ybase; i < l; i++) {
       // xterm behavior uses curAttr?
-      this.lines[i].splice(this.x + 1, 0, (this.curAttr << 16) | 32);
+      this.lines[i].splice(this.x + 1, 0, [this.curAttr, ' ']);
       this.lines[i].pop();
     }
   }
@@ -3263,7 +3329,7 @@ Terminal.prototype.deleteColumns = function() {
     for (i = this.ybase; i < l; i++) {
       this.lines[i].splice(this.x, 1);
       // xterm behavior uses curAttr?
-      this.lines[i].push((this.curAttr << 16) | 32);
+      this.lines[i].push([this.curAttr, ' ']);
     }
   }
 };
