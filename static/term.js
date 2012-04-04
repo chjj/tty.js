@@ -723,6 +723,8 @@ Terminal.prototype.scroll = function() {
     }
     this.lines.splice(this.ybase + this.scrollTop, 1);
   }
+
+  this.maxRange();
 };
 
 Terminal.prototype.scrollDisp = function(disp) {
@@ -779,7 +781,6 @@ Terminal.prototype.write = function(str) {
             if (this.y >= this.scrollBottom + 1) {
               this.y--;
               this.scroll();
-              this.maxRange();
             }
             break;
 
@@ -821,13 +822,12 @@ Terminal.prototype.write = function(str) {
                 if (this.y >= this.scrollBottom + 1) {
                   this.y--;
                   this.scroll();
-                  this.maxRange();
                 }
               }
               row = this.y + this.ybase;
               this.lines[row][this.x] = [this.curAttr, ch];
               this.x++;
-              this.updateRange();
+              this.updateRange(this.y);
             }
             break;
         }
@@ -1505,12 +1505,13 @@ Terminal.prototype.write = function(str) {
         this.prefix = '';
         this.postfix = '';
 
-        this.updateRange();
+        // ensure any line changes update
+        this.updateRange(this.y);
         break;
     }
   }
 
-  this.updateRange();
+  this.updateRange(this.y);
 
   if (this.refreshEnd >= this.refreshStart) {
     this.refresh(this.refreshStart, this.refreshEnd);
@@ -1874,9 +1875,9 @@ Terminal.prototype.resize = function(x, y) {
   this.normal = null;
 };
 
-Terminal.prototype.updateRange = function() {
-  this.refreshStart = Math.min(this.refreshStart, this.y);
-  this.refreshEnd = Math.max(this.refreshEnd, this.y);
+Terminal.prototype.updateRange = function(y) {
+  if (y < this.refreshStart) this.refreshStart = y;
+  if (y > this.refreshEnd) this.refreshEnd = y;
 };
 
 Terminal.prototype.maxRange = function() {
@@ -1886,19 +1887,23 @@ Terminal.prototype.maxRange = function() {
 
 Terminal.prototype.eraseRight = function(x, y) {
   var line = this.lines[this.ybase + y]
-    , ch = [this.curAttr, ' '];
+    , ch = [this.curAttr, ' ']; // xterm
 
   for (; x < this.cols; x++) {
     line[x] = ch;
   }
+
+  this.updateRange(y);
 };
 
 Terminal.prototype.eraseLeft = function(x, y) {
   var line = this.lines[this.ybase + y]
-    , ch = [this.curAttr, ' '];
+    , ch = [this.curAttr, ' ']; // xterm
 
   x++;
   while (x--) line[x] = ch;
+
+  this.updateRange(y);
 };
 
 Terminal.prototype.eraseLine = function(y) {
@@ -1940,7 +1945,6 @@ Terminal.prototype.index = function() {
   if (this.y >= this.scrollBottom + 1) {
     this.y--;
     this.scroll();
-    this.maxRange();
   }
   this.state = normal;
 };
@@ -1951,6 +1955,7 @@ Terminal.prototype.reverseIndex = function() {
   this.y--;
   if (this.y < this.scrollTop) {
     this.y++;
+    // possibly move the code below to term.reverseScroll();
     // test: echo -ne '\e[1;1H\e[44m\eM\e[0m'
     // blankLine(true) is xterm/linux behavior
     this.lines.splice(this.y + this.ybase, 0, this.blankLine(true));
@@ -2381,7 +2386,8 @@ Terminal.prototype.insertLines = function(params) {
     this.lines.splice(j, 1);
   }
 
-  this.maxRange();
+  // this.maxRange();
+  this.updateRange(this.scrollBottom);
 };
 
 // CSI Ps M
@@ -2403,7 +2409,8 @@ Terminal.prototype.deleteLines = function(params) {
     this.lines.splice(row, 1);
   }
 
-  this.maxRange();
+  // this.maxRange();
+  this.updateRange(this.scrollBottom);
 };
 
 // CSI Ps P
@@ -2932,7 +2939,9 @@ Terminal.prototype.scrollUp = function(params) {
     this.lines.splice(this.ybase + this.scrollTop, 1);
     this.lines.splice(this.ybase + this.scrollBottom, 0, this.blankLine());
   }
-  this.maxRange();
+  // this.maxRange();
+  this.updateRange(this.scrollTop);
+  this.updateRange(this.scrollBottom);
 };
 
 // CSI Ps T  Scroll down Ps lines (default = 1) (SD).
@@ -2942,7 +2951,9 @@ Terminal.prototype.scrollDown = function(params) {
     this.lines.splice(this.ybase + this.scrollBottom, 1);
     this.lines.splice(this.ybase + this.scrollTop, 0, this.blankLine());
   }
-  this.maxRange();
+  // this.maxRange();
+  this.updateRange(this.scrollTop);
+  this.updateRange(this.scrollBottom);
 };
 
 // CSI Ps ; Ps ; Ps ; Ps ; Ps T
@@ -3166,6 +3177,10 @@ Terminal.prototype.setAttrInRectangle = function(params) {
       line[i] = [attr, line[i][1]];
     }
   }
+
+  // this.maxRange();
+  this.updateRange(params[0]);
+  this.updateRange(params[2]);
 };
 
 // CSI ? Pm s
@@ -3335,6 +3350,10 @@ Terminal.prototype.fillRectangle = function(params) {
       line[i] = [line[i][0], String.fromCharCode(ch)];
     }
   }
+
+  // this.maxRange();
+  this.updateRange(params[1]);
+  this.updateRange(params[3]);
 };
 
 // CSI Ps ; Pu ' z
@@ -3375,6 +3394,10 @@ Terminal.prototype.eraseRectangle = function(params) {
       line[i] = ch;
     }
   }
+
+  // this.maxRange();
+  this.updateRange(params[0]);
+  this.updateRange(params[2]);
 };
 
 // CSI Pm ' {
@@ -3458,6 +3481,8 @@ Terminal.prototype.insertColumns = function() {
       this.lines[i].pop();
     }
   }
+
+  this.maxRange();
 };
 
 // CSI P m SP ~
@@ -3475,6 +3500,8 @@ Terminal.prototype.deleteColumns = function() {
       this.lines[i].push(ch);
     }
   }
+
+  this.maxRange();
 };
 
 /**
@@ -3559,7 +3586,6 @@ function isBoldBroken() {
 }
 
 var String = this.String;
-var Math = this.Math;
 
 /**
  * Expose
