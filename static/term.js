@@ -1944,7 +1944,7 @@ Terminal.prototype.reverseIndex = function() {
 
 // ESC c Full Reset (RIS).
 Terminal.prototype.reset = function() {
-  Terminal.call(this, this.cols, this.rows, this.handler);
+  Terminal.call(this, this.cols, this.rows);
 };
 
 /**

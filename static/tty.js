@@ -13,8 +13,9 @@ var doc = this.document
   , win = this
   , root
   , body
-  , h1
-  , initialTitle = doc.title;
+  , h1;
+
+var initialTitle = doc.title;
 
 /**
  * Shared
@@ -558,10 +559,10 @@ Tab.prototype._destroy = function() {
     win.destroy();
   }
 
-  if (!windows.length) {
-    document.title = initialTitle;
-    if (h1) h1.innerHTML = initialTitle;
-  }
+  // if (!windows.length) {
+  //   document.title = initialTitle;
+  //   if (h1) h1.innerHTML = initialTitle;
+  // }
 };
 
 Tab.prototype.destroy = function() {
@@ -725,6 +726,7 @@ function sanitize(text) {
  */
 
 function load() {
+  if (socket) return;
   off(doc, 'load', load);
   off(doc, 'DOMContentLoaded', load);
   open();

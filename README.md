@@ -79,8 +79,6 @@ JSON file. An example configuration file looks like:
       "#ad7fa8",
       "#34e2e2",
       "#eeeeec",
-      "#000000",
-      "#f0f0f0"
     ]
   }
 }
