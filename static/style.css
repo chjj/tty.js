@@ -179,3 +179,5 @@ h1 {
   bottom: 10px;
   left: 10px;
 }
+
+.dark h1, .dark #help { display: none; }
