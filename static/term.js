@@ -1066,7 +1066,6 @@ Terminal.prototype.write = function(str) {
         // 0 - 9
         if (ch >= '0' && ch <= '9') {
           this.currentParam = this.currentParam * 10 + ch.charCodeAt(0) - 48;
-          // this.currentParam += ch;
           break;
         }
 
@@ -1077,7 +1076,6 @@ Terminal.prototype.write = function(str) {
         }
 
         this.params.push(this.currentParam);
-        // this.params.push(+this.currentParam);
         this.currentParam = 0;
 
         // ';'
