@@ -78,8 +78,6 @@ var Terminal = function(cols, rows, handler) {
 
   this.defAttr = (257 << 9) | 256;
   this.curAttr = this.defAttr;
-  this.keyState = 0;
-  this.keyStr = '';
 
   this.params = [];
   this.currentParam = 0;
@@ -1522,6 +1520,7 @@ Terminal.prototype.writeln = function(str) {
 
 Terminal.prototype.keyDownHandler = function(ev) {
   var str = '';
+
   switch (ev.keyCode) {
     // backspace
     case 8:
@@ -1705,74 +1704,49 @@ Terminal.prototype.keyDownHandler = function(ev) {
   }
 
   if (str) {
-    cancel(ev);
-
     this.showCursor();
-    this.keyState = 1;
-    this.keyStr = str;
     this.handler(str);
-
-    return false;
-  } else {
-    this.keyState = 0;
-    return true;
+    return cancel(ev);
   }
+
+  return true;
 };
 
 Terminal.prototype.keyPressHandler = function(ev) {
-  var str = ''
-    , key;
+  var key;
 
   cancel(ev);
 
-  if (!('charCode' in ev)) {
-    key = ev.keyCode;
-    if (this.keyState === 1) {
-      this.keyState = 2;
-      return false;
-    } else if (this.keyState === 2) {
-      this.showCursor();
-      this.handler(this.keyStr);
-      return false;
-    }
-  } else {
+  if (ev.charCode) {
     key = ev.charCode;
-  }
-
-  if (key !== 0) {
-    if (!ev.ctrlKey
-        && ((!isMac && !ev.altKey)
-        || (isMac && !ev.metaKey))) {
-      str = String.fromCharCode(key);
-    }
-  }
-
-  if (str) {
-    this.showCursor();
-    this.handler(str);
-    return false;
+  } else if (ev.which == null) {
+    key = ev.keyCode;
+  } else if (ev.which !== 0 && ev.charCode !== 0) {
+    key = ev.which;
   } else {
-    return true;
+    return false;
   }
+
+  if (!key || ev.ctrlKey || ev.altKey || ev.metaKey) return false;
+
+  this.showCursor();
+  this.handler(String.fromCharCode(key));
+
+  return false;
 };
+
 
 Terminal.prototype.queueChars = function(str) {
   var self = this;
 
-  this.outputQueue += str;
-
-  if (this.outputQueue) {
+  if (!this.outputQueue) {
     setTimeout(function() {
-      self.outputHandler();
+      self.handler(self.outputQueue);
+      self.outputQueue = '';
     }, 1);
   }
-};
 
-Terminal.prototype.outputHandler = function() {
-  if (this.outputQueue) {
-    this.handler(this.outputQueue);
-    this.outputQueue = '';
-  }
+  this.outputQueue += str;
 };
 
 Terminal.prototype.bell = function() {
@@ -3584,6 +3558,8 @@ function isBoldBroken() {
 }
 
 var String = this.String;
+var setTimeout = this.setTimeout;
+var setInterval = this.setInterval;
 
 /**
  * Expose
