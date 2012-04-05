@@ -575,9 +575,9 @@ Tab.prototype.destroy = function() {
   this._destroy();
 };
 
-Tab.prototype._keyDownHandler = Tab.prototype.keyDownHandler;
+Tab.prototype._keyDown = Tab.prototype.keyDown;
 
-Tab.prototype.keyDownHandler = function(ev) {
+Tab.prototype.keyDown = function(ev) {
   if (this.pendingKey) {
     this.pendingKey = false;
     return this.specialKeyHandler(ev);
@@ -617,7 +617,7 @@ Tab.prototype.keyDownHandler = function(ev) {
   }
 
   // Pass to terminal key handler.
-  return this._keyDownHandler(ev);
+  return this._keyDown(ev);
 };
 
 // tmux/screen-like keys
@@ -628,7 +628,7 @@ Tab.prototype.specialKeyHandler = function(ev) {
   switch (key) {
     case 65: // a
       if (ev.ctrlKey) {
-        return this._keyDownHandler(ev);
+        return this._keyDown(ev);
       }
       break;
     case 67: // c

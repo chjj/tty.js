@@ -63,7 +63,7 @@ var Terminal = function(cols, rows, handler) {
   this.cursorHidden = false;
   this.convertEol = false;
   this.state = 0;
-  this.outputQueue = '';
+  this.queue = '';
   this.scrollTop = 0;
   this.scrollBottom = this.rows - 1;
 
@@ -225,11 +225,11 @@ Terminal.bindKeys = function() {
   // We could put an "if (Term.focus)" check
   // here, but it shouldn't be necessary.
   on(document, 'keydown', function(key) {
-    return Terminal.focus.keyDownHandler(key);
+    return Terminal.focus.keyDown(key);
   }, true);
 
   on(document, 'keypress', function(key) {
-    return Terminal.focus.keyPressHandler(key);
+    return Terminal.focus.keyPress(key);
   }, true);
 };
 
@@ -290,9 +290,9 @@ Terminal.prototype.open = function() {
 
   on(this.element, 'paste', function(ev) {
     if (ev.clipboardData) {
-      self.queueChars(ev.clipboardData.getData('text/plain'));
+      self.send(ev.clipboardData.getData('text/plain'));
     } else if (window.clipboardData) {
-      self.queueChars(window.clipboardData.getData('Text'));
+      self.send(window.clipboardData.getData('Text'));
     }
     // Not necessary. Do it anyway for good measure.
     self.element.contentEditable = 'inherit';
@@ -380,7 +380,7 @@ Terminal.prototype.bindMouse = function() {
   // send a mouse event:
   // ^[[M Cb Cx Cy
   function sendEvent(button, pos) {
-    self.queueChars('\x1b[M' + String.fromCharCode(button, pos.x, pos.y));
+    self.send('\x1b[M' + String.fromCharCode(button, pos.x, pos.y));
   }
 
   function getButton(ev) {
@@ -572,8 +572,9 @@ Terminal.prototype.refresh = function(start, end) {
     }
 
     attr = this.defAttr;
+    i = 0;
 
-    for (i = 0; i < width; i++) {
+    for (; i < width; i++) {
       data = line[i][0];
       ch = line[i][1];
 
@@ -737,8 +738,8 @@ Terminal.prototype.scrollDisp = function(disp) {
   this.refresh(0, this.rows - 1);
 };
 
-Terminal.prototype.write = function(str) {
-  var l = str.length
+Terminal.prototype.write = function(data) {
+  var l = data.length
     , i = 0
     , ch
     , param
@@ -752,10 +753,10 @@ Terminal.prototype.write = function(str) {
     this.maxRange();
   }
 
-  // this.log(JSON.stringify(str.replace(/\x1b/g, '^[')));
+  // this.log(JSON.stringify(data.replace(/\x1b/g, '^[')));
 
   for (; i < l; i++) {
-    ch = str[i];
+    ch = data[i];
     switch (this.state) {
       case normal:
         switch (ch) {
@@ -1514,97 +1515,97 @@ Terminal.prototype.write = function(str) {
   }
 };
 
-Terminal.prototype.writeln = function(str) {
-  this.write(str + '\r\n');
+Terminal.prototype.writeln = function(data) {
+  this.write(data + '\r\n');
 };
 
-Terminal.prototype.keyDownHandler = function(ev) {
-  var str = '';
+Terminal.prototype.keyDown = function(ev) {
+  var key;
 
   switch (ev.keyCode) {
     // backspace
     case 8:
-      str = '\x7f'; // ^?
-      //str = '\x08'; // ^H
+      key = '\x7f'; // ^?
+      //key = '\x08'; // ^H
       break;
     // tab
     case 9:
-      str = '\t';
+      key = '\t';
       break;
     // return/enter
     case 13:
-      str = '\r';
+      key = '\r';
       break;
     // escape
     case 27:
-      str = '\x1b';
+      key = '\x1b';
       break;
     // left-arrow
     case 37:
       if (this.applicationKeypad) {
-        str = '\x1bOD'; // SS3 as ^[O for 7-bit
-        //str = '\x8fD'; // SS3 as 0x8f for 8-bit
+        key = '\x1bOD'; // SS3 as ^[O for 7-bit
+        //key = '\x8fD'; // SS3 as 0x8f for 8-bit
         break;
       }
-      str = '\x1b[D';
+      key = '\x1b[D';
       break;
     // right-arrow
     case 39:
       if (this.applicationKeypad) {
-        str = '\x1bOC';
+        key = '\x1bOC';
         break;
       }
-      str = '\x1b[C';
+      key = '\x1b[C';
       break;
     // up-arrow
     case 38:
       if (this.applicationKeypad) {
-        str = '\x1bOA';
+        key = '\x1bOA';
         break;
       }
       if (ev.ctrlKey) {
         this.scrollDisp(-1);
         return cancel(ev);
       } else {
-        str = '\x1b[A';
+        key = '\x1b[A';
       }
       break;
     // down-arrow
     case 40:
       if (this.applicationKeypad) {
-        str = '\x1bOB';
+        key = '\x1bOB';
         break;
       }
       if (ev.ctrlKey) {
         this.scrollDisp(1);
         return cancel(ev);
       } else {
-        str = '\x1b[B';
+        key = '\x1b[B';
       }
       break;
     // delete
     case 46:
-      str = '\x1b[3~';
+      key = '\x1b[3~';
       break;
     // insert
     case 45:
-      str = '\x1b[2~';
+      key = '\x1b[2~';
       break;
     // home
     case 36:
       if (this.applicationKeypad) {
-        str = '\x1bOH';
+        key = '\x1bOH';
         break;
       }
-      str = '\x1bOH';
+      key = '\x1bOH';
       break;
     // end
     case 35:
       if (this.applicationKeypad) {
-        str = '\x1bOF';
+        key = '\x1bOF';
         break;
       }
-      str = '\x1bOF';
+      key = '\x1bOF';
       break;
     // page up
     case 33:
@@ -1612,7 +1613,7 @@ Terminal.prototype.keyDownHandler = function(ev) {
         this.scrollDisp(-(this.rows - 1));
         return cancel(ev);
       } else {
-        str = '\x1b[5~';
+        key = '\x1b[5~';
       }
       break;
     // page down
@@ -1621,98 +1622,98 @@ Terminal.prototype.keyDownHandler = function(ev) {
         this.scrollDisp(this.rows - 1);
         return cancel(ev);
       } else {
-        str = '\x1b[6~';
+        key = '\x1b[6~';
       }
       break;
     // F1
     case 112:
-      str = '\x1bOP';
+      key = '\x1bOP';
       break;
     // F2
     case 113:
-      str = '\x1bOQ';
+      key = '\x1bOQ';
       break;
     // F3
     case 114:
-      str = '\x1bOR';
+      key = '\x1bOR';
       break;
     // F4
     case 115:
-      str = '\x1bOS';
+      key = '\x1bOS';
       break;
     // F5
     case 116:
-      str = '\x1b[15~';
+      key = '\x1b[15~';
       break;
     // F6
     case 117:
-      str = '\x1b[17~';
+      key = '\x1b[17~';
       break;
     // F7
     case 118:
-      str = '\x1b[18~';
+      key = '\x1b[18~';
       break;
     // F8
     case 119:
-      str = '\x1b[19~';
+      key = '\x1b[19~';
       break;
     // F9
     case 120:
-      str = '\x1b[20~';
+      key = '\x1b[20~';
       break;
     // F10
     case 121:
-      str = '\x1b[21~';
+      key = '\x1b[21~';
       break;
     // F11
     case 122:
-      str = '\x1b[23~';
+      key = '\x1b[23~';
       break;
     // F12
     case 123:
-      str = '\x1b[24~';
+      key = '\x1b[24~';
       break;
     default:
       // a-z and space
       if (ev.ctrlKey) {
         if (ev.keyCode >= 65 && ev.keyCode <= 90) {
-          str = String.fromCharCode(ev.keyCode - 64);
+          key = String.fromCharCode(ev.keyCode - 64);
         } else if (ev.keyCode === 32) {
           // NUL
-          str = String.fromCharCode(0);
+          key = String.fromCharCode(0);
         } else if (ev.keyCode >= 51 && ev.keyCode <= 55) {
           // escape, file sep, group sep, record sep, unit sep
-          str = String.fromCharCode(ev.keyCode - 51 + 27);
+          key = String.fromCharCode(ev.keyCode - 51 + 27);
         } else if (ev.keyCode === 56) {
           // delete
-          str = String.fromCharCode(127);
+          key = String.fromCharCode(127);
         } else if (ev.keyCode === 219) {
           // ^[ - escape
-          str = String.fromCharCode(27);
+          key = String.fromCharCode(27);
         } else if (ev.keyCode === 221) {
           // ^] - group sep
-          str = String.fromCharCode(29);
+          key = String.fromCharCode(29);
         }
       } else if ((!isMac && ev.altKey) || (isMac && ev.metaKey)) {
         if (ev.keyCode >= 65 && ev.keyCode <= 90) {
-          str = '\x1b' + String.fromCharCode(ev.keyCode + 32);
+          key = '\x1b' + String.fromCharCode(ev.keyCode + 32);
         } else if (ev.keyCode >= 48 && ev.keyCode <= 57) {
-          str = '\x1b' + (ev.keyCode - 48);
+          key = '\x1b' + (ev.keyCode - 48);
         }
       }
       break;
   }
 
-  if (str) {
+  if (key) {
     this.showCursor();
-    this.handler(str);
+    this.handler(key);
     return cancel(ev);
   }
 
   return true;
 };
 
-Terminal.prototype.keyPressHandler = function(ev) {
+Terminal.prototype.keyPress = function(ev) {
   var key;
 
   cancel(ev);
@@ -1729,24 +1730,25 @@ Terminal.prototype.keyPressHandler = function(ev) {
 
   if (!key || ev.ctrlKey || ev.altKey || ev.metaKey) return false;
 
+  key = String.fromCharCode(key);
+
   this.showCursor();
-  this.handler(String.fromCharCode(key));
+  this.handler(key);
 
   return false;
 };
 
-
-Terminal.prototype.queueChars = function(str) {
+Terminal.prototype.send = function(data) {
   var self = this;
 
-  if (!this.outputQueue) {
+  if (!this.queue) {
     setTimeout(function() {
-      self.handler(self.outputQueue);
-      self.outputQueue = '';
+      self.handler(self.queue);
+      self.queue = '';
     }, 1);
   }
 
-  this.outputQueue += str;
+  this.queue += data;
 };
 
 Terminal.prototype.bell = function() {
@@ -1990,7 +1992,7 @@ Terminal.prototype.cursorBackward = function(params) {
 // CSI Ps ; Ps H
 // Cursor Position [row;column] (default = [1,1]) (CUP).
 Terminal.prototype.cursorPos = function(params) {
-  var param, row, col;
+  var row, col;
 
   row = params[0] - 1;
 
@@ -2247,7 +2249,7 @@ Terminal.prototype.deviceStatus = function(params) {
     // respond to any of these except ?6, 6, and 5
     switch (params[0]) {
       case 6:
-        this.queueChars('\x1b['
+        this.send('\x1b['
           + (this.y + 1)
           + ';'
           + (this.x + 1)
@@ -2255,28 +2257,28 @@ Terminal.prototype.deviceStatus = function(params) {
         break;
       case 15:
         // no printer
-        // this.queueChars('\x1b[?11n');
+        // this.send('\x1b[?11n');
         break;
       case 25:
         // dont support user defined keys
-        // this.queueChars('\x1b[?21n');
+        // this.send('\x1b[?21n');
         break;
       case 26:
-        // this.queueChars('\x1b[?27;1;0;0n');
+        // this.send('\x1b[?27;1;0;0n');
         break;
       case 53:
         // no dec locator/mouse
-        // this.queueChars('\x1b[?50n');
+        // this.send('\x1b[?50n');
         break;
     }
     return;
   }
   switch (params[0]) {
     case 5:
-      this.queueChars('\x1b[0n');
+      this.send('\x1b[0n');
       break;
     case 6:
-      this.queueChars('\x1b['
+      this.send('\x1b['
         + (this.y + 1)
         + ';'
         + (this.x + 1)
@@ -2481,13 +2483,13 @@ Terminal.prototype.sendDeviceAttributes = function(params) {
   return;
 
   if (this.prefix !== '>') {
-    this.queueChars('\x1b[?1;2c');
+    this.send('\x1b[?1;2c');
   } else {
     // say we're a vt100 with
     // firmware version 95
-    // this.queueChars('\x1b[>0;95;0c');
+    // this.send('\x1b[>0;95;0c');
     // modern xterm responds with:
-    this.queueChars('\x1b[>0;276;0c');
+    this.send('\x1b[>0;276;0c');
   }
 };
 
