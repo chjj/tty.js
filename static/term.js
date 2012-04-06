@@ -764,8 +764,8 @@ Terminal.prototype.write = function(data) {
       case normal:
         switch (ch) {
           // '\0'
-          case '\0':
-            break;
+          // case '\0':
+          //   break;
 
           // '\a'
           case '\x07':
@@ -802,6 +802,14 @@ Terminal.prototype.write = function(data) {
           case '\t':
             this.x = this.nextStop();
             break;
+
+          // shift out
+          // case '\x0e':
+          //   break;
+
+          // shift in
+          // case '\x0f':
+          //   break;
 
           // '\e'
           case '\x1b':
@@ -3569,21 +3577,21 @@ Terminal.prototype.deleteColumns = function() {
 // http://vt100.net/docs/vt102-ug/table5-13.html
 // A lot of curses apps use this if they see TERM=xterm.
 // testing: echo -e '\e(0a\e(B'
-// The real xterm output seems to conflict with the
-// reference above. The table below uses
-// the exact same charset xterm outputs.
+// The xterm output sometimes seems to conflict with the
+// reference above. xterm seems in line with the reference
+// when running vttest however.
+// The table below now uses xterm's output from vttest.
 var SCLD = {
-  '_': '\u005f', // '_' - blank ? should this be ' ' ?
   '`': '\u25c6', // '◆'
   'a': '\u2592', // '▒'
-  'b': '\u0062', // 'b' - should this be: '\t' ?
-  'c': '\u0063', // 'c' - should this be: '\f' ?
-  'd': '\u0064', // 'd' - should this be: '\r' ?
-  'e': '\u0065', // 'e' - should this be: '\n' ?
+  'b': '\u0009', // '\t'
+  'c': '\u000c', // '\f'
+  'd': '\u000d', // '\r'
+  'e': '\u000a', // '\n'
   'f': '\u00b0', // '°'
   'g': '\u00b1', // '±'
-  'h': '\u2592', // '▒' - NL ? should this be '\n' ?
-  'i': '\u2603', // '☃' - VT ? should this be '\v' ?
+  'h': '\u2424', // '\u2424' (NL)
+  'i': '\u000b', // '\v'
   'j': '\u2518', // '┘'
   'k': '\u2510', // '┐'
   'l': '\u250c', // '┌'
