@@ -1275,11 +1275,13 @@ Terminal.prototype.write = function(data) {
             //   this.resetTitleModes(this.params);
             //   break;
             // }
-            // if (this.params.length > 1) {
+            // if (this.params.length > 2) {
             //   this.initMouseTracking(this.params);
             //   break;
             // }
-            this.scrollDown(this.params);
+            if (this.params.length < 2 && !this.prefix) {
+              this.scrollDown(this.params);
+            }
             break;
 
           // CSI Ps Z
@@ -1506,10 +1508,7 @@ Terminal.prototype.write = function(data) {
   }
 
   this.updateRange(this.y);
-
-  if (this.refreshEnd >= this.refreshStart) {
-    this.refresh(this.refreshStart, this.refreshEnd);
-  }
+  this.refresh(this.refreshStart, this.refreshEnd);
 };
 
 Terminal.prototype.writeln = function(data) {
@@ -2070,7 +2069,7 @@ Terminal.prototype.cursorPos = function(params) {
 //     Ps = 2  -> Selective Erase All.
 Terminal.prototype.eraseInDisplay = function(params) {
   var j;
-  switch (params[0] || 0) {
+  switch (params[0]) {
     case 0:
       this.eraseRight(this.x, this.y);
       j = this.y + 1;
@@ -2105,7 +2104,7 @@ Terminal.prototype.eraseInDisplay = function(params) {
 //     Ps = 1  -> Selective Erase to Left.
 //     Ps = 2  -> Selective Erase All.
 Terminal.prototype.eraseInLine = function(params) {
-  switch (params[0] || 0) {
+  switch (params[0]) {
     case 0:
       this.eraseRight(this.x, this.y);
       break;
@@ -2181,16 +2180,11 @@ Terminal.prototype.eraseInLine = function(params) {
 //     Ps = 4 8  ; 5  ; Ps -> Set background color to the second
 //     Ps.
 Terminal.prototype.charAttributes = function(params) {
-  var i, l, p, bg, fg;
-
-  if (params.length === 0) {
-    // default
-    this.curAttr = this.defAttr;
-    return;
-  }
-
-  l = params.length;
-  i = 0;
+  var l = params.length
+    , i = 0
+    , bg
+    , fg
+    , p;
 
   for (; i < l; i++) {
     p = params[i];
@@ -2284,11 +2278,27 @@ Terminal.prototype.charAttributes = function(params) {
 //   CSI ? 5 3  n  Locator available, if compiled-in, or
 //   CSI ? 5 0  n  No Locator, if not.
 Terminal.prototype.deviceStatus = function(params) {
-  if (this.prefix === '?') {
+  if (!this.prefix) {
+    switch (params[0]) {
+      case 5:
+        // status report
+        this.send('\x1b[0n');
+        break;
+      case 6:
+        // cursor position
+        this.send('\x1b['
+          + (this.y + 1)
+          + ';'
+          + (this.x + 1)
+          + 'R');
+        break;
+    }
+  } else if (this.prefix === '?') {
     // modern xterm doesnt seem to
     // respond to any of these except ?6, 6, and 5
     switch (params[0]) {
       case 6:
+        // cursor position
         this.send('\x1b['
           + (this.y + 1)
           + ';'
@@ -2304,6 +2314,7 @@ Terminal.prototype.deviceStatus = function(params) {
         // this.send('\x1b[?21n');
         break;
       case 26:
+        // north american keyboard
         // this.send('\x1b[?27;1;0;0n');
         break;
       case 53:
@@ -2311,19 +2322,6 @@ Terminal.prototype.deviceStatus = function(params) {
         // this.send('\x1b[?50n');
         break;
     }
-    return;
-  }
-  switch (params[0]) {
-    case 5:
-      this.send('\x1b[0n');
-      break;
-    case 6:
-      this.send('\x1b['
-        + (this.y + 1)
-        + ';'
-        + (this.x + 1)
-        + 'R');
-      break;
   }
 };
 
@@ -2674,7 +2672,13 @@ Terminal.prototype.HVPosition = function(params) {
 //   http://vt100.net/docs/vt220-rm/chapter4.html
 Terminal.prototype.setMode = function(params) {
   if (typeof params === 'object') {
-    while (params.length) this.setMode(params.shift());
+    var l = params.length
+      , i = 0;
+
+    for (; i < l; i++) {
+      this.setMode(params[i]);
+    }
+
     return;
   }
 
@@ -2691,6 +2695,10 @@ Terminal.prototype.setMode = function(params) {
     switch (params) {
       case 1:
         this.applicationKeypad = true;
+        break;
+      case 3: // 132 col mode
+        this.savedCols = this.cols;
+        this.resize(132, this.rows);
         break;
       case 6:
         this.originMode = true;
@@ -2850,7 +2858,13 @@ Terminal.prototype.setMode = function(params) {
 //     Ps = 2 0 0 4  -> Reset bracketed paste mode.
 Terminal.prototype.resetMode = function(params) {
   if (typeof params === 'object') {
-    while (params.length) this.resetMode(params.shift());
+    var l = params.length
+      , i = 0;
+
+    for (; i < l; i++) {
+      this.resetMode(params[i]);
+    }
+
     return;
   }
 
@@ -2867,6 +2881,12 @@ Terminal.prototype.resetMode = function(params) {
     switch (params) {
       case 1:
         this.applicationKeypad = false;
+        break;
+      case 3:
+        if (this.cols === 132 && this.savedCols) {
+          this.resize(this.savedCols, this.rows);
+        }
+        delete this.savedCols;
         break;
       case 6:
         this.originMode = false;
@@ -2958,7 +2978,7 @@ Terminal.prototype.restoreCursor = function(params) {
 Terminal.prototype.cursorForwardTab = function(params) {
   var param = params[0] || 1;
   while (param--) {
-    this.x = this.nextStop(this.x);
+    this.x = this.nextStop();
   }
 };
 
@@ -3013,7 +3033,7 @@ Terminal.prototype.resetTitleModes = function(params) {
 Terminal.prototype.cursorBackwardTab = function(params) {
   var param = params[0] || 1;
   while (param--) {
-    this.x = this.prevStop(this.x);
+    this.x = this.prevStop();
   }
 };
 
@@ -3102,8 +3122,18 @@ Terminal.prototype.setPointerMode = function(params) {
 };
 
 // CSI ! p   Soft terminal reset (DECSTR).
+// http://vt100.net/docs/vt220-rm/table4-10.html
 Terminal.prototype.softReset = function(params) {
-  this.reset();
+  this.cursorHidden = false;
+  this.insertMode = false;
+  this.originMode = false;
+  this.wraparoundMode = false; // autowrap
+  this.applicationKeypad = false; // ?
+  this.scrollTop = 0;
+  this.scrollBottom = this.rows - 1;
+  this.curAttr = this.defAttr;
+  this.x = this.y = 0; // ?
+  this.charset = null;
 };
 
 // CSI Ps$ p
