@@ -189,9 +189,6 @@ Terminal.defaultColors = {
 Terminal.colors[256] = Terminal.defaultColors.bg;
 Terminal.colors[257] = Terminal.defaultColors.fg;
 
-// save fallback
-Terminal._colors = Terminal.colors.slice();
-
 Terminal.termName = 'xterm';
 Terminal.geometry = [80, 30];
 Terminal.cursorBlink = true;
@@ -613,15 +610,13 @@ Terminal.prototype.refresh = function(start, end) {
 
             if (bgColor !== 256) {
               out += 'background-color:'
-                + (Terminal.colors[bgColor]
-                  || Terminal._colors[bgColor])
+                + Terminal.colors[bgColor]
                 + ';';
             }
 
             if (fgColor !== 257) {
               out += 'color:'
-                + (Terminal.colors[fgColor]
-                  || Terminal._colors[fgColor])
+                + Terminal.colors[fgColor]
                 + ';';
             }
 
@@ -728,7 +723,9 @@ Terminal.prototype.scroll = function() {
     this.lines.splice(this.ybase + this.scrollTop, 1);
   }
 
-  this.maxRange();
+  // this.maxRange();
+  this.updateRange(this.scrollTop);
+  this.updateRange(this.scrollBottom);
 };
 
 Terminal.prototype.scrollDisp = function(disp) {
@@ -1508,9 +1505,6 @@ Terminal.prototype.write = function(data) {
 
         this.prefix = '';
         this.postfix = '';
-
-        // ensure any line changes update
-        this.updateRange(this.y);
         break;
     }
   }
@@ -1976,7 +1970,9 @@ Terminal.prototype.reverseIndex = function() {
     this.lines.splice(this.y + this.ybase, 0, this.blankLine(true));
     j = this.rows - 1 - this.scrollBottom;
     this.lines.splice(this.rows - 1 + this.ybase - j + 1, 1);
-    this.maxRange();
+    // this.maxRange();
+    this.updateRange(this.scrollTop);
+    this.updateRange(this.scrollBottom);
   }
   this.state = normal;
 };
@@ -2407,6 +2403,7 @@ Terminal.prototype.insertLines = function(params) {
   }
 
   // this.maxRange();
+  this.updateRange(this.y);
   this.updateRange(this.scrollBottom);
 };
 
@@ -2430,6 +2427,7 @@ Terminal.prototype.deleteLines = function(params) {
   }
 
   // this.maxRange();
+  this.updateRange(this.y);
   this.updateRange(this.scrollBottom);
 };
 
