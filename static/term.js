@@ -2927,7 +2927,9 @@ Terminal.prototype.cursorForwardTab = function(params) {
   var row, param, line, ch;
 
   param = params[0] || 1;
-  param = param * 8;
+  param = (this.x + param * 8) & ~7;
+  param -= this.x;
+
   row = this.y + this.ybase;
   line = this.lines[row];
   ch = [this.defAttr, ' '];
@@ -2994,7 +2996,9 @@ Terminal.prototype.cursorBackwardTab = function(params) {
   var row, param, line, ch;
 
   param = params[0] || 1;
-  param = param * 8;
+  param = (this.x - param * 8) & ~7;
+  param = this.x - param;
+
   row = this.y + this.ybase;
   line = this.lines[row];
   ch = [this.defAttr, ' '];
