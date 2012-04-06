@@ -50,7 +50,7 @@ var normal = 0
  * Terminal
  */
 
-var Terminal = function(cols, rows, handler) {
+function Terminal(cols, rows, handler) {
   this.cols = cols;
   this.rows = rows;
   if (handler) this.handler = handler;
@@ -87,7 +87,7 @@ var Terminal = function(cols, rows, handler) {
   while (i--) {
     this.lines.push(this.blankLine());
   }
-};
+}
 
 /**
  * Options
@@ -198,6 +198,8 @@ Terminal.visualBell = false;
 Terminal.popOnBell = false;
 Terminal.scrollback = 1000;
 Terminal.screenKeys = false;
+Terminal.debug = false;
+Terminal.programFeatures = false;
 
 /**
  * Focused Terminal
@@ -222,14 +224,14 @@ Terminal.prototype.focus = function() {
 Terminal.bindKeys = function() {
   if (Terminal.focus) return;
 
-  // We could put an "if (Term.focus)" check
+  // We could put an "if (Terminal.focus)" check
   // here, but it shouldn't be necessary.
-  on(document, 'keydown', function(key) {
-    return Terminal.focus.keyDown(key);
+  on(document, 'keydown', function(ev) {
+    return Terminal.focus.keyDown(ev);
   }, true);
 
-  on(document, 'keypress', function(key) {
-    return Terminal.focus.keyPress(key);
+  on(document, 'keypress', function(ev) {
+    return Terminal.focus.keyPress(ev);
   }, true);
 };
 

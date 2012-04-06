@@ -10,7 +10,7 @@
  */
 
 var doc = this.document
-  , win = this
+  , window = this
   , root
   , body
   , h1;
@@ -655,6 +655,50 @@ Tab.prototype.specialKeyHandler = function(ev) {
   }
 
   return cancel(ev);
+};
+
+/**
+ * Program-specific Features
+ */
+
+Tab.prototype._bindMouse = Tab.prototype.bindMouse;
+Tab.prototype.bindMouse = function() {
+  if (!Terminal.programFeatures) return this._bindMouse();
+
+  var self = this;
+
+  var wheelEvent = 'onmousewheel' in window
+    ? 'mousewheel'
+    : 'DOMMouseScroll';
+
+  var programs = {
+    irssi: true,
+    man: true,
+    less: true,
+    htop: true,
+    top: true,
+    w3m: true,
+    lynx: true
+  };
+
+  // Mouse support for Irssi.
+  on(self.element, wheelEvent, function(ev) {
+    if (self.mouseEvents) return;
+    if (!programs[self.process]) return;
+
+    if ((ev.type === 'mousewheel' && ev.wheelDeltaY > 0)
+        || (ev.type === 'DOMMouseScroll' && ev.detail < 0)) {
+      // page up
+      self.keyDown({keyCode: 33});
+    } else {
+      // page down
+      self.keyDown({keyCode: 34});
+    }
+
+    return cancel(ev);
+  });
+
+  return this._bindMouse();
 };
 
 Tab.prototype.pollProcessName = function(func) {
