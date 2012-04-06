@@ -72,6 +72,7 @@ function Terminal(cols, rows, handler) {
   this.insertMode = false;
   this.wraparoundMode = false;
   this.mouseEvents;
+  this.sendFocus;
   this.tabs = [];
   this.charset = null;
   this.normal = null;
@@ -212,8 +213,10 @@ Terminal.prototype.focus = function() {
   if (Terminal.focus) {
     Terminal.focus.cursorState = 0;
     Terminal.focus.refresh(Terminal.focus.y, Terminal.focus.y);
+    if (Terminal.focus.sendFocus) Terminal.focus.send('\x1b[>O');
   }
   Terminal.focus = this;
+  if (this.sendFocus) this.send('\x1b[>I');
   this.showCursor();
 };
 
@@ -2689,6 +2692,7 @@ Terminal.prototype.setMode = function(params) {
       case 1004: // send focusin/focusout events
         // focusin: ^[[>I
         // focusout: ^[[>O
+        this.sendFocus = true;
         break;
       case 1005: // utf8 ext mode mouse
         // for wide terminals
@@ -2839,15 +2843,25 @@ Terminal.prototype.resetMode = function(params) {
       case 7:
         this.wraparoundMode = false;
         break;
-      case 9:
-      case 1000:
-      case 1001:
-      case 1002:
-      case 1003:
-      case 1004:
-      case 1005:
+      case 9: // X10 Mouse
+        break;
+      case 1000: // vt200 mouse
+        break;
+      case 1001: // vt200 highlight mouse
+        break;
+      case 1002: // button event mouse
+      case 1003: // any event mouse
         this.mouseEvents = false;
         this.element.style.cursor = '';
+        break;
+      case 1004: // send focusin/focusout events
+        this.sendFocus = false;
+        break;
+      case 1005: // utf8 ext mode mouse
+        break;
+      case 1006: // sgr ext mode mouse
+        break;
+      case 1015: // urxvt ext mode mouse
         break;
       case 25: // hide cursor
         this.cursorHidden = true;
