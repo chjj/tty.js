@@ -73,7 +73,7 @@ function Terminal(cols, rows, handler) {
   this.wraparoundMode = false;
   this.mouseEvents;
   this.sendFocus;
-  this.tabs = [];
+  this.setupStops();
   this.charset = null;
   this.normal = null;
 
@@ -746,9 +746,7 @@ Terminal.prototype.scrollDisp = function(disp) {
 Terminal.prototype.write = function(data) {
   var l = data.length
     , i = 0
-    , ch
-    , param
-    , row;
+    , ch;
 
   this.refreshStart = this.y;
   this.refreshEnd = this.y;
@@ -802,11 +800,7 @@ Terminal.prototype.write = function(data) {
 
           // '\t'
           case '\t':
-            // should check tabstops
-            param = (this.x + 8) & ~7;
-            if (param <= this.cols) {
-              this.x = param;
-            }
+            this.x = this.nextStop();
             break;
 
           // '\e'
@@ -828,8 +822,7 @@ Terminal.prototype.write = function(data) {
                   this.scroll();
                 }
               }
-              row = this.y + this.ybase;
-              this.lines[row][this.x] = [this.curAttr, ch];
+              this.lines[this.y + this.ybase][this.x] = [this.curAttr, ch];
               this.x++;
               this.updateRange(this.y);
             }
@@ -937,10 +930,9 @@ Terminal.prototype.write = function(data) {
             i++;
             break;
 
-          // ESC H Tab Set ( HTS is 0x88).
+          // ESC H Tab Set (HTS is 0x88).
           case 'H':
-            // this.tabSet(this.x);
-            this.state = normal;
+            this.tabSet();
             break;
 
           // ESC = Application Keypad (DECPAM).
@@ -1302,9 +1294,9 @@ Terminal.prototype.write = function(data) {
             break;
 
           // CSI Ps g  Tab Clear (TBC).
-          // case 'g':
-          //   this.tabClear(this.params);
-          //   break;
+          case 'g':
+            this.tabClear(this.params);
+            break;
 
           // CSI Pm i  Media Copy (MC).
           // CSI ? Pm i
@@ -1808,6 +1800,7 @@ Terminal.prototype.resize = function(x, y) {
       }
     }
   }
+  this.setupStops(j);
   this.cols = x;
 
   // resize rows
@@ -1862,6 +1855,37 @@ Terminal.prototype.updateRange = function(y) {
 Terminal.prototype.maxRange = function() {
   this.refreshStart = 0;
   this.refreshEnd = this.rows - 1;
+};
+
+Terminal.prototype.setupStops = function(i) {
+  if (i != null) {
+    if (!this.tabs[i]) {
+      i = this.prevStop(i);
+    }
+  } else {
+    this.tabs = {};
+    i = 0;
+  }
+
+  for (; i < this.cols; i += 8) {
+    this.tabs[i] = true;
+  }
+};
+
+Terminal.prototype.prevStop = function(x) {
+  if (x == null) x = this.x;
+  while (!this.tabs[--x] && x > 0);
+  return x >= this.cols
+    ? this.cols - 1
+    : x < 0 ? 0 : x;
+};
+
+Terminal.prototype.nextStop = function(x) {
+  if (x == null) x = this.x;
+  while (!this.tabs[++x] && x < this.cols);
+  return x >= this.cols
+    ? this.cols - 1
+    : x < 0 ? 0 : x;
 };
 
 Terminal.prototype.eraseRight = function(x, y) {
@@ -1953,6 +1977,12 @@ Terminal.prototype.reverseIndex = function() {
 // ESC c Full Reset (RIS).
 Terminal.prototype.reset = function() {
   Terminal.call(this, this.cols, this.rows);
+};
+
+// ESC H Tab Set (HTS is 0x88).
+Terminal.prototype.tabSet = function() {
+  this.tabs[this.x] = true;
+  this.state = normal;
 };
 
 /**
@@ -2726,7 +2756,8 @@ Terminal.prototype.setMode = function(params) {
             x: this.x,
             y: this.y,
             scrollTop: this.scrollTop,
-            scrollBottom: this.scrollBottom
+            scrollBottom: this.scrollBottom,
+            tabs: this.tabs
           };
           this.reset();
           this.normal = normal;
@@ -2878,6 +2909,7 @@ Terminal.prototype.resetMode = function(params) {
           this.y = this.normal.y;
           this.scrollTop = this.normal.scrollTop;
           this.scrollBottom = this.normal.scrollBottom;
+          this.tabs = this.normal.tabs;
           this.normal = null;
           // if (params === 1049) {
           //   this.x = this.savedX;
@@ -2924,23 +2956,9 @@ Terminal.prototype.restoreCursor = function(params) {
 // CSI Ps I
 //   Cursor Forward Tabulation Ps tab stops (default = 1) (CHT).
 Terminal.prototype.cursorForwardTab = function(params) {
-  var row, param, line, ch;
-
-  param = params[0] || 1;
-  param = (this.x + param * 8) & ~7;
-  param -= this.x;
-
-  row = this.y + this.ybase;
-  line = this.lines[row];
-  ch = [this.defAttr, ' '];
-
+  var param = params[0] || 1;
   while (param--) {
-    line.splice(this.x++, 0, ch);
-    line.pop();
-    if (this.x === this.cols) {
-      this.x--;
-      break;
-    }
+    this.x = this.nextStop(this.x);
   }
 };
 
@@ -2993,22 +3011,9 @@ Terminal.prototype.resetTitleModes = function(params) {
 
 // CSI Ps Z  Cursor Backward Tabulation Ps tab stops (default = 1) (CBT).
 Terminal.prototype.cursorBackwardTab = function(params) {
-  var row, param, line, ch;
-
-  param = params[0] || 1;
-  param = (this.x - param * 8) & ~7;
-  param = this.x - param;
-
-  row = this.y + this.ybase;
-  line = this.lines[row];
-  ch = [this.defAttr, ' '];
-
+  var param = params[0] || 1;
   while (param--) {
-    line.splice(--this.x, 1);
-    line.push(ch);
-    if (this.x === 0) {
-      break;
-    }
+    this.x = this.prevStop(this.x);
   }
 };
 
@@ -3024,8 +3029,16 @@ Terminal.prototype.repeatPrecedingCharacter = function(params) {
 // CSI Ps g  Tab Clear (TBC).
 //     Ps = 0  -> Clear Current Column (default).
 //     Ps = 3  -> Clear All.
+// Potentially:
+//   Ps = 2  -> Clear Stops on Line.
+//   http://vt100.net/annarbor/aaa-ug/section6.html
 Terminal.prototype.tabClear = function(params) {
-  ;
+  var param = params[0];
+  if (param <= 0) {
+    delete this.tabs[this.x];
+  } else if (param === 3) {
+    this.tabs = {};
+  }
 };
 
 // CSI Pm i  Media Copy (MC).
