@@ -191,15 +191,15 @@ Terminal.colors[257] = Terminal.defaultColors.fg;
 // save fallback
 Terminal._colors = Terminal.colors.slice();
 
-Terminal.termName = '';
+Terminal.termName = 'xterm';
 Terminal.geometry = [80, 30];
 Terminal.cursorBlink = true;
 Terminal.visualBell = false;
 Terminal.popOnBell = false;
 Terminal.scrollback = 1000;
 Terminal.screenKeys = false;
-Terminal.debug = false;
 Terminal.programFeatures = false;
+Terminal.debug = false;
 
 /**
  * Focused Terminal
@@ -1908,6 +1908,11 @@ Terminal.prototype.ch = function(cur) {
     : [this.defAttr, ' '];
 };
 
+Terminal.prototype.is = function(term) {
+  var name = this.termName || Terminal.termName;
+  return (name + '').indexOf(term) === 0;
+};
+
 Terminal.prototype.handler = function() {};
 Terminal.prototype.handleTitle = function() {};
 
@@ -2478,20 +2483,35 @@ Terminal.prototype.HPositionRelative = function(params) {
 //   the XFree86 patch number, starting with 95).  In a DEC termi-
 //   nal, Pc indicates the ROM cartridge registration number and is
 //   always zero.
+// More information:
+//   xterm/charproc.c - line 2012, for more information.
+//   vim responds with ^[[?0c or ^[[?1c after the terminal's response (?)
 Terminal.prototype.sendDeviceAttributes = function(params) {
-  // This severely breaks things if
-  // TERM is set to `linux`. xterm
-  // is fine.
-  return;
+  if (params[0] > 0) return;
 
-  if (this.prefix !== '>') {
-    this.send('\x1b[?1;2c');
-  } else {
-    // say we're a vt100 with
-    // firmware version 95
-    // this.send('\x1b[>0;95;0c');
-    // modern xterm responds with:
-    this.send('\x1b[>0;276;0c');
+  if (!this.prefix) {
+    if (this.is('xterm')
+        || this.is('rxvt-unicode')
+        || this.is('screen')) {
+      this.send('\x1b[?1;2c');
+    } else if (this.is('linux')) {
+      this.send('\x1b[?6c');
+    }
+  } else if (this.prefix === '>') {
+    // xterm and urxvt
+    // seem to spit this
+    // out around ~370 times (?).
+    if (this.is('xterm')) {
+      this.send('\x1b[>0;276;0c');
+    } else if (this.is('rxvt-unicode')) {
+      this.send('\x1b[>85;95;0c');
+    } else if (this.is('linux')) {
+      // not supported by linux console.
+      // linux console echoes parameters.
+      this.send(params[0] + 'c');
+    } else if (this.is('screen')) {
+      this.send('\x1b[>83;40003;0c');
+    }
   }
 };
 
@@ -2625,7 +2645,7 @@ Terminal.prototype.setMode = function(params) {
     return;
   }
 
-  if (this.prefix !== '?') {
+  if (!this.prefix) {
     switch (params) {
       case 4:
         this.insertMode = true;
@@ -2634,7 +2654,7 @@ Terminal.prototype.setMode = function(params) {
         //this.convertEol = true;
         break;
     }
-  } else {
+  } else if (this.prefix === '?') {
     switch (params) {
       case 1:
         this.applicationKeypad = true;
@@ -2799,7 +2819,7 @@ Terminal.prototype.resetMode = function(params) {
     return;
   }
 
-  if (this.prefix !== '?') {
+  if (!this.prefix) {
     switch (params) {
       case 4:
         this.insertMode = false;
@@ -2808,7 +2828,7 @@ Terminal.prototype.resetMode = function(params) {
         //this.convertEol = false;
         break;
     }
-  } else {
+  } else if (this.prefix === '?') {
     switch (params) {
       case 1:
         this.applicationKeypad = false;
@@ -2862,7 +2882,7 @@ Terminal.prototype.resetMode = function(params) {
 //   dow) (DECSTBM).
 // CSI ? Pm r
 Terminal.prototype.setScrollRegion = function(params) {
-  if (this.prefix === '?') return;
+  if (this.prefix) return;
   this.scrollTop = (params[0] || 1) - 1;
   this.scrollBottom = (params[1] || this.rows) - 1;
   this.x = 0;
