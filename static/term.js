@@ -34,7 +34,8 @@
  * Shared
  */
 
-var window = this;
+var window = this
+  , document = this.document;
 
 /**
  * States
@@ -210,10 +211,10 @@ Terminal.prototype.focus = function() {
   if (Terminal.focus) {
     Terminal.focus.cursorState = 0;
     Terminal.focus.refresh(Terminal.focus.y, Terminal.focus.y);
-    if (Terminal.focus.sendFocus) Terminal.focus.send('\x1b[>O');
+    if (Terminal.focus.sendFocus) Terminal.focus.send('\x1b[O');
   }
   Terminal.focus = this;
-  if (this.sendFocus) this.send('\x1b[>I');
+  if (this.sendFocus) this.send('\x1b[I');
   this.showCursor();
 };
 
@@ -475,6 +476,10 @@ Terminal.prototype.bindMouse = function() {
     // starts at 32 (SP) for each.
     x += 32;
     y += 32;
+
+    // Can't go above 95 + 32 (127) without utf8
+    if (x > 127) x = 127;
+    if (y > 127) y = 127;
 
     return { x: x, y: y };
   }
@@ -1980,6 +1985,7 @@ Terminal.prototype.reverseIndex = function() {
 // ESC c Full Reset (RIS).
 Terminal.prototype.reset = function() {
   Terminal.call(this, this.cols, this.rows);
+  this.refresh(0, this.rows - 1);
 };
 
 // ESC H Tab Set (HTS is 0x88).
@@ -3656,6 +3662,14 @@ var setInterval = this.setInterval;
  * Expose
  */
 
-this.Terminal = Terminal;
+if (typeof module !== 'undefined') {
+  module.exports = Terminal;
+} else {
+  this.Terminal = Terminal;
+}
 
-}).call(this);
+}).call(function() {
+  return typeof window !== 'undefined'
+    ? this || window
+    : global;
+}());
