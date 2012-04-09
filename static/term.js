@@ -384,10 +384,101 @@ Terminal.prototype.bindMouse = function() {
     sendEvent(button, pos);
   }
 
+  // encode button and
+  // position to characters
+  function encode(data, ch) {
+    if (!self.utfMouse) {
+      if (ch === 255) return data.push(0);
+      if (ch > 127) ch = 127;
+      data.push(ch);
+    } else {
+      if (ch === 2047) return data.push(0);
+      if (ch < 127) {
+        data.push(ch);
+      } else {
+        if (ch > 2047) ch = 2047;
+        data.push(0xC0 | (ch >> 6));
+        data.push(0x80 | (ch & 0x3F));
+      }
+    }
+  }
+
   // send a mouse event:
-  // ^[[M Cb Cx Cy
+  // regular/utf8: ^[[M Cb Cx Cy
+  // urxvt: ^[[ Cb ; Cx ; Cy M
+  // sgr: ^[[ Cb ; Cx ; Cy M/m
+  // vt300: ^[[ 24(1/3/5)~ [ Cx , Cy ] \r
+  // locator: CSI P e ; P b ; P r ; P c ; P p & w
   function sendEvent(button, pos) {
-    self.send('\x1b[M' + String.fromCharCode(button, pos.x, pos.y));
+    if (self.vt300Mouse) {
+      // NOTE: Unstable.
+      // http://www.vt100.net/docs/vt3xx-gp/chapter15.html
+      button &= 3;
+      pos.x -= 32;
+      pos.y -= 32;
+      var data = '\x1b[24';
+      if (button === 0) data += '1';
+      else if (button === 1) data += '3';
+      else if (button === 2) data += '5';
+      else if (button === 3) return;
+      else data += '0';
+      data += '~[' + pos.x + ',' + pos.y + ']\r';
+      self.send(data);
+      return;
+    }
+
+    if (self.decLocator) {
+      // NOTE: Unstable.
+      button &= 3;
+      pos.x -= 32;
+      pos.y -= 32;
+      if (button === 0) button = 2;
+      else if (button === 1) button = 4;
+      else if (button === 2) button = 6;
+      else if (button === 3) button = 3;
+      self.send('\x1b['
+        + button
+        + ';'
+        + (button === 3 ? 4 : 0)
+        + ';'
+        + pos.y
+        + ';'
+        + pos.x
+        + ';'
+        + (pos.page || 0)
+        + '&w');
+      return;
+    }
+
+    if (self.urxvtMouse) {
+      pos.x -= 32;
+      pos.y -= 32;
+      pos.x++;
+      pos.y++;
+      self.send('\x1b[' + button + ';' + pos.x + ';' + pos.y + 'M');
+      return;
+    }
+
+    if (self.sgrMouse) {
+      pos.x -= 32;
+      pos.y -= 32;
+      self.send('\x1b[<'
+        + ((button & 3) === 3 ? button & ~3 : button)
+        + ';'
+        + pos.x
+        + ';'
+        + pos.y
+        + ((button & 3) === 3 ? 'm' : 'M'));
+      return;
+    }
+
+    var data = [];
+
+    encode(data, button);
+    encode(data, pos.x);
+    encode(data, pos.y);
+
+    self.send('\x1b[M' + String.fromCharCode.apply(String, data));
   }
 
   function getButton(ev) {
@@ -438,6 +529,14 @@ Terminal.prototype.bindMouse = function() {
     ctrl = ev.ctrlKey ? 16 : 0;
     mod = shift | meta | ctrl;
 
+    // no mods
+    if (self.vt200Mouse) {
+      // ctrl only
+      mod &= ctrl;
+    } else if (self.x10Mouse || self.vt300Mouse || self.decLocator) {
+      mod = 0;
+    }
+
     // increment to SP
     button = (32 + (mod << 2)) + button;
 
@@ -481,10 +580,6 @@ Terminal.prototype.bindMouse = function() {
     x += 32;
     y += 32;
 
-    // Can't go above 95 + 32 (127) without utf8
-    if (x > 127) x = 127;
-    if (y > 127) y = 127;
-
     return { x: x, y: y };
   }
 
@@ -498,19 +593,31 @@ Terminal.prototype.bindMouse = function() {
     self.focus();
 
     // bind events
-    on(document, 'mousemove', sendMove);
-    on(document, 'mouseup', function up(ev) {
-      sendButton(ev);
-      off(document, 'mousemove', sendMove);
-      off(document, 'mouseup', up);
-      return cancel(ev);
-    });
+    if (!self.x10Mouse
+        && !self.vt200Mouse
+        && !self.vt300Mouse
+        && !self.decLocator) {
+      on(document, 'mousemove', sendMove);
+    }
+
+    // x10 compatibility mode can't send button releases
+    if (!self.x10Mouse) {
+      on(document, 'mouseup', function up(ev) {
+        sendButton(ev);
+        off(document, 'mousemove', sendMove);
+        off(document, 'mouseup', up);
+        return cancel(ev);
+      });
+    }
 
     return cancel(ev);
   });
 
   on(el, wheelEvent, function(ev) {
     if (!self.mouseEvents) return;
+    if (self.x10Mouse
+        || self.vt300Mouse
+        || self.decLocator) return;
     sendButton(ev);
     return cancel(ev);
   });
@@ -2811,26 +2918,23 @@ Terminal.prototype.setMode = function(params) {
       case 7:
         this.wraparoundMode = true;
         break;
+      case 12:
+        // this.cursorBlink = true;
+        break;
       case 9: // X10 Mouse
-        // button press only.
-        break;
+        // no release, no motion, no wheel, no modifiers.
       case 1000: // vt200 mouse
-        // no wheel events, no motion.
-        // no modifiers except control.
-        // button press, release.
-        break;
-      case 1001: // vt200 highlight mouse
-        // no wheel events, no motion.
-        // first event is to send tracking instead
-        // of button press, *then* button release.
-        break;
+        // no motion.
+        // no modifiers, except control on the wheel.
       case 1002: // button event mouse
       case 1003: // any event mouse
-        // button press, release, wheel, and motion.
-        // no modifiers except control.
-        this.log('Binding to mouse events.');
+        // any event - sends motion events,
+        // even if there is no button held down.
+        this.x10Mouse = params === 9;
+        this.vt200Mouse = params === 1000;
         this.mouseEvents = true;
         this.element.style.cursor = 'default';
+        this.log('Binding to mouse events.');
         break;
       case 1004: // send focusin/focusout events
         // focusin: ^[[>I
@@ -2838,16 +2942,19 @@ Terminal.prototype.setMode = function(params) {
         this.sendFocus = true;
         break;
       case 1005: // utf8 ext mode mouse
+        this.utfMouse = true;
         // for wide terminals
         // simply encodes large values as utf8 characters
         break;
       case 1006: // sgr ext mode mouse
+        this.sgrMouse = true;
         // for wide terminals
         // does not add 32 to fields
         // press: ^[[<b;x;yM
         // release: ^[[<b;x;ym
         break;
       case 1015: // urxvt ext mode mouse
+        this.urxvtMouse = true;
         // for wide terminals
         // numbers for fields
         // press: ^[[b;x;yM
@@ -2999,14 +3106,15 @@ Terminal.prototype.resetMode = function(params) {
       case 7:
         this.wraparoundMode = false;
         break;
+      case 12:
+        // this.cursorBlink = false;
+        break;
       case 9: // X10 Mouse
-        break;
       case 1000: // vt200 mouse
-        break;
-      case 1001: // vt200 highlight mouse
-        break;
       case 1002: // button event mouse
       case 1003: // any event mouse
+        this.x10Mouse = false;
+        this.vt200Mouse = false;
         this.mouseEvents = false;
         this.element.style.cursor = '';
         break;
@@ -3014,10 +3122,13 @@ Terminal.prototype.resetMode = function(params) {
         this.sendFocus = false;
         break;
       case 1005: // utf8 ext mode mouse
+        this.utfMouse = false;
         break;
       case 1006: // sgr ext mode mouse
+        this.sgrMouse = false;
         break;
       case 1015: // urxvt ext mode mouse
+        this.urxvtMouse = false;
         break;
       case 25: // hide cursor
         this.cursorHidden = true;
@@ -3116,7 +3227,7 @@ Terminal.prototype.scrollDown = function(params) {
 //   [func;startx;starty;firstrow;lastrow].  See the section Mouse
 //   Tracking.
 Terminal.prototype.initMouseTracking = function(params) {
-  this.log('Enable Mouse Tracking');
+  // Relevant: DECSET 1001
 };
 
 // CSI > Ps; Ps T
@@ -3531,7 +3642,9 @@ Terminal.prototype.fillRectangle = function(params) {
 //     Pu = 1  <- device physical pixels.
 //     Pu = 2  <- character cells.
 Terminal.prototype.enableLocatorReporting = function(params) {
-  ;
+  var val = params[0] > 0;
+  //this.mouseEvents = val;
+  //this.decLocator = val;
 };
 
 // CSI Pt; Pl; Pb; Pr$ z
