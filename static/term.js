@@ -45,7 +45,9 @@ var normal = 0
   , escaped = 1
   , csi = 2
   , osc = 3
-  , charset = 4;
+  , charset = 4
+  , dcs = 5
+  , ignore = 6;
 
 /**
  * Terminal
@@ -83,6 +85,8 @@ function Terminal(cols, rows, handler) {
 
   this.params = [];
   this.currentParam = 0;
+  this.prefix = '';
+  this.postfix = '';
 
   this.lines = [];
   var i = this.rows;
@@ -857,23 +861,19 @@ Terminal.prototype.write = function(data) {
 
           // ESC P Device Control String ( DCS is 0x90).
           case 'P':
-            this.params = [-1];
+            this.params = [];
             this.currentParam = 0;
-            this.state = osc;
+            this.state = dcs;
             break;
 
           // ESC _ Application Program Command ( APC is 0x9f).
           case '_':
-            this.params = [-1];
-            this.currentParam = 0;
-            this.state = osc;
+            this.state = ignore;
             break;
 
           // ESC ^ Privacy Message ( PM is 0x9e).
           case '^':
-            this.params = [-1];
-            this.currentParam = 0;
-            this.state = osc;
+            this.state = ignore;
             break;
 
           // ESC c Full Reset (RIS).
@@ -1504,12 +1504,105 @@ Terminal.prototype.write = function(data) {
           //   break;
 
           default:
-            this.error('Unknown CSI code: %s', ch, this.params);
+            this.error('Unknown CSI code: %s.', ch);
             break;
         }
 
         this.prefix = '';
         this.postfix = '';
+        break;
+
+      case dcs:
+        if (ch === '\x1b' || ch === '\x07') {
+          if (ch === '\x1b') i++;
+
+          switch (this.prefix) {
+            // User-Defined Keys (DECUDK).
+            case '':
+              break;
+
+            // Request Status String (DECRQSS).
+            // test: echo -e '\eP$q"p\e\\'
+            case '$q':
+              var pt = this.currentParam
+                , valid = false;
+
+              switch (pt) {
+                // DECSCA
+                case '"q':
+                  pt = '0"q';
+                  break;
+
+                // DECSCL
+                case '"p':
+                  pt = '61"p';
+                  break;
+
+                // DECSTBM
+                case 'r':
+                  pt = ''
+                    + (this.scrollTop + 1)
+                    + ';'
+                    + (this.scrollBottom + 1)
+                    + 'r';
+                  break;
+
+                // SGR
+                case 'm':
+                  pt = '0m';
+                  break;
+
+                default:
+                  this.error('Unknown DCS Pt: %s.', pt);
+                  pt = '';
+                  break;
+              }
+
+              this.send('\x1bP' + +valid + '$r' + pt + '\x1b\\');
+              break;
+
+            // Set Termcap/Terminfo Data (xterm, experimental).
+            case '+p':
+              break;
+
+            // Request Termcap/Terminfo String (xterm, experimental)
+            // Regular xterm does not even respond to this sequence.
+            // This can cause a small glitch in vim.
+            // test: echo -ne '\eP+q6b64\e\\'
+            case '+q':
+              var pt = this.currentParam
+                , valid = false;
+
+              this.send('\x1bP' + +valid + '+r' + pt + '\x1b\\');
+              break;
+
+            default:
+              this.error('Unknown DCS prefix: %s.', this.prefix);
+              break;
+          }
+
+          this.currentParam = 0;
+          this.prefix = '';
+          this.state = normal;
+        } else if (!this.currentParam) {
+          if (!this.prefix && ch !== '$' && ch !== '+') {
+            this.currentParam = ch;
+          } else if (this.prefix.length === 2) {
+            this.currentParam = ch;
+          } else {
+            this.prefix += ch;
+          }
+        } else {
+          this.currentParam += ch;
+        }
+        break;
+
+      case ignore:
+        // For PM and APC.
+        if (ch === '\x1b' || ch === '\x07') {
+          if (ch === '\x1b') i++;
+          this.state = normal;
+        }
         break;
     }
   }
