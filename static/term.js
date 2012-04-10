@@ -580,7 +580,16 @@ Terminal.prototype.bindMouse = function() {
     x += 32;
     y += 32;
 
-    return { x: x, y: y };
+    return {
+      x: x,
+      y: y,
+      down: ev.type === 'mousedown',
+      up: ev.type === 'mouseup',
+      wheel: ev.type === wheelEvent,
+      move: ev.type === 'mousemove'
+      //button: getButton(ev),
+      //realButton: getButton(ev) & 3
+    };
   }
 
   on(el, 'mousedown', function(ev) {
@@ -592,19 +601,25 @@ Terminal.prototype.bindMouse = function() {
     // ensure focus
     self.focus();
 
-    // bind events
-    if (!self.x10Mouse
-        && !self.vt200Mouse
-        && !self.vt300Mouse
-        && !self.decLocator) {
-      on(document, 'mousemove', sendMove);
+    // fix for odd bug
+    if (self.vt200Mouse) {
+      sendButton({ __proto__: ev, type: 'mouseup' });
+      return cancel(ev);
     }
+
+    // bind events
+    var motion = !self.x10Mouse
+      && !self.vt200Mouse
+      && !self.vt300Mouse
+      && !self.decLocator;
+
+    if (motion) on(document, 'mousemove', sendMove);
 
     // x10 compatibility mode can't send button releases
     if (!self.x10Mouse) {
       on(document, 'mouseup', function up(ev) {
         sendButton(ev);
-        off(document, 'mousemove', sendMove);
+        if (motion) off(document, 'mousemove', sendMove);
         off(document, 'mouseup', up);
         return cancel(ev);
       });
@@ -2937,8 +2952,8 @@ Terminal.prototype.setMode = function(params) {
         this.log('Binding to mouse events.');
         break;
       case 1004: // send focusin/focusout events
-        // focusin: ^[[>I
-        // focusout: ^[[>O
+        // focusin: ^[[I
+        // focusout: ^[[O
         this.sendFocus = true;
         break;
       case 1005: // utf8 ext mode mouse
