@@ -794,4 +794,6 @@ this.tty = {
   Terminal: Terminal
 };
 
-}).call(this);
+}).call(function() {
+  return this || (typeof window !== 'undefined' ? window : global);
+}());
