@@ -3890,7 +3890,5 @@ if (typeof module !== 'undefined') {
 }
 
 }).call(function() {
-  return typeof window !== 'undefined'
-    ? this || window
-    : global;
+  return this || (typeof window !== 'undefined' ? window : global);
 }());
