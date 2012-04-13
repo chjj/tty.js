@@ -47,7 +47,7 @@ function open() {
 
   if (open) {
     on(open, 'click', function() {
-      new Window;
+      new Window(socket);
     });
   }
 
@@ -61,7 +61,7 @@ function open() {
 
   socket.on('connect', function() {
     reset();
-    new Window;
+    new Window(socket);
   });
 
   socket.on('data', function(id, data) {
@@ -115,7 +115,7 @@ function reset() {
  * Window
  */
 
-function Window() {
+function Window(socket) {
   var self = this;
 
   var el
@@ -142,6 +142,7 @@ function Window() {
   title.className = 'title';
   title.innerHTML = '';
 
+  this.socket = socket;
   this.element = el;
   this.grip = grip;
   this.bar = bar;
@@ -392,7 +393,7 @@ Window.prototype.each = function(func) {
 };
 
 Window.prototype.createTab = function() {
-  new Tab(this);
+  new Tab(this, this.socket);
 };
 
 Window.prototype.highlight = function() {
@@ -432,7 +433,7 @@ Window.prototype.previousTab = function() {
  * Tab
  */
 
-function Tab(win) {
+function Tab(win, socket) {
   var self = this;
 
   var id = uid++
@@ -457,6 +458,7 @@ function Tab(win) {
   });
 
   this.id = id;
+  this.socket = socket;
   this.window = win;
   this.button = button;
   this.element = null;
@@ -466,7 +468,7 @@ function Tab(win) {
   win.tabs.push(this);
   terms[id] = this;
 
-  socket.emit('create', cols, rows, function(err, data) {
+  this.socket.emit('create', cols, rows, function(err, data) {
     if (err) return self._destroy();
     self.pty = data.pty;
     self.setProcessName(data.process);
@@ -476,7 +478,7 @@ function Tab(win) {
 inherits(Tab, Terminal);
 
 Tab.prototype.handler = function(data) {
-  socket.emit('data', this.id, data);
+  this.socket.emit('data', this.id, data);
 };
 
 Tab.prototype.handleTitle = function(title) {
@@ -537,7 +539,7 @@ Tab.prototype.focus = function() {
 Tab.prototype._resize = Tab.prototype.resize;
 
 Tab.prototype.resize = function(cols, rows) {
-  socket.emit('resize', this.id, cols, rows);
+  this.socket.emit('resize', this.id, cols, rows);
   this._resize(cols, rows);
 };
 
@@ -571,7 +573,7 @@ Tab.prototype._destroy = function() {
 
 Tab.prototype.destroy = function() {
   if (this.destroyed) return;
-  socket.emit('kill', this.id);
+  this.socket.emit('kill', this.id);
   this._destroy();
 };
 
@@ -681,7 +683,6 @@ Tab.prototype.bindMouse = function() {
     lynx: true
   };
 
-  // Mouse support for Irssi.
   on(self.element, wheelEvent, function(ev) {
     if (self.mouseEvents) return;
     if (!programs[self.process]) return;
@@ -703,7 +704,7 @@ Tab.prototype.bindMouse = function() {
 
 Tab.prototype.pollProcessName = function(func) {
   var self = this;
-  socket.emit('process', this.id, function(err, name) {
+  this.socket.emit('process', this.id, function(err, name) {
     if (!err) self.setProcessName(name);
     if (func) func(err, name);
   });
