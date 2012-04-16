@@ -9,13 +9,13 @@
  * Elements
  */
 
-var doc = this.document
+var document = this.document
   , window = this
   , root
   , body
   , h1;
 
-var initialTitle = doc.title;
+var initialTitle = document.title;
 
 /**
  * Shared
@@ -33,17 +33,17 @@ var socket
 function open() {
   if (socket) return;
 
-  root = doc.documentElement;
-  body = doc.body;
-  h1 = doc.getElementsByTagName('h1')[0];
+  root = document.documentElement;
+  body = document.body;
+  h1 = document.getElementsByTagName('h1')[0];
 
   socket = io.connect();
   windows = [];
   terms = {};
   uid = 0;
 
-  var open = doc.getElementById('open')
-    , lights = doc.getElementById('lights');
+  var open = document.getElementById('open')
+    , lights = document.getElementById('lights');
 
   if (open) {
     on(open, 'click', function() {
@@ -262,12 +262,12 @@ Window.prototype.drag = function(ev) {
     el.style.cursor = '';
     root.style.cursor = '';
 
-    off(doc, 'mousemove', move);
-    off(doc, 'mouseup', up);
+    off(document, 'mousemove', move);
+    off(document, 'mouseup', up);
   }
 
-  on(doc, 'mousemove', move);
-  on(doc, 'mouseup', up);
+  on(document, 'mousemove', move);
+  on(document, 'mouseup', up);
 };
 
 Window.prototype.resizing = function(ev) {
@@ -316,12 +316,12 @@ Window.prototype.resizing = function(ev) {
     root.style.cursor = '';
     term.element.style.height = '';
 
-    off(doc, 'mousemove', move);
-    off(doc, 'mouseup', up);
+    off(document, 'mousemove', move);
+    off(document, 'mouseup', up);
   }
 
-  on(doc, 'mousemove', move);
-  on(doc, 'mouseup', up);
+  on(document, 'mousemove', move);
+  on(document, 'mouseup', up);
 };
 
 Window.prototype.maximize = function() {
@@ -525,6 +525,7 @@ Tab.prototype.focus = function() {
     win.focused = this;
 
     win.title.innerHTML = this.process;
+    document.title = this.title || initialTitle;
     this.button.style.fontWeight = 'bold';
     this.button.style.color = '';
   }
@@ -776,13 +777,13 @@ function sanitize(text) {
 
 function load() {
   if (socket) return;
-  off(doc, 'load', load);
-  off(doc, 'DOMContentLoaded', load);
+  off(document, 'load', load);
+  off(document, 'DOMContentLoaded', load);
   open();
 }
 
-on(doc, 'load', load);
-on(doc, 'DOMContentLoaded', load);
+on(document, 'load', load);
+on(document, 'DOMContentLoaded', load);
 setTimeout(load, 200);
 
 /**
