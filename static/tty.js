@@ -21,26 +21,27 @@ var initialTitle = document.title;
  * Shared
  */
 
-var socket
-  , windows
-  , terms
-  , uid;
+var windows
+  , terms;
 
 /**
  * Open
  */
 
 function open() {
-  if (socket) return;
+  var socket = io.connect()
+    , tty = window.tty;
 
   root = document.documentElement;
   body = document.body;
   h1 = document.getElementsByTagName('h1')[0];
 
-  socket = io.connect();
   windows = [];
   terms = {};
-  uid = 0;
+
+  tty.socket = socket;
+  tty.windows = windows;
+  tty.terms = terms;
 
   var open = document.getElementById('open')
     , lights = document.getElementById('lights');
@@ -65,6 +66,7 @@ function open() {
   });
 
   socket.on('data', function(id, data) {
+    if (!terms[id]) return;
     terms[id].write(data);
   });
 
@@ -106,9 +108,12 @@ function reset() {
   while (i--) {
     windows[i].destroy();
   }
+
   windows = [];
   terms = {};
-  uid = 0;
+
+  window.tty.windows = windows;
+  window.tty.terms = terms;
 }
 
 /**
@@ -436,8 +441,7 @@ Window.prototype.previousTab = function() {
 function Tab(win, socket) {
   var self = this;
 
-  var id = uid++
-    , cols = win.cols
+  var cols = win.cols
     , rows = win.rows;
 
   // TODO: make this an EventEmitter
@@ -457,7 +461,7 @@ function Tab(win, socket) {
     return cancel(ev);
   });
 
-  this.id = id;
+  this.id = '';
   this.socket = socket;
   this.window = win;
   this.button = button;
@@ -466,11 +470,12 @@ function Tab(win, socket) {
   this.open();
 
   win.tabs.push(this);
-  terms[id] = this;
 
   this.socket.emit('create', cols, rows, function(err, data) {
     if (err) return self._destroy();
     self.pty = data.pty;
+    self.id = data.id;
+    terms[self.id] = self;
     self.setProcessName(data.process);
   });
 };
@@ -555,7 +560,7 @@ Tab.prototype._destroy = function() {
     this.element.parentNode.removeChild(this.element);
   }
 
-  delete terms[this.id];
+  if (terms[this.id]) delete terms[this.id];
   splice(win.tabs, this);
 
   if (win.focused === this) {
@@ -776,7 +781,9 @@ function sanitize(text) {
  */
 
 function load() {
-  if (socket) return;
+  if (load.done) return;
+  load.done = true;
+
   off(document, 'load', load);
   off(document, 'DOMContentLoaded', load);
   open();
