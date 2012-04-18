@@ -96,9 +96,10 @@ function Terminal(cols, rows, handler) {
 }
 
 /**
- * Options
+ * Colors
  */
 
+// Colors 0-15
 Terminal.colors = [
   // dark:
   '#2e3436',
@@ -120,72 +121,39 @@ Terminal.colors = [
   '#eeeeec'
 ];
 
-// Convert xterm 256 color codes into CSS hex codes.
+// Colors 16-255
 // Much thanks to TooTallNate for writing this.
-Terminal.colors = function() {
-  var colors
-    , r
-    , i
-    , c;
+Terminal.colors = (function() {
+  var colors = Terminal.colors
+    , r = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff]
+    , i;
 
-  // Basic first 16 colors
-  colors = [
-    [0x00, 0x00, 0x00], [0xcd, 0x00, 0x00],
-    [0x00, 0xcd, 0x00], [0xcd, 0xcd, 0x00],
-    [0x00, 0x00, 0xee], [0xcd, 0x00, 0xcd],
-    [0x00, 0xcd, 0xcd], [0xe5, 0xe5, 0xe5],
-    [0x7f, 0x7f, 0x7f], [0xff, 0x00, 0x00],
-    [0x00, 0xff, 0x00], [0xff, 0xff, 0x00],
-    [0x5c, 0x5c, 0xff], [0xff, 0x00, 0xff],
-    [0x00, 0xff, 0xff], [0xff, 0xff, 0xff]
-  ];
-
-  // Numbers used to generate the conversion table
-  r = [0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
-
-  // Middle 218 colors, 6 sets of 6 tables of 6
+  // 16-231
   i = 0;
-  for (; i < 217; i++) {
-    colors.push([r[(i / 36) % 6 | 0], r[(i / 6) % 6 | 0], r[i % 6]]);
+  for (; i < 216; i++) {
+    out(r[(i / 36) % 6 | 0], r[(i / 6) % 6 | 0], r[i % 6]);
   }
 
-  // Ending with grayscale for the remainder
+  // 232-255 (grey)
   i = 0;
-  for (; i < 23; i++){
+  for (; i < 24; i++) {
     r = 8 + i * 10;
-    colors.push([r, r, r]);
+    out(r, r, r);
   }
 
-  // Now convert to CSS hex codes
-  i = 0;
-  for (; i < 256; i++) {
-    c = colors[i];
-
-    c[0] = c[0].toString(16);
-    c[1] = c[1].toString(16);
-    c[2] = c[2].toString(16);
-
-    if (c[0].length < 2) {
-      c[0] = '0' + c[0];
-    }
-
-    if (c[1].length < 2) {
-      c[1] = '0' + c[1];
-    }
-
-    if (c[2].length < 2) {
-      c[2] = '0' + c[2];
-    }
-
-    colors[i] = '#' + c.join('');
+  function out(r, g, b) {
+    colors.push('#' + hex(r) + hex(g) + hex(b));
   }
 
-  colors = Terminal.colors.concat(colors.slice(16));
+  function hex(c) {
+    c = c.toString(16);
+    return c.length < 2 ? '0' + c : c;
+  }
 
   return colors;
-}();
+})();
 
-// default bg/fg
+// Default BG/FG
 Terminal.defaultColors = {
   bg: '#000000',
   fg: '#f0f0f0'
@@ -193,6 +161,10 @@ Terminal.defaultColors = {
 
 Terminal.colors[256] = Terminal.defaultColors.bg;
 Terminal.colors[257] = Terminal.defaultColors.fg;
+
+/**
+ * Options
+ */
 
 Terminal.termName = 'xterm';
 Terminal.geometry = [80, 30];
