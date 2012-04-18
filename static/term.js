@@ -505,7 +505,7 @@ Terminal.prototype.bindMouse = function() {
     if (self.vt200Mouse) {
       // ctrl only
       mod &= ctrl;
-    } else if (self.x10Mouse || self.vt300Mouse || self.decLocator) {
+    } else if (!self.normalMouse) {
       mod = 0;
     }
 
@@ -559,8 +559,6 @@ Terminal.prototype.bindMouse = function() {
       up: ev.type === 'mouseup',
       wheel: ev.type === wheelEvent,
       move: ev.type === 'mousemove'
-      //button: getButton(ev),
-      //realButton: getButton(ev) & 3
     };
   }
 
@@ -580,18 +578,13 @@ Terminal.prototype.bindMouse = function() {
     }
 
     // bind events
-    var motion = !self.x10Mouse
-      && !self.vt200Mouse
-      && !self.vt300Mouse
-      && !self.decLocator;
-
-    if (motion) on(document, 'mousemove', sendMove);
+    if (self.normalMouse) on(document, 'mousemove', sendMove);
 
     // x10 compatibility mode can't send button releases
     if (!self.x10Mouse) {
       on(document, 'mouseup', function up(ev) {
         sendButton(ev);
-        if (motion) off(document, 'mousemove', sendMove);
+        if (self.normalMouse) off(document, 'mousemove', sendMove);
         off(document, 'mouseup', up);
         return cancel(ev);
       });
@@ -2923,6 +2916,7 @@ Terminal.prototype.setMode = function(params) {
         // even if there is no button held down.
         this.x10Mouse = params === 9;
         this.vt200Mouse = params === 1000;
+        this.normalMouse = params > 1000;
         this.mouseEvents = true;
         this.element.style.cursor = 'default';
         this.log('Binding to mouse events.');
@@ -3106,6 +3100,7 @@ Terminal.prototype.resetMode = function(params) {
       case 1003: // any event mouse
         this.x10Mouse = false;
         this.vt200Mouse = false;
+        this.normalMouse = false;
         this.mouseEvents = false;
         this.element.style.cursor = '';
         break;
