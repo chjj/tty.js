@@ -2441,13 +2441,17 @@ Terminal.prototype.charAttributes = function(params) {
       // fg color 256
       if (params[i+1] !== 5) continue;
       i += 2;
-      p = params[i];
+      p = params[i] & 0xff;
+      // convert 88 colors to 256
+      // if (this.is('rxvt-unicode') && p < 88) p = p * 2.9090 | 0;
       this.curAttr = (this.curAttr & ~(0x1ff << 9)) | (p << 9);
     } else if (p === 48) {
       // bg color 256
       if (params[i+1] !== 5) continue;
       i += 2;
-      p = params[i];
+      p = params[i] & 0xff;
+      // convert 88 colors to 256
+      // if (this.is('rxvt-unicode') && p < 88) p = p * 2.9090 | 0;
       this.curAttr = (this.curAttr & ~0x1ff) | p;
     }
   }
