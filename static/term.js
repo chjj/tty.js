@@ -70,15 +70,34 @@ function Terminal(cols, rows, handler) {
   this.scrollTop = 0;
   this.scrollBottom = this.rows - 1;
 
+  // modes
   this.applicationKeypad = false;
   this.originMode = false;
   this.insertMode = false;
   this.wraparoundMode = false;
-  this.mouseEvents;
-  this.sendFocus;
-  this.setupStops();
   this.charset = null;
   this.normal = null;
+
+  // mouse properties
+  this.decLocator;
+  this.x10Mouse;
+  this.vt200Mouse;
+  this.vt300Mouse;
+  this.normalMouse;
+  this.mouseEvents;
+  this.sendFocus;
+  this.utfMouse;
+  this.sgrMouse;
+  this.urxvtMouse;
+
+  // misc
+  this.element;
+  this.children;
+  this.refreshStart;
+  this.refreshEnd;
+  this.savedX;
+  this.savedY;
+  this.savedCols;
 
   this.defAttr = (257 << 9) | 256;
   this.curAttr = this.defAttr;
@@ -93,6 +112,9 @@ function Terminal(cols, rows, handler) {
   while (i--) {
     this.lines.push(this.blankLine());
   }
+
+  this.tabs;
+  this.setupStops();
 }
 
 /**
