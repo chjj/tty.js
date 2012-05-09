@@ -70,7 +70,7 @@ JSON file. An example configuration file looks like:
       "#3465a4",
       "#75507b",
       "#06989a",
-      "#d3d7cf"
+      "#d3d7cf",
       "#555753",
       "#ef2929",
       "#8ae234",
@@ -78,7 +78,7 @@ JSON file. An example configuration file looks like:
       "#729fcf",
       "#ad7fa8",
       "#34e2e2",
-      "#eeeeec",
+      "#eeeeec"
     ]
   }
 }
