@@ -2515,7 +2515,7 @@ Terminal.prototype.deviceStatus = function(params) {
     switch (params[0]) {
       case 6:
         // cursor position
-        this.send('\x1b['
+        this.send('\x1b[?'
           + (this.y + 1)
           + ';'
           + (this.x + 1)
