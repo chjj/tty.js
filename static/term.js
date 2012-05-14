@@ -1730,11 +1730,18 @@ Terminal.prototype.keyDown = function(ev) {
   switch (ev.keyCode) {
     // backspace
     case 8:
+      if (ev.shiftKey) {
+        key = '\x08'; // ^H
+        break;
+      }
       key = '\x7f'; // ^?
-      //key = '\x08'; // ^H
       break;
     // tab
     case 9:
+      if (ev.shiftKey) {
+        key = '\x1b[Z';
+        break;
+      }
       key = '\t';
       break;
     // return/enter
