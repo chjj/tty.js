@@ -11,14 +11,32 @@
 
 var document = this.document
   , window = this
-  , inherits = Terminal.inherits
-  , EventEmitter = Terminal.EventEmitter
-  , tty = new EventEmitter
   , root
   , body
   , h1;
 
+/**
+ * Initial Document Title
+ */
+
 var initialTitle = document.title;
+
+/**
+ * Helpers
+ */
+
+var EventEmitter = Terminal.EventEmitter
+  , isMac = Terminal.isMac
+  , inherits = Terminal.inherits
+  , on = Terminal.on
+  , off = Terminal.off
+  , cancel = Terminal.cancel;
+
+/**
+ * tty
+ */
+
+var tty = new EventEmitter;
 
 /**
  * Shared
@@ -65,6 +83,7 @@ function open() {
   socket.on('connect', function() {
     reset();
     new Window(socket);
+    tty.emit('connect');
   });
 
   socket.on('data', function(id, data) {
@@ -516,10 +535,14 @@ function Tab(win, socket) {
 
 inherits(Tab, Terminal);
 
+// We could just hook in `tab.on('data', ...)`
+// in the constructor, but this is faster.
 Tab.prototype.handler = function(data) {
   this.socket.emit('data', this.id, data);
 };
 
+// We could just hook in `tab.on('title', ...)`
+// in the constructor, but this is faster.
 Tab.prototype.handleTitle = function(title) {
   if (!title) return;
 
@@ -785,24 +808,6 @@ function splice(obj, el) {
   var i = indexOf(obj, el);
   if (~i) obj.splice(i, 1);
 }
-
-function on(el, type, handler, capture) {
-  el.addEventListener(type, handler, capture || false);
-}
-
-function off(el, type, handler, capture) {
-  el.removeEventListener(type, handler, capture || false);
-}
-
-function cancel(ev) {
-  if (ev.preventDefault) ev.preventDefault();
-  ev.returnValue = false;
-  if (ev.stopPropagation) ev.stopPropagation();
-  ev.cancelBubble = true;
-  return false;
-}
-
-var isMac = ~navigator.userAgent.indexOf('Mac');
 
 function sanitize(text) {
   if (!text) return '';

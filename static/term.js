@@ -3950,7 +3950,11 @@ var setInterval = this.setInterval;
  */
 
 Terminal.EventEmitter = EventEmitter;
+Terminal.isMac = isMac;
 Terminal.inherits = inherits;
+Terminal.on = on;
+Terminal.off = off;
+Terminal.cancel = cancel;
 
 if (typeof module !== 'undefined') {
   module.exports = Terminal;
