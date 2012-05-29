@@ -11,6 +11,9 @@
 
 var document = this.document
   , window = this
+  , inherits = Terminal.inherits
+  , EventEmitter = Terminal.EventEmitter
+  , tty = new EventEmitter
   , root
   , body
   , h1;
@@ -29,8 +32,7 @@ var windows
  */
 
 function open() {
-  var socket = io.connect()
-    , tty = window.tty;
+  var socket = io.connect();
 
   root = document.documentElement;
   body = document.body;
@@ -101,6 +103,9 @@ function open() {
       }
     }
   });
+
+  tty.emit('load');
+  tty.emit('open');
 }
 
 function reset() {
@@ -112,8 +117,10 @@ function reset() {
   windows = [];
   terms = {};
 
-  window.tty.windows = windows;
-  window.tty.terms = terms;
+  tty.windows = windows;
+  tty.terms = terms;
+
+  tty.emit('reset');
 }
 
 /**
@@ -171,7 +178,14 @@ function Window(socket) {
   this.createTab();
   this.focus();
   this.bind();
+
+  this.tabs[0].once('open', function() {
+    tty.emit('open window', self);
+    self.emit('open');
+  });
 }
+
+inherits(Window, EventEmitter);
 
 Window.prototype.bind = function() {
   var self = this
@@ -221,6 +235,9 @@ Window.prototype.focus = function() {
     parent.appendChild(this.element);
   }
   this.focused.focus();
+
+  tty.emit('focus window', this);
+  this.emit('focus');
 };
 
 Window.prototype.destroy = function() {
@@ -237,10 +254,14 @@ Window.prototype.destroy = function() {
   this.each(function(term) {
     term.destroy();
   });
+
+  tty.emit('close window', this);
+  this.emit('close');
 };
 
 Window.prototype.drag = function(ev) {
-  var el = this.element;
+  var self = this
+    , el = this.element;
 
   if (this.minimize) return;
 
@@ -269,6 +290,9 @@ Window.prototype.drag = function(ev) {
 
     off(document, 'mousemove', move);
     off(document, 'mouseup', up);
+
+    tty.emit('drag window', self, el.style.left, el.style.top);
+    self.emit('drag', el.style.left, el.style.top);
   }
 
   on(document, 'mousemove', move);
@@ -360,6 +384,9 @@ Window.prototype.maximize = function() {
     root.className = m.root;
 
     self.resize(m.cols, m.rows);
+
+    tty.emit('minimize window', self);
+    self.emit('minimize');
   };
 
   window.scrollTo(0, 0);
@@ -380,6 +407,9 @@ Window.prototype.maximize = function() {
   root.className = 'maximized';
 
   this.resize(x, y);
+
+  tty.emit('maximize window', this);
+  this.emit('maximize');
 };
 
 Window.prototype.resize = function(cols, rows) {
@@ -388,6 +418,8 @@ Window.prototype.resize = function(cols, rows) {
   this.each(function(term) {
     term.resize(cols, rows);
   });
+  tty.emit('resize window', this, cols, rows);
+  this.emit('resize', cols, rows);
 };
 
 Window.prototype.each = function(func) {
@@ -398,7 +430,7 @@ Window.prototype.each = function(func) {
 };
 
 Window.prototype.createTab = function() {
-  new Tab(this, this.socket);
+  return new Tab(this, this.socket);
 };
 
 Window.prototype.highlight = function() {
@@ -477,6 +509,8 @@ function Tab(win, socket) {
     self.id = data.id;
     terms[self.id] = self;
     self.setProcessName(data.process);
+    tty.emit('open tab', self);
+    self.emit('open');
   });
 };
 
@@ -540,6 +574,9 @@ Tab.prototype.focus = function() {
   this._focus();
 
   win.focus();
+
+  tty.emit('focus tab', this);
+  this.emit('focus');
 };
 
 Tab.prototype._resize = Tab.prototype.resize;
@@ -547,6 +584,8 @@ Tab.prototype._resize = Tab.prototype.resize;
 Tab.prototype.resize = function(cols, rows) {
   this.socket.emit('resize', this.id, cols, rows);
   this._resize(cols, rows);
+  tty.emit('resize tab', this, cols, rows);
+  this.emit('resize', cols, rows);
 };
 
 Tab.prototype._destroy = function() {
@@ -581,6 +620,8 @@ Tab.prototype.destroy = function() {
   if (this.destroyed) return;
   this.socket.emit('kill', this.id);
   this._destroy();
+  tty.emit('close tab', this);
+  this.emit('close');
 };
 
 Tab.prototype._keyDown = Tab.prototype.keyDown;
@@ -732,14 +773,6 @@ Tab.prototype.setProcessName = function(name) {
  * Helpers
  */
 
-function inherits(child, parent) {
-  function f() {
-    this.constructor = child;
-  }
-  f.prototype = parent.prototype;
-  child.prototype = new f;
-}
-
 function indexOf(obj, el) {
   var i = obj.length;
   while (i--) {
@@ -797,11 +830,11 @@ setTimeout(load, 200);
  * Expose
  */
 
-this.tty = {
-  Window: Window,
-  Tab: Tab,
-  Terminal: Terminal
-};
+tty.Window = Window;
+tty.Tab = Tab;
+tty.Terminal = Terminal;
+
+this.tty = tty;
 
 }).call(function() {
   return this || (typeof window !== 'undefined' ? window : global);

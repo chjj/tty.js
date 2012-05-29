@@ -38,6 +38,57 @@ var window = this
   , document = this.document;
 
 /**
+ * EventEmitter
+ */
+
+function EventEmitter() {}
+
+EventEmitter.prototype.addListener = function(type, listener) {
+  this._events = this._events || {};
+  this._events[type] = this._events[type] || [];
+  this._events[type].push(listener);
+};
+
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+EventEmitter.prototype.removeListener = function(type, listener) {
+  if (!this._events || !this._events[type]) return;
+
+  var obj = this._events[type]
+    , i = obj.length;
+
+  while (i--) {
+    if (obj[i] === listener) break;
+  }
+
+  obj.splice(i, 1);
+};
+
+EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
+
+EventEmitter.prototype.once = function(type, listener) {
+  var self = this;
+  this.on(type, function on() {
+    self.removeListener(type, on);
+    var args = Array.prototype.slice.call(arguments);
+    return listener.apply(self, args);
+  });
+};
+
+EventEmitter.prototype.emit = function(type) {
+  if (!this._events || !this._events[type]) return;
+
+  var args = Array.prototype.slice.call(arguments, 1)
+    , obj = this._events[type]
+    , l = obj.length
+    , i = 0;
+
+  for (; i < l; i++) {
+    obj[i].apply(this, args);
+  }
+};
+
+/**
  * States
  */
 
@@ -116,6 +167,8 @@ function Terminal(cols, rows, handler) {
   this.tabs;
   this.setupStops();
 }
+
+inherits(Terminal, EventEmitter);
 
 /**
  * Colors
@@ -2155,8 +2208,13 @@ Terminal.prototype.is = function(term) {
   return (name + '').indexOf(term) === 0;
 };
 
-Terminal.prototype.handler = function() {};
-Terminal.prototype.handleTitle = function() {};
+Terminal.prototype.handler = function(data) {
+  this.emit('data', data);
+};
+
+Terminal.prototype.handleTitle = function(title) {
+  this.emit('title', title);
+};
 
 /**
  * ESC
@@ -3860,6 +3918,14 @@ function cancel(ev) {
   return false;
 }
 
+function inherits(child, parent) {
+  function f() {
+    this.constructor = child;
+  }
+  f.prototype = parent.prototype;
+  child.prototype = new f;
+}
+
 var isMac = ~navigator.userAgent.indexOf('Mac');
 
 // if bold is broken, we can't
@@ -3882,6 +3948,9 @@ var setInterval = this.setInterval;
 /**
  * Expose
  */
+
+Terminal.EventEmitter = EventEmitter;
+Terminal.inherits = inherits;
 
 if (typeof module !== 'undefined') {
   module.exports = Terminal;
