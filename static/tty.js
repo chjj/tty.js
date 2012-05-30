@@ -173,7 +173,7 @@ function Window(socket) {
   title.className = 'title';
   title.innerHTML = '';
 
-  this.socket = socket;
+  this.socket = socket || tty.socket;
   this.element = el;
   this.grip = grip;
   this.bar = bar;
@@ -647,6 +647,89 @@ Tab.prototype.destroy = function() {
   this.emit('close');
 };
 
+Tab.prototype.__bindKeys = function() {
+  this.on('key', function(key, ev) {
+    // ^A for screen-key-like prefix.
+    if (Terminal.screenKeys) {
+      if (this.pendingKey) {
+        this.__ignoreNext();
+        this.pendingKey = false;
+        this.__specialKeyHandler(key);
+        return;
+      }
+
+      // ^A
+      if (key === '\x01') {
+        this.__ignoreNext();
+        this.pendingKey = true;
+        return;
+      }
+    }
+
+    // Alt-` to quickly swap between windows.
+    if (key === '\x1b`') {
+      var i = indexOf(windows, this.window) + 1;
+      this.__ignoreNext();
+      if (windows[i]) return windows[i].highlight();
+      if (windows[0]) return windows[0].highlight();
+
+      return this.window.highlight();
+    }
+
+    // URXVT Keys for tab navigation and creation.
+    // Shift-Left, Shift-Right, Shift-Down
+    if (key === '\x1b[1;2D') {
+      this.__ignoreNext();
+      return this.window.previousTab();
+    } else if (key === '\x1b[1;2B') {
+      this.__ignoreNext();
+      return this.window.nextTab();
+    } else if (key === '\x1b[1;2C') {
+      this.__ignoreNext();
+      return this.window.createTab();
+    }
+  });
+};
+
+// tmux/screen-like keys
+Tab.prototype.__specialKeyHandler = function(key) {
+  var win = this.window;
+
+  switch (key) {
+    case '\x01': // ^A
+      this.send(key);
+      break;
+    case 'c':
+      win.createTab();
+      break;
+    case 'k':
+      win.focused.destroy();
+      break;
+    case 'w': // tmux
+    case '"': // screen
+      break;
+    default:
+      if (key >= '0' && key <= '9') {
+        key = +key;
+        // 1-indexed
+        key--;
+        if (!~key) key = 9;
+        if (win.tabs[key]) {
+          win.tabs[key].focus();
+        }
+      }
+      break;
+  }
+};
+
+Tab.prototype.__ignoreNext = function() {
+  // Don't send the next key.
+  var handler = this.handler;
+  this.handler = function() {
+    this.handler = handler;
+  };
+};
+
 Tab.prototype._keyDown = Tab.prototype.keyDown;
 
 Tab.prototype.keyDown = function(ev) {
@@ -838,6 +921,16 @@ setTimeout(load, 200);
 tty.Window = Window;
 tty.Tab = Tab;
 tty.Terminal = Terminal;
+
+tty.createWindow = function() {
+  if (!tty.socket) {
+    tty.once('load', function() {
+      new Window;
+    });
+    return;
+  }
+  return new Window;
+};
 
 this.tty = tty;
 

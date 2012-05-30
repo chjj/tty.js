@@ -58,20 +58,20 @@ EventEmitter.prototype.removeListener = function(type, listener) {
     , i = obj.length;
 
   while (i--) {
-    if (obj[i] === listener) break;
+    if (obj[i] === listener) {
+      obj.splice(i, 1);
+      return;
+    }
   }
-
-  obj.splice(i, 1);
 };
 
 EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
 
 EventEmitter.prototype.once = function(type, listener) {
-  var self = this;
   this.on(type, function on() {
-    self.removeListener(type, on);
     var args = Array.prototype.slice.call(arguments);
-    return listener.apply(self, args);
+    this.removeListener(type, on);
+    return listener.apply(this, args);
   });
 };
 
@@ -105,9 +105,11 @@ var normal = 0
  */
 
 function Terminal(cols, rows, handler) {
-  this.cols = cols;
-  this.rows = rows;
-  if (handler) this.handler = handler;
+  this.cols = cols || Terminal.geometry[0];
+  this.rows = rows || Terminal.geometry[1];
+
+  //if (handler) this.handler = handler;
+  if (handler) this.on('data', handler);
 
   this.ybase = 0;
   this.ydisp = 0;
@@ -1969,9 +1971,14 @@ Terminal.prototype.keyDown = function(ev) {
       break;
   }
 
+  this.emit('keydown', ev);
+
   if (key) {
+    this.emit('key', key, ev);
+
     this.showCursor();
     this.handler(key);
+
     return cancel(ev);
   }
 
@@ -1996,6 +2003,9 @@ Terminal.prototype.keyPress = function(ev) {
   if (!key || ev.ctrlKey || ev.altKey || ev.metaKey) return false;
 
   key = String.fromCharCode(key);
+
+  this.emit('keypress', key, ev);
+  this.emit('key', key, ev);
 
   this.showCursor();
   this.handler(key);
