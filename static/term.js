@@ -152,6 +152,10 @@ function Terminal(cols, rows, handler) {
   this.savedY;
   this.savedCols;
 
+  // stream
+  this.readable = true;
+  this.writable = true;
+
   this.defAttr = (257 << 9) | 256;
   this.curAttr = this.defAttr;
 
@@ -365,6 +369,8 @@ Terminal.prototype.open = function() {
   // sync default bg/fg colors
   this.element.style.backgroundColor = Terminal.defaultColors.bg;
   this.element.style.color = Terminal.defaultColors.fg;
+
+  //this.emit('open');
 };
 
 // XTerm mouse events
@@ -459,6 +465,12 @@ Terminal.prototype.bindMouse = function() {
   // vt300: ^[[ 24(1/3/5)~ [ Cx , Cy ] \r
   // locator: CSI P e ; P b ; P r ; P c ; P p & w
   function sendEvent(button, pos) {
+    // self.emit('mouse', {
+    //   x: pos.x - 32,
+    //   y: pos.x - 32,
+    //   button: button
+    // });
+
     if (self.vt300Mouse) {
       // NOTE: Unstable.
       // http://www.vt100.net/docs/vt3xx-gp/chapter15.html
@@ -691,6 +703,19 @@ Terminal.prototype.bindMouse = function() {
     }
     return cancel(ev);
   });
+};
+
+/**
+ * Destroy Terminal
+ */
+
+Terminal.prototype.destroy = function() {
+  this.readable = false;
+  this.writable = false;
+  this._events = {};
+  this.handler = function() {};
+  this.write = function() {};
+  //this.emit('close');
 };
 
 /**

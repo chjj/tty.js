@@ -611,6 +611,8 @@ Tab.prototype.resize = function(cols, rows) {
   this.emit('resize', cols, rows);
 };
 
+Tab.prototype.__destroy = Tab.prototype.destroy;
+
 Tab.prototype._destroy = function() {
   if (this.destroyed) return;
   this.destroyed = true;
@@ -637,6 +639,8 @@ Tab.prototype._destroy = function() {
   //   document.title = initialTitle;
   //   if (h1) h1.innerHTML = initialTitle;
   // }
+
+  this.__destroy();
 };
 
 Tab.prototype.destroy = function() {
