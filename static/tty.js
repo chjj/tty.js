@@ -519,6 +519,7 @@ function Tab(win, socket) {
   this.element = null;
   this.process = '';
   this.open();
+  this.hookKeys();
 
   win.tabs.push(this);
 
@@ -651,20 +652,20 @@ Tab.prototype.destroy = function() {
   this.emit('close');
 };
 
-Tab.prototype.__bindKeys = function() {
+Tab.prototype.hookKeys = function() {
   this.on('key', function(key, ev) {
     // ^A for screen-key-like prefix.
     if (Terminal.screenKeys) {
       if (this.pendingKey) {
-        this.__ignoreNext();
+        this._ignoreNext();
         this.pendingKey = false;
-        this.__specialKeyHandler(key);
+        this.specialKeyHandler(key);
         return;
       }
 
       // ^A
       if (key === '\x01') {
-        this.__ignoreNext();
+        this._ignoreNext();
         this.pendingKey = true;
         return;
       }
@@ -673,7 +674,7 @@ Tab.prototype.__bindKeys = function() {
     // Alt-` to quickly swap between windows.
     if (key === '\x1b`') {
       var i = indexOf(windows, this.window) + 1;
-      this.__ignoreNext();
+      this._ignoreNext();
       if (windows[i]) return windows[i].highlight();
       if (windows[0]) return windows[0].highlight();
 
@@ -683,20 +684,20 @@ Tab.prototype.__bindKeys = function() {
     // URXVT Keys for tab navigation and creation.
     // Shift-Left, Shift-Right, Shift-Down
     if (key === '\x1b[1;2D') {
-      this.__ignoreNext();
+      this._ignoreNext();
       return this.window.previousTab();
     } else if (key === '\x1b[1;2B') {
-      this.__ignoreNext();
+      this._ignoreNext();
       return this.window.nextTab();
     } else if (key === '\x1b[1;2C') {
-      this.__ignoreNext();
+      this._ignoreNext();
       return this.window.createTab();
     }
   });
 };
 
 // tmux/screen-like keys
-Tab.prototype.__specialKeyHandler = function(key) {
+Tab.prototype.specialKeyHandler = function(key) {
   var win = this.window;
 
   switch (key) {
@@ -726,94 +727,12 @@ Tab.prototype.__specialKeyHandler = function(key) {
   }
 };
 
-Tab.prototype.__ignoreNext = function() {
+Tab.prototype._ignoreNext = function() {
   // Don't send the next key.
   var handler = this.handler;
   this.handler = function() {
     this.handler = handler;
   };
-};
-
-Tab.prototype._keyDown = Tab.prototype.keyDown;
-
-Tab.prototype.keyDown = function(ev) {
-  if (this.pendingKey) {
-    this.pendingKey = false;
-    return this.specialKeyHandler(ev);
-  }
-
-  // ^A for screen-key-like prefix.
-  if (Terminal.screenKeys && ev.ctrlKey && ev.keyCode === 65) {
-    this.pendingKey = true;
-    return cancel(ev);
-  }
-
-  // Alt-` to quickly swap between windows.
-  if (ev.keyCode === 192
-      && ((!isMac && ev.altKey)
-      || (isMac && ev.metaKey))) {
-    cancel(ev);
-
-    var i = indexOf(windows, this.window) + 1;
-    if (windows[i]) return windows[i].highlight();
-    if (windows[0]) return windows[0].highlight();
-
-    return this.window.highlight();
-  }
-
-  // URXVT Keys for tab navigation and creation.
-  // Shift-Left, Shift-Right, Shift-Down
-  if (ev.shiftKey && (ev.keyCode >= 37 && ev.keyCode <= 40)) {
-    cancel(ev);
-
-    if (ev.keyCode === 37) {
-      return this.window.previousTab();
-    } else if (ev.keyCode === 39) {
-      return this.window.nextTab();
-    }
-
-    return this.window.createTab();
-  }
-
-  // Pass to terminal key handler.
-  return this._keyDown(ev);
-};
-
-// tmux/screen-like keys
-Tab.prototype.specialKeyHandler = function(ev) {
-  var win = this.window
-    , key = ev.keyCode;
-
-  switch (key) {
-    case 65: // a
-      if (ev.ctrlKey) {
-        return this._keyDown(ev);
-      }
-      break;
-    case 67: // c
-      win.createTab();
-      break;
-    case 75: // k
-      win.focused.destroy();
-      break;
-    case 87: // w (tmux key)
-    case 222: // " - mac (screen key)
-    case 192: // " - windows (screen key)
-      break;
-    default: // 0 - 9
-      if (key >= 48 && key <= 57) {
-        key -= 48;
-        // 1-indexed
-        key--;
-        if (!~key) key = 9;
-        if (win.tabs[key]) {
-          win.tabs[key].focus();
-        }
-      }
-      break;
-  }
-
-  return cancel(ev);
 };
 
 /**
