@@ -1184,7 +1184,8 @@ Terminal.prototype.write = function(data) {
             case 1:
             case 2:
               if (this.params[1]) {
-                this.handleTitle(this.params[1]);
+                this.title = this.params[1];
+                this.handleTitle(this.title);
               }
               break;
             case 3:
