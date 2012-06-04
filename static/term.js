@@ -741,6 +741,7 @@ Terminal.prototype.refresh = function(start, end) {
     , ch
     , width
     , data
+    , data2
     , attr
     , fgColor
     , bgColor
@@ -778,48 +779,52 @@ Terminal.prototype.refresh = function(start, end) {
       data = line[i][0];
       ch = line[i][1];
 
-      if (i === x) data = -1;
+      if (i === x) {
+        data2 = data;
+        data = -1;
+      }
 
       if (data !== attr) {
         if (attr !== this.defAttr) {
           out += '</span>';
         }
         if (data !== this.defAttr) {
+          out += '<span style="';
           if (data === -1) {
-            out += '<span class="reverse-video">';
+            bgColor = (data2 >> 9) & 0x1ff;
+            fgColor = data2 & 0x1ff;
+            flags = data2 >> 18;
           } else {
-            out += '<span style="';
-
             bgColor = data & 0x1ff;
             fgColor = (data >> 9) & 0x1ff;
             flags = data >> 18;
-
-            if (flags & 1) {
-              if (!Terminal.brokenBold) {
-                out += 'font-weight:bold;';
-              }
-              // see: XTerm*boldColors
-              if (fgColor < 8) fgColor += 8;
-            }
-
-            if (flags & 2) {
-              out += 'text-decoration:underline;';
-            }
-
-            if (bgColor !== 256) {
-              out += 'background-color:'
-                + Terminal.colors[bgColor]
-                + ';';
-            }
-
-            if (fgColor !== 257) {
-              out += 'color:'
-                + Terminal.colors[fgColor]
-                + ';';
-            }
-
-            out += '">';
           }
+
+          if (flags & 1) {
+            if (!Terminal.brokenBold) {
+              out += 'font-weight:bold;';
+            }
+            // see: XTerm*boldColors
+            if (fgColor < 8) fgColor += 8;
+          }
+
+          if (flags & 2) {
+            out += 'text-decoration:underline;';
+          }
+
+          if (bgColor !== 256) {
+            out += 'background-color:'
+              + Terminal.colors[bgColor]
+              + ';';
+          }
+
+          if (fgColor !== 257) {
+            out += 'color:'
+              + Terminal.colors[fgColor]
+              + ';';
+          }
+
+          out += '">';
         }
       }
 
