@@ -374,6 +374,29 @@ Terminal.prototype.open = function() {
   //this.emit('open');
 };
 
+Terminal.prototype.sizeToFit = function() {
+  var tempDiv = document.createElement('div');
+  tempDiv.className = 'terminal';
+  tempDiv.style.width = '0';
+  tempDiv.style.height = '0';
+  tempDiv.style.visibility = 'hidden';
+
+  var char = document.createElement('div');
+  char.style.position = 'absolute';
+  char.innerHTML = 'W';
+  tempDiv.appendChild(char);
+
+  this.element.parentNode.insertBefore(tempDiv, this.element.nextSibling);
+
+  var cols = Math.floor(this.element.clientWidth / char.clientWidth);
+  var rows = Math.floor(this.element.clientHeight / char.clientHeight);
+
+  tempDiv.parentNode.removeChild(tempDiv);
+  char.parentNode.removeChild(char);
+
+  this.resize(cols, rows);
+}
+
 // XTerm mouse events
 // http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking
 // To better understand these
@@ -2157,6 +2180,8 @@ Terminal.prototype.resize = function(x, y) {
   // screen buffer. just set it
   // to null for now.
   this.normal = null;
+
+  this.emit('resize', x, y);
 };
 
 Terminal.prototype.updateRange = function(y) {
