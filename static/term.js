@@ -181,25 +181,26 @@ inherits(Terminal, EventEmitter);
  */
 
 // Colors 0-15
+
 Terminal.colors = [
   // dark:
-  '#2e3436',
-  '#cc0000',
-  '#4e9a06',
-  '#c4a000',
-  '#3465a4',
-  '#75507b',
-  '#06989a',
-  '#d3d7cf',
+  '#000000',
+  '#c81908',
+  '#00c01d',
+  '#c8c221',
+  '#0033c5',
+  '#c73ac5',
+  '#00c6c7',
+  '#c7c7c7',
   // bright:
-  '#555753',
-  '#ef2929',
-  '#8ae234',
-  '#fce94f',
-  '#729fcf',
-  '#ad7fa8',
-  '#34e2e2',
-  '#eeeeec'
+  '#686868',
+  '#8a8a8a',
+  '#67f86e',
+  '#fff970',
+  '#6678fc',
+  '#ff7cfd',
+  '#65fdff',
+  '#ffffff'
 ];
 
 // Colors 16-255
