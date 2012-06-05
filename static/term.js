@@ -36,17 +36,9 @@
 
 var window = this
   , document = this.document;
-  
-/**
- * If the browser is the targeted one
- * @type {boolean}
- */
+
 var isGecko = navigator.userAgent.indexOf('WebKit')==-1&&navigator.product=='Gecko';
-/**
- * The text selection
- * @type {string}
- */
-var buffered_ = ''
+
 /**
  * EventEmitter
  */
@@ -331,43 +323,66 @@ Terminal.prototype.open = function() {
 
   this.startBlink();
 
+  var timer_;
+  var evt;
+  var process = function() {
+    var parent = evt.target.parentNode;
+    var text = parent.textContent;
+    parent.contentEditable = 'inherit';
+    parent.blur();
+    parent.innerHTML = parent.dataset.ohtml;
+    var a1 = parent.dataset.oc.split('');
+    var a2 = text.split('');
+    var fi = -1;
+    if ( a1.length != a2.length ) {
+      for (var i = 0; i < a1.length; i++) {
+        if ( a1[i] != a2[i] ){
+          fi = i;
+          break;
+        }
+      }
+      self.send(text.substr(fi, a2.length - a1.length + 1));
+    }
+    parent.removeEventListener('DOMCharacterDataModified',_handler, false);
+    delete parent.dataset.ohtml;
+    delete parent.dataset.oc;
+    parent.style.width = '';
+  };
+  var _handler = function(ev) {
+    clearTimeout(timer_);
+    evt = ev;
+    timer_ = setTimeout(process, 50);
+  };
+
   on(this.element, 'mousedown', function() {
     self.focus();
   });
-  
-  // Hook our events only if the browser is the targeted one
-  if ( isGecko ) {
-    on(this.elements, 'mouseup', function(e){
-      if ( e.button == 0) {
-        var selection = window.getSelection().toString();
-        if ( selection != '') buffered_ = selection;
-      }
-    }, true);
-  }
 
   // This probably shouldn't work,
   // ... but it does. Firefox's paste
   // event seems to only work for textareas?
   on(this.element, 'mousedown', function(ev) {
-    var wait = false;
     var button = ev.button != null
       ? +ev.button
       : ev.which != null
         ? ev.which - 1
         : null;
-
-    // Does IE9 do this?
-    if (~navigator.userAgent.indexOf('MSIE')) {
-      button = button === 1 ? 0 : button === 4 ? 1 : button;
-    }
-    if ( isGecko && button == 1) {
-      wait = true;
+    // Handle Gecko separately
+    if (isGecko && button == 1) {
+      ev.target.dataset.oc = ev.target.textContent;
+      ev.target.dataset.ohtml = ev.target.innerHTML;
+      ev.target.style.width = getComputedStyle(ev.target).width;
+      ev.target.addEventListener('DOMCharacterDataModified', _handler, false);
+      ev.target.contentEditable = true;
     } else {
-      if (button !== 2) return;
-    }
+      // Does IE9 do this?
+      if (~navigator.userAgent.indexOf('MSIE')) {
+        button = button === 1 ? 0 : button === 4 ? 1 : button;
+      }
 
-    self.element.contentEditable = 'true';
-    if (!wait) {
+      if (button !== 2) return;
+
+      self.element.contentEditable = 'true';
       setTimeout(function() {
         self.element.contentEditable = 'inherit'; // 'false';
       }, 1);
@@ -375,17 +390,18 @@ Terminal.prototype.open = function() {
   }, true);
 
   on(this.element, 'paste', function(ev) {
-    if ( isGecko ) {
-      if ( buffered_ != '' ) self.send(buffered_);
-    } else if (ev.clipboardData) {
+    if (ev.clipboardData) {
       self.send(ev.clipboardData.getData('text/plain'));
     } else if (window.clipboardData) {
       self.send(window.clipboardData.getData('Text'));
     }
     // Not necessary. Do it anyway for good measure.
     self.element.contentEditable = 'inherit';
-    return cancel(ev);
-  });
+    // Gecko needs to receive the paste event
+    if ( !isGecko ) {
+      return cancel(ev);
+    }
+ });
 
   this.bindMouse();
 
