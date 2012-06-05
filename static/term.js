@@ -36,7 +36,17 @@
 
 var window = this
   , document = this.document;
-
+  
+/**
+ * If the browser is the targeted one
+ * @type {boolean}
+ */
+var isGecko = navigator.userAgent.indexOf('WebKit')==-1&&navigator.product=='Gecko';
+/**
+ * The text selection
+ * @type {string}
+ */
+var buffered_ = ''
 /**
  * EventEmitter
  */
@@ -324,11 +334,22 @@ Terminal.prototype.open = function() {
   on(this.element, 'mousedown', function() {
     self.focus();
   });
+  
+  // Hook our events only if the browser is the targeted one
+  if ( isGecko ) {
+    on(this.elements, 'mouseup', function(e){
+      if ( e.button == 0) {
+        var selection = window.getSelection().toString();
+        if ( selection != '') buffered_ = selection;
+      }
+    }, true);
+  }
 
   // This probably shouldn't work,
   // ... but it does. Firefox's paste
   // event seems to only work for textareas?
   on(this.element, 'mousedown', function(ev) {
+    var wait = false;
     var button = ev.button != null
       ? +ev.button
       : ev.which != null
@@ -339,17 +360,24 @@ Terminal.prototype.open = function() {
     if (~navigator.userAgent.indexOf('MSIE')) {
       button = button === 1 ? 0 : button === 4 ? 1 : button;
     }
-
-    if (button !== 2) return;
+    if ( isGecko && button == 1) {
+      wait = true;
+    } else {
+      if (button !== 2) return;
+    }
 
     self.element.contentEditable = 'true';
-    setTimeout(function() {
-      self.element.contentEditable = 'inherit'; // 'false';
-    }, 1);
+    if (!wait) {
+      setTimeout(function() {
+        self.element.contentEditable = 'inherit'; // 'false';
+      }, 1);
+    }
   }, true);
 
   on(this.element, 'paste', function(ev) {
-    if (ev.clipboardData) {
+    if ( isGecko ) {
+      if ( buffered_ != '' ) self.send(buffered_);
+    } else if (ev.clipboardData) {
       self.send(ev.clipboardData.getData('text/plain'));
     } else if (window.clipboardData) {
       self.send(window.clipboardData.getData('Text'));
