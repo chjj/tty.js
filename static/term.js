@@ -341,7 +341,7 @@ Terminal.prototype.open = function() {
           break;
         }
       }
-      self.send(text.substr(fi, a2.length - a1.length + 1));
+			self.send(text.substr(fi, a2.length - a1.length + 1).replace(/^[\s\xa0]+|[\s\xa0]+$/g, '').replace(/\xa0|\s/g, ' '));
     }
     parent.removeEventListener('DOMCharacterDataModified',_handler, false);
     delete parent.dataset.ohtml;
