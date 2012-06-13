@@ -128,8 +128,13 @@ function Terminal(cols, rows, handler) {
   this.originMode = false;
   this.insertMode = false;
   this.wraparoundMode = false;
-  this.charset = null;
   this.normal = null;
+
+  // charset
+  this.charset = null;
+  this.gcharset = null;
+  this.glevel = 0;
+  this.charsets = [null];
 
   // mouse properties
   this.decLocator;
@@ -999,12 +1004,16 @@ Terminal.prototype.write = function(data) {
             break;
 
           // shift out
-          // case '\x0e':
-          //   break;
+          case '\x0e':
+            this.glevel = 1;
+            this.charset = this.charsets[1];
+            break;
 
           // shift in
-          // case '\x0f':
-          //   break;
+          case '\x0f':
+            this.glevel = 0;
+            this.charset = this.charsets[0];
+            break;
 
           // '\e'
           case '\x1b':
@@ -1088,6 +1097,8 @@ Terminal.prototype.write = function(data) {
           // @ = default, G = utf-8
           case '%':
             this.charset = null;
+            //this.glevel = 0;
+            //this.charsets[0] = null;
             this.state = normal;
             i++;
             break;
@@ -1099,6 +1110,26 @@ Terminal.prototype.write = function(data) {
           case '+':
           case '-':
           case '.':
+            switch (ch) {
+              case '(':
+                this.gcharset = 0;
+                break;
+              case ')':
+                this.gcharset = 1;
+                break;
+              case '*':
+                this.gcharset = 2;
+                break;
+              case '+':
+                this.gcharset = 3;
+                break;
+              case '-':
+                this.gcharset = 1;
+                break;
+              case '.':
+                this.gcharset = 2;
+                break;
+            }
             this.state = charset;
             break;
 
@@ -1106,7 +1137,12 @@ Terminal.prototype.write = function(data) {
           // A = ISO Latin-1 Supplemental.
           // Not implemented.
           case '/':
-            this.charset = null;
+            this.gcharset = 3;
+            this.charsets[this.gcharset] = null;
+            if (this.glevel === this.gcharset) {
+              this.charset = null;
+            }
+            this.gcharset = null;
             this.state = normal;
             i++;
             break;
@@ -1159,12 +1195,20 @@ Terminal.prototype.write = function(data) {
         switch (ch) {
           // DEC Special Character and Line Drawing Set.
           case '0':
-            this.charset = SCLD;
+            this.charsets[this.gcharset] = Terminal.charsets.SCLD;
+            if (this.gcharset === this.glevel) {
+              this.charset = Terminal.charsets.SCLD;
+            }
+            this.gcharset = null;
             break;
           // United States (USASCII).
           case 'B':
           default:
-            this.charset = null;
+            this.charsets[this.gcharset] = null;
+            if (this.gcharset === this.glevel) {
+              this.charset = null;
+            }
+            this.gcharset = null;
             break;
         }
         this.state = normal;
@@ -3088,6 +3132,10 @@ Terminal.prototype.setMode = function(params) {
             scrollTop: this.scrollTop,
             scrollBottom: this.scrollBottom,
             tabs: this.tabs
+            // XXX save charset(s) here?
+            // charset: this.charset,
+            // glevel: this.glevel,
+            // charsets: this.charsets
           };
           this.reset();
           this.normal = normal;
@@ -3461,6 +3509,7 @@ Terminal.prototype.softReset = function(params) {
   this.curAttr = this.defAttr;
   this.x = this.y = 0; // ?
   this.charset = null;
+  this.charsets = [null]; // ??
 };
 
 // CSI Ps$ p
@@ -3894,6 +3943,8 @@ Terminal.prototype.deleteColumns = function() {
  * Character Sets
  */
 
+Terminal.charsets = {};
+
 // DEC Special Character and Line Drawing Set.
 // http://vt100.net/docs/vt102-ug/table5-13.html
 // A lot of curses apps use this if they see TERM=xterm.
@@ -3902,7 +3953,7 @@ Terminal.prototype.deleteColumns = function() {
 // reference above. xterm seems in line with the reference
 // when running vttest however.
 // The table below now uses xterm's output from vttest.
-var SCLD = {
+Terminal.charsets.SCLD = { // (0
   '`': '\u25c6', // '◆'
   'a': '\u2592', // '▒'
   'b': '\u0009', // '\t'
@@ -3935,6 +3986,20 @@ var SCLD = {
   '}': '\u00a3', // '£'
   '~': '\u00b7'  // '·'
 };
+
+Terminal.charsets.UK = null; // (A
+Terminal.charsets.US = null; // (B (USASCII)
+Terminal.charsets.Dutch = null; // (4
+Terminal.charsets.Finnish = null; // (C or (5
+Terminal.charsets.French = null; // (R
+Terminal.charsets.FrenchCanadian = null; // (Q
+Terminal.charsets.German = null; // (K
+Terminal.charsets.Italian = null; // (Y
+Terminal.charsets.NorwegianDanish = null; // (E or (6
+Terminal.charsets.Spanish = null; // (Z
+Terminal.charsets.Swedish = null; // (H or (7
+Terminal.charsets.Swiss = null; // (=
+Terminal.charsets.ISOLatin = null; // /A
 
 /**
  * Helpers
