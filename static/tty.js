@@ -164,6 +164,8 @@ tty.toggleLights = function() {
 function Window(socket) {
   var self = this;
 
+  EventEmitter.call(this);
+
   var el
     , grip
     , bar

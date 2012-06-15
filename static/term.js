@@ -105,6 +105,8 @@ var normal = 0
  */
 
 function Terminal(cols, rows, handler) {
+  EventEmitter.call(this);
+
   this.cols = cols || Terminal.geometry[0];
   this.rows = rows || Terminal.geometry[1];
 
@@ -2055,6 +2057,18 @@ Terminal.prototype.keyDown = function(ev) {
   }
 
   return true;
+};
+
+Terminal.prototype.setgLevel = function(g) {
+  this.glevel = g;
+  this.charset = this.charsets[g];
+};
+
+Terminal.prototype.setgCharset = function(g, charset) {
+  this.charsets[g] = charset;
+  if (this.glevel === g) {
+    this.charset = charset;
+  }
 };
 
 Terminal.prototype.keyPress = function(ev) {
