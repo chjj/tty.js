@@ -381,18 +381,18 @@ Terminal.prototype.sizeToFit = function() {
   tempDiv.style.height = '0';
   tempDiv.style.visibility = 'hidden';
 
-  var char = document.createElement('div');
-  char.style.position = 'absolute';
-  char.innerHTML = 'W';
-  tempDiv.appendChild(char);
+  var ch = document.createElement('div');
+  ch.style.position = 'absolute';
+  ch.innerHTML = 'W';
+  tempDiv.appendChild(ch);
 
   this.element.parentNode.insertBefore(tempDiv, this.element.nextSibling);
 
-  var cols = Math.floor(this.element.clientWidth / char.clientWidth);
-  var rows = Math.floor(this.element.clientHeight / char.clientHeight);
+  var cols = Math.floor(this.element.clientWidth / ch.clientWidth);
+  var rows = Math.floor(this.element.clientHeight / ch.clientHeight);
 
   tempDiv.parentNode.removeChild(tempDiv);
-  char.parentNode.removeChild(char);
+  ch.parentNode.removeChild(ch);
 
   this.resize(cols, rows);
 }
