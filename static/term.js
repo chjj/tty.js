@@ -969,6 +969,7 @@ Terminal.prototype.scrollDisp = function(disp) {
 Terminal.prototype.write = function(data) {
   var l = data.length
     , i = 0
+    , cs
     , ch;
 
   this.refreshStart = this.y;
@@ -1028,14 +1029,12 @@ Terminal.prototype.write = function(data) {
 
           // shift out
           case '\x0e':
-            this.glevel = 1;
-            this.charset = this.charsets[1];
+            this.setgLevel(1);
             break;
 
           // shift in
           case '\x0f':
-            this.glevel = 0;
-            this.charset = this.charsets[0];
+            this.setgLevel(0);
             break;
 
           // '\e'
@@ -1119,9 +1118,9 @@ Terminal.prototype.write = function(data) {
           // ESC % Select default/utf-8 character set.
           // @ = default, G = utf-8
           case '%':
-            this.charset = null;
-            //this.glevel = 0;
-            //this.charsets[0] = null;
+            //this.charset = null;
+            this.setgLevel(0);
+            this.setgCharset(0, Terminal.charsets.US);
             this.state = normal;
             i++;
             break;
@@ -1161,13 +1160,44 @@ Terminal.prototype.write = function(data) {
           // Not implemented.
           case '/':
             this.gcharset = 3;
-            this.charsets[this.gcharset] = null;
-            if (this.glevel === this.gcharset) {
-              this.charset = null;
-            }
-            this.gcharset = null;
-            this.state = normal;
-            i++;
+            this.state = charset;
+            i--;
+            break;
+
+          // ESC N
+          // Single Shift Select of G2 Character Set
+          // ( SS2 is 0x8e). This affects next character only.
+          case 'N':
+            break;
+          // ESC O
+          // Single Shift Select of G3 Character Set
+          // ( SS3 is 0x8f). This affects next character only.
+          case 'O':
+            break;
+          // ESC n
+          // Invoke the G2 Character Set as GL (LS2).
+          case 'n':
+            this.setgLevel(2);
+            break;
+          // ESC o
+          // Invoke the G3 Character Set as GL (LS3).
+          case 'o':
+            this.setgLevel(3);
+            break;
+          // ESC |
+          // Invoke the G3 Character Set as GR (LS3R).
+          case '|':
+            this.setgLevel(3);
+            break;
+          // ESC }
+          // Invoke the G2 Character Set as GR (LS2R).
+          case '}':
+            this.setgLevel(2);
+            break;
+          // ESC ~
+          // Invoke the G1 Character Set as GR (LS1R).
+          case '~':
+            this.setgLevel(1);
             break;
 
           // ESC 7 Save Cursor (DECSC).
@@ -1216,24 +1246,58 @@ Terminal.prototype.write = function(data) {
 
       case charset:
         switch (ch) {
-          // DEC Special Character and Line Drawing Set.
-          case '0':
-            this.charsets[this.gcharset] = Terminal.charsets.SCLD;
-            if (this.gcharset === this.glevel) {
-              this.charset = Terminal.charsets.SCLD;
-            }
-            this.gcharset = null;
+          case '0': // DEC Special Character and Line Drawing Set.
+            cs = Terminal.charsets.SCLD;
             break;
-          // United States (USASCII).
-          case 'B':
-          default:
-            this.charsets[this.gcharset] = null;
-            if (this.gcharset === this.glevel) {
-              this.charset = null;
-            }
-            this.gcharset = null;
+          case 'A': // UK
+            cs = Terminal.charsets.UK;
+            break;
+          case 'B': // United States (USASCII).
+            cs = Terminal.charsets.US;
+            break;
+          case '4': // Dutch
+            cs = Terminal.charsets.Dutch;
+            break;
+          case 'C': // Finnish
+          case '5':
+            cs = Terminal.charsets.Finnish;
+            break;
+          case 'R': // French
+            cs = Terminal.charsets.French;
+            break;
+          case 'Q': // FrenchCanadian
+            cs = Terminal.charsets.FrenchCanadian;
+            break;
+          case 'K': // German
+            cs = Terminal.charsets.German;
+            break;
+          case 'Y': // Italian
+            cs = Terminal.charsets.Italian;
+            break;
+          case 'E': // NorwegianDanish
+          case '6':
+            cs = Terminal.charsets.NorwegianDanish;
+            break;
+          case 'Z': // Spanish
+            cs = Terminal.charsets.Spanish;
+            break;
+          case 'H': // Swedish
+          case '7':
+            cs = Terminal.charsets.Swedish;
+            break;
+          case '=': // Swiss
+            cs = Terminal.charsets.Swiss;
+            break;
+          case '/': // ISOLatin (actually /A)
+            cs = Terminal.charsets.ISOLatin;
+            i++;
+            break;
+          default: // Default
+            cs = Terminal.charsets.US;
             break;
         }
+        this.setgCharset(this.gcharset, cs);
+        this.gcharset = null;
         this.state = normal;
         break;
 
@@ -3096,6 +3160,13 @@ Terminal.prototype.setMode = function(params) {
       case 1:
         this.applicationKeypad = true;
         break;
+      case 2:
+        this.setgCharset(0, Terminal.charsets.US);
+        this.setgCharset(1, Terminal.charsets.US);
+        this.setgCharset(2, Terminal.charsets.US);
+        this.setgCharset(3, Terminal.charsets.US);
+        // set VT100 mode here
+        break;
       case 3: // 132 col mode
         this.savedCols = this.cols;
         this.resize(132, this.rows);
@@ -3544,6 +3615,7 @@ Terminal.prototype.softReset = function(params) {
   this.curAttr = this.defAttr;
   this.x = this.y = 0; // ?
   this.charset = null;
+  this.glevel = 0; // ??
   this.charsets = [null]; // ??
 };
 
