@@ -31,6 +31,28 @@ Bellard's vt100 for [jslinux](http://bellard.org/jslinux/).
 $ npm install tty.js
 ```
 
+## Usage
+
+tty.js is an app, but it's also possible to hook into it programatically
+
+``` js
+var tty = require('tty.js');
+
+var app = tty.createServer({
+  shell: 'bash',
+  users: {
+    foo: 'bar'
+  },
+  port: 8000
+});
+
+app.get('/foo', function(req, res, next) {
+  res.send('bar');
+});
+
+app.listen();
+```
+
 ## Configuration
 
 Configuration is stored in `~/.tty.js/config.json` or `~/.tty.js` as a single
@@ -52,8 +74,10 @@ JSON file. An example configuration file looks like:
   "static": "./static",
   "limitGlobal": 10000,
   "limitPerUser": 1000,
-  "hooks": "./hooks.js",
   "cwd": ".",
+  "syncSession": true,
+  "sessionTimeout": 600000,
+  "log": true,
   "term": {
     "termName": "xterm",
     "geometry": [80, 30],
@@ -90,19 +114,6 @@ Usernames and passwords can be plaintext or sha1 hashes.
 
 If tty.js fails to check your terminfo properly, you can force your `TERM`
 to `xterm-256color` by setting `"termName": "xterm-256color"` in your config.
-
-### Example Hooks File
-
-``` js
-var db = require('./db');
-
-module.exports = {
-  auth: function(user, pass, next) {
-    // Do database auth
-    next(null, pass === password);
-  }
-};
-```
 
 ## Security
 

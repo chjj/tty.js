@@ -41,10 +41,11 @@ var window = this
  * EventEmitter
  */
 
-function EventEmitter() {}
+function EventEmitter() {
+  this._events = {};
+}
 
 EventEmitter.prototype.addListener = function(type, listener) {
-  this._events = this._events || {};
   this._events[type] = this._events[type] || [];
   this._events[type].push(listener);
 };
@@ -52,13 +53,13 @@ EventEmitter.prototype.addListener = function(type, listener) {
 EventEmitter.prototype.on = EventEmitter.prototype.addListener;
 
 EventEmitter.prototype.removeListener = function(type, listener) {
-  if (!this._events || !this._events[type]) return;
+  if (!this._events[type]) return;
 
   var obj = this._events[type]
     , i = obj.length;
 
   while (i--) {
-    if (obj[i] === listener) {
+    if (obj[i] === listener || obj[i].listener === listener) {
       obj.splice(i, 1);
       return;
     }
@@ -67,16 +68,22 @@ EventEmitter.prototype.removeListener = function(type, listener) {
 
 EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
 
+EventEmitter.prototype.removeAllListeners = function(type) {
+  if (this._events[type]) delete this._events[type];
+};
+
 EventEmitter.prototype.once = function(type, listener) {
-  this.on(type, function on() {
+  function on() {
     var args = Array.prototype.slice.call(arguments);
     this.removeListener(type, on);
     return listener.apply(this, args);
-  });
+  }
+  on.listener = listener;
+  return this.on(type, on);
 };
 
 EventEmitter.prototype.emit = function(type) {
-  if (!this._events || !this._events[type]) return;
+  if (!this._events[type]) return;
 
   var args = Array.prototype.slice.call(arguments, 1)
     , obj = this._events[type]
@@ -86,6 +93,10 @@ EventEmitter.prototype.emit = function(type) {
   for (; i < l; i++) {
     obj[i].apply(this, args);
   }
+};
+
+EventEmitter.prototype.listeners = function(type) {
+  return this._events[type] = this._events[type] || [];
 };
 
 /**
@@ -107,11 +118,21 @@ var normal = 0
 function Terminal(cols, rows, handler) {
   EventEmitter.call(this);
 
+  var options;
+  if (typeof cols === 'object') {
+    options = cols;
+    cols = options.cols;
+    rows = options.rows;
+    handler = options.handler;
+  }
+  this._options = options || {};
+
   this.cols = cols || Terminal.geometry[0];
   this.rows = rows || Terminal.geometry[1];
 
-  //if (handler) this.handler = handler;
-  if (handler) this.on('data', handler);
+  if (handler) {
+    this.on('data', handler);
+  }
 
   this.ybase = 0;
   this.ydisp = 0;

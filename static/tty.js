@@ -100,6 +100,21 @@ tty.open = function() {
     tty.terms[id]._destroy();
   });
 
+  tty.socket.on('sync', function(terms) {
+    console.log('Attempting to sync...');
+    console.log(terms);
+    tty.reset();
+    terms.forEach(function(term) {
+      var emit = tty.socket.emit;
+      tty.socket.emit = function() {};
+      var win = new Window;
+      Object.keys(term).forEach(function(key) {
+        win.tabs[0][key] = term[key];
+      });
+      tty.socket.emit = emit;
+    });
+  });
+
   // We would need to poll the os on the serverside
   // anyway. there's really no clean way to do this.
   // This is just easier to do on the
@@ -761,6 +776,10 @@ Tab.prototype._ignoreNext = function() {
   var handler = this.handler;
   this.handler = function() {
     this.handler = handler;
+  };
+  var showCursor = this.showCursor;
+  this.showCursor = function() {
+    this.showCursor = showCursor;
   };
 };
 
