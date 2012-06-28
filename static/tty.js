@@ -261,7 +261,10 @@ Window.prototype.bind = function() {
     return cancel(ev);
   });
 
+  self.windowOutsideClick = true;
+
   on(el, 'mousedown', function(ev) {
+    self.windowOutsideClick = false;
     if (ev.target !== el && ev.target !== bar) return;
 
     self.focus();
@@ -277,6 +280,20 @@ Window.prototype.bind = function() {
 
     return cancel(ev);
   });
+
+  on(document, 'mousedown', function(ev) {
+    if (self.windowOutsideClick === true) {
+      self.blur();
+    }
+    self.windowOutsideClick = true;
+  });
+
+};
+
+Window.prototype.blur = function() {
+  if (typeof this.focused === 'object') {
+    this.focused.blur();
+  }
 };
 
 Window.prototype.focus = function() {
@@ -288,7 +305,9 @@ Window.prototype.focus = function() {
   }
 
   // Focus Foreground Tab
-  this.focused.focus();
+  if (typeof this.focused === 'object') {
+    this.focused.focus();
+  }
 
   tty.emit('focus window', this);
   this.emit('focus');
@@ -644,6 +663,19 @@ Tab.prototype.focus = function() {
 
   tty.emit('focus tab', this);
   this.emit('focus');
+};
+
+Tab.prototype._blur = Tab.prototype.blur;
+
+Tab.prototype.blur = function() {
+  if (Terminal.focus !== this) return;
+
+  var win = this.window;
+
+  win.focused = undefined;
+
+  this._blur();
+  win.blur();
 };
 
 Tab.prototype._resize = Tab.prototype.resize;
