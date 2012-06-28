@@ -107,7 +107,7 @@ tty.open = function() {
     terms.forEach(function(term) {
       var emit = tty.socket.emit;
       tty.socket.emit = function() {};
-      var win = new Window;
+      //var win = new Window;
       Object.keys(term).forEach(function(key) {
         win.tabs[0][key] = term[key];
       });
