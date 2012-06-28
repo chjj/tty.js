@@ -294,6 +294,9 @@ Window.prototype.blur = function() {
   if (typeof this.focused === 'object') {
     this.focused.blur();
   }
+
+  tty.emit('blur window', this);
+  this.emit('blur');
 };
 
 Window.prototype.focus = function() {
@@ -676,6 +679,9 @@ Tab.prototype.blur = function() {
 
   this._blur();
   win.blur();
+
+  tty.emit('blur tab', this);
+  this.emit('blur');
 };
 
 Tab.prototype._resize = Tab.prototype.resize;
