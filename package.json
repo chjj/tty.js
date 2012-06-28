@@ -1,6 +1,6 @@
 {
   "name": "tty.js",
-  "description": "A terminal for your browser",
+  "description": "A terminal for your browser, this version is compatible with Express 2.5.8 (only for persnnal purpose).",
   "author": "Christopher Jeffrey",
   "version": "0.2.6",
   "main": "./index.js",
