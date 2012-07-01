@@ -209,25 +209,26 @@ inherits(Terminal, EventEmitter);
  */
 
 // Colors 0-15
+
 Terminal.colors = [
   // dark:
-  '#2e3436',
-  '#cc0000',
-  '#4e9a06',
-  '#c4a000',
-  '#3465a4',
-  '#75507b',
-  '#06989a',
-  '#d3d7cf',
+  '#000000',
+  '#c81908',
+  '#00c01d',
+  '#c8c221',
+  '#0033c5',
+  '#c73ac5',
+  '#00c6c7',
+  '#c7c7c7',
   // bright:
-  '#555753',
-  '#ef2929',
-  '#8ae234',
-  '#fce94f',
-  '#729fcf',
-  '#ad7fa8',
-  '#34e2e2',
-  '#eeeeec'
+  '#686868',
+  '#8a8a8a',
+  '#67f86e',
+  '#fff970',
+  '#6678fc',
+  '#ff7cfd',
+  '#65fdff',
+  '#ffffff'
 ];
 
 // Colors 16-255
@@ -400,6 +401,29 @@ Terminal.prototype.open = function() {
 
   //this.emit('open');
 };
+
+Terminal.prototype.sizeToFit = function() {
+  var tempDiv = document.createElement('div');
+  tempDiv.className = 'terminal';
+  tempDiv.style.width = '0';
+  tempDiv.style.height = '0';
+  tempDiv.style.visibility = 'hidden';
+
+  var ch = document.createElement('div');
+  ch.style.position = 'absolute';
+  ch.innerHTML = 'W';
+  tempDiv.appendChild(ch);
+
+  this.element.parentNode.insertBefore(tempDiv, this.element.nextSibling);
+
+  var cols = Math.floor(this.element.clientWidth / ch.clientWidth);
+  var rows = Math.floor(this.element.clientHeight / ch.clientHeight);
+
+  tempDiv.parentNode.removeChild(tempDiv);
+  ch.parentNode.removeChild(ch);
+
+  this.resize(cols, rows);
+}
 
 // XTerm mouse events
 // http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking
@@ -769,6 +793,7 @@ Terminal.prototype.refresh = function(start, end) {
     , ch
     , width
     , data
+    , data2
     , attr
     , fgColor
     , bgColor
@@ -806,48 +831,52 @@ Terminal.prototype.refresh = function(start, end) {
       data = line[i][0];
       ch = line[i][1];
 
-      if (i === x) data = -1;
+      if (i === x) {
+        data2 = data;
+        data = -1;
+      }
 
       if (data !== attr) {
         if (attr !== this.defAttr) {
           out += '</span>';
         }
         if (data !== this.defAttr) {
+          out += '<span style="';
           if (data === -1) {
-            out += '<span class="reverse-video">';
+            bgColor = (data2 >> 9) & 0x1ff;
+            fgColor = data2 & 0x1ff;
+            flags = data2 >> 18;
           } else {
-            out += '<span style="';
-
             bgColor = data & 0x1ff;
             fgColor = (data >> 9) & 0x1ff;
             flags = data >> 18;
-
-            if (flags & 1) {
-              if (!Terminal.brokenBold) {
-                out += 'font-weight:bold;';
-              }
-              // see: XTerm*boldColors
-              if (fgColor < 8) fgColor += 8;
-            }
-
-            if (flags & 2) {
-              out += 'text-decoration:underline;';
-            }
-
-            if (bgColor !== 256) {
-              out += 'background-color:'
-                + Terminal.colors[bgColor]
-                + ';';
-            }
-
-            if (fgColor !== 257) {
-              out += 'color:'
-                + Terminal.colors[fgColor]
-                + ';';
-            }
-
-            out += '">';
           }
+
+          if (flags & 1) {
+            if (!Terminal.brokenBold) {
+              out += 'font-weight:bold;';
+            }
+            // see: XTerm*boldColors
+            if (fgColor < 8) fgColor += 8;
+          }
+
+          if (flags & 2) {
+            out += 'text-decoration:underline;';
+          }
+
+          if (bgColor !== 256) {
+            out += 'background-color:'
+              + Terminal.colors[bgColor]
+              + ';';
+          }
+
+          if (fgColor !== 257) {
+            out += 'color:'
+              + Terminal.colors[fgColor]
+              + ';';
+          }
+
+          out += '">';
         }
       }
 
@@ -2294,6 +2323,8 @@ Terminal.prototype.resize = function(x, y) {
   // screen buffer. just set it
   // to null for now.
   this.normal = null;
+
+  this.emit('resize', x, y);
 };
 
 Terminal.prototype.updateRange = function(y) {
