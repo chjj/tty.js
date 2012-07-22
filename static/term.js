@@ -276,7 +276,7 @@ Terminal.colors[257] = Terminal.defaultColors.fg;
  */
 
 Terminal.termName = 'xterm';
-Terminal.geometry = [80, 30];
+Terminal.geometry = [80, 24];
 Terminal.cursorBlink = true;
 Terminal.visualBell = false;
 Terminal.popOnBell = false;
