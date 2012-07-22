@@ -86,7 +86,7 @@ tty.open = function() {
 
   tty.socket.on('connect', function() {
     tty.reset();
-    new Window;
+    //new Window;
     tty.emit('connect');
   });
 
@@ -100,19 +100,32 @@ tty.open = function() {
     tty.terms[id]._destroy();
   });
 
+  // XXX Clean this up.
   tty.socket.on('sync', function(terms) {
     console.log('Attempting to sync...');
     console.log(terms);
+
     tty.reset();
-    terms.forEach(function(term) {
-      var emit = tty.socket.emit;
-      tty.socket.emit = function() {};
-      var win = new Window;
-      Object.keys(term).forEach(function(key) {
-        win.tabs[0][key] = term[key];
-      });
-      tty.socket.emit = emit;
+
+    var emit = tty.socket.emit;
+    tty.socket.emit = function() {};
+
+    Object.keys(terms).forEach(function(key) {
+      var data = terms[key]
+        , win = new Window
+        , tab = win.tabs[0];
+
+      delete tty.terms[tab.id];
+      tab.pty = data.pty;
+      tab.id = data.id;
+      tty.terms[data.id] = tab;
+      win.resize(data.cols, data.rows);
+      tab.setProcessName(data.process);
+      tty.emit('open tab', tab);
+      tab.emit('open');
     });
+
+    tty.socket.emit = emit;
   });
 
   // We would need to poll the os on the serverside
