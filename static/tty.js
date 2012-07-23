@@ -799,6 +799,17 @@ Tab.prototype._ignoreNext = function() {
  * Program-specific Features
  */
 
+Tab.scrollable = {
+  irssi: true,
+  man: true,
+  less: true,
+  htop: true,
+  top: true,
+  w3m: true,
+  lynx: true,
+  mocp: true
+};
+
 Tab.prototype._bindMouse = Tab.prototype.bindMouse;
 
 Tab.prototype.bindMouse = function() {
@@ -810,19 +821,9 @@ Tab.prototype.bindMouse = function() {
     ? 'mousewheel'
     : 'DOMMouseScroll';
 
-  var programs = {
-    irssi: true,
-    man: true,
-    less: true,
-    htop: true,
-    top: true,
-    w3m: true,
-    lynx: true
-  };
-
   on(self.element, wheelEvent, function(ev) {
     if (self.mouseEvents) return;
-    if (!programs[self.process]) return;
+    if (!Tab.scrollable[self.process]) return;
 
     if ((ev.type === 'mousewheel' && ev.wheelDeltaY > 0)
         || (ev.type === 'DOMMouseScroll' && ev.detail < 0)) {
