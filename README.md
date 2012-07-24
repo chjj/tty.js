@@ -24,6 +24,7 @@ Bellard's vt100 for [jslinux](http://bellard.org/jslinux/).
 - Ability to efficiently render programs: vim, mc, irssi, vifm, etc.
 - Support for xterm mouse events
 - 256 color support
+- Persistent sessions
 
 ## Install
 
@@ -33,7 +34,7 @@ $ npm install tty.js
 
 ## Usage
 
-tty.js is an app, but it's also possible to hook into it programatically
+tty.js is an app, but it's also possible to hook into it programatically.
 
 ``` js
 var tty = require('tty.js');
@@ -74,10 +75,12 @@ JSON file. An example configuration file looks like:
   "static": "./static",
   "limitGlobal": 10000,
   "limitPerUser": 1000,
+  "localOnly": false,
   "cwd": ".",
   "syncSession": false,
   "sessionTimeout": 600000,
   "log": true,
+  "debug": false,
   "term": {
     "termName": "xterm",
     "geometry": [80, 24],
