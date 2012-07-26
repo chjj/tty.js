@@ -37,6 +37,8 @@
 var window = this
   , document = this.document;
 
+var isGecko = navigator.userAgent.indexOf('WebKit')==-1&&navigator.product=='Gecko';
+
 /**
  * EventEmitter
  */
@@ -349,6 +351,37 @@ Terminal.prototype.open = function() {
 
   this.startBlink();
 
+  var timer_;
+  var evt;
+  var process = function() {
+    var parent = evt.target.parentNode;
+    var text = parent.textContent;
+    parent.contentEditable = 'inherit';
+    parent.blur();
+    parent.innerHTML = parent.dataset.ohtml;
+    var a1 = parent.dataset.oc.split('');
+    var a2 = text.split('');
+    var fi = -1;
+    if ( a1.length != a2.length ) {
+      for (var i = 0; i < a1.length; i++) {
+        if ( a1[i] != a2[i] ){
+          fi = i;
+          break;
+        }
+      }
+			self.send(text.substr(fi, a2.length - a1.length + 1).replace(/^[\s\xa0]+|[\s\xa0]+$/g, '').replace(/\xa0|\s/g, ' '));
+    }
+    parent.removeEventListener('DOMCharacterDataModified',_handler, false);
+    delete parent.dataset.ohtml;
+    delete parent.dataset.oc;
+    parent.style.width = '';
+  };
+  var _handler = function(ev) {
+    clearTimeout(timer_);
+    evt = ev;
+    timer_ = setTimeout(process, 50);
+  };
+
   on(this.element, 'mousedown', function() {
     self.focus();
   });
@@ -362,18 +395,26 @@ Terminal.prototype.open = function() {
       : ev.which != null
         ? ev.which - 1
         : null;
+    // Handle Gecko separately
+    if (isGecko && button == 1) {
+      ev.target.dataset.oc = ev.target.textContent;
+      ev.target.dataset.ohtml = ev.target.innerHTML;
+      ev.target.style.width = getComputedStyle(ev.target).width;
+      ev.target.addEventListener('DOMCharacterDataModified', _handler, false);
+      ev.target.contentEditable = true;
+    } else {
+      // Does IE9 do this?
+      if (~navigator.userAgent.indexOf('MSIE')) {
+        button = button === 1 ? 0 : button === 4 ? 1 : button;
+      }
 
-    // Does IE9 do this?
-    if (~navigator.userAgent.indexOf('MSIE')) {
-      button = button === 1 ? 0 : button === 4 ? 1 : button;
+      if (button !== 2) return;
+
+      self.element.contentEditable = 'true';
+      setTimeout(function() {
+        self.element.contentEditable = 'inherit'; // 'false';
+      }, 1);
     }
-
-    if (button !== 2) return;
-
-    self.element.contentEditable = 'true';
-    setTimeout(function() {
-      self.element.contentEditable = 'inherit'; // 'false';
-    }, 1);
   }, true);
 
   on(this.element, 'paste', function(ev) {
@@ -384,8 +425,11 @@ Terminal.prototype.open = function() {
     }
     // Not necessary. Do it anyway for good measure.
     self.element.contentEditable = 'inherit';
-    return cancel(ev);
-  });
+    // Gecko needs to receive the paste event
+    if ( !isGecko ) {
+      return cancel(ev);
+    }
+ });
 
   this.bindMouse();
 
