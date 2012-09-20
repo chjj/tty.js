@@ -914,6 +914,18 @@ Terminal.prototype.refreshBlink = function() {
   this._blink = setInterval(this._blinker, 500);
 };
 
+Terminal.prototype.clear = function() {
+  this.lines.splice(0, this.ybase + this.y);
+  this.lines.splice(1, this.lines.length-1);
+  while (this.lines.length < this.rows) {
+    this.lines.push(this.blankLine());
+  }
+  this.y = 0;
+  this.ybase = 0;
+  this.ydisp = 0;
+  this.refresh(0, this.rows - 1);
+}
+
 Terminal.prototype.scroll = function() {
   var row;
 
@@ -2049,6 +2061,12 @@ Terminal.prototype.keyDown = function(ev) {
         key = '\x1b[6~';
       }
       break;
+    // CTRL-K
+    case 75:
+      if ((!isMac && ev.ctrlKey) || (isMac && ev.metaKey)) {
+        this.clear();
+        return cancel(ev);
+      }
     // F1
     case 112:
       key = '\x1bOP';
