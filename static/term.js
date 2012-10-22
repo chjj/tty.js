@@ -42,7 +42,7 @@ var window = this
  */
 
 function EventEmitter() {
-  this._events = {};
+  this._events = this._events || {};
 }
 
 EventEmitter.prototype.addListener = function(type, listener) {
