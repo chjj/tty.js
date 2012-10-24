@@ -33,17 +33,17 @@
     var term = new Terminal(80, 24)
       , socket = io.connect();
 
-    term.on('data', function(data) {
-      socket.emit('data', data);
-    });
-
-    term.on('title', function(title) {
-      document.title = title;
-    });
-
-    term.open();
-
     socket.on('connect', function() {
+      term.on('data', function(data) {
+        socket.emit('data', data);
+      });
+
+      term.on('title', function(title) {
+        document.title = title;
+      });
+
+      term.open();
+
       socket.on('data', function(data) {
         term.write(data);
       });
