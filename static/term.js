@@ -179,6 +179,7 @@ function Terminal(cols, rows, handler) {
   this.savedX;
   this.savedY;
   this.savedCols;
+  this.parentElement = document.body;
 
   // stream
   this.readable = true;
@@ -340,7 +341,7 @@ Terminal.prototype.open = function() {
     this.children.push(div);
   }
 
-  document.body.appendChild(this.element);
+  this.parentElement.appendChild(this.element);
 
   this.refresh(0, this.rows - 1);
 
