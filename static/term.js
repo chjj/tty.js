@@ -788,6 +788,9 @@ Terminal.prototype.refresh = function(start, end) {
     row = y + this.ydisp;
 
     line = this.lines[row];
+    if (!line) {
+      continue;
+    }
     out = '';
 
     if (y === this.y
