@@ -158,6 +158,6 @@ The distance to go before full xterm compatibility.
 
 ## License
 
-Copyright (c) 2012, Christopher Jeffrey (MIT License)
+Copyright (c) 2012-2013, Christopher Jeffrey (MIT License)
 
 [1]: http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking

@@ -1,6 +1,6 @@
 /**
  * tty.js
- * Copyright (c) 2012, Christopher Jeffrey (MIT License)
+ * Copyright (c) 2012-2013, Christopher Jeffrey (MIT License)
  */
 
 var http = require('http')
