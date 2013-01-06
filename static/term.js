@@ -567,12 +567,12 @@ Terminal.prototype.bindMouse = function() {
       pos.x -= 32;
       pos.y -= 32;
       self.send('\x1b[<'
-        + ((button & 3) === 3 ? button & ~3 : button)
+        + (button & 0x7f)
         + ';'
         + pos.x
         + ';'
         + pos.y
-        + ((button & 3) === 3 ? 'm' : 'M'));
+        + ((button & 128) ? 'm' : 'M'));
       return;
     }
 
@@ -596,7 +596,10 @@ Terminal.prototype.bindMouse = function() {
     // 0 = left
     // 1 = middle
     // 2 = right
-    // 3 = release
+    // 3 = release (for normal/utf-8/urxvt)
+    //
+    // for mouse release event with SGR 1006 - 128 is added (private use)
+    //
     // wheel up/down:
     // 1, and 2 - with 64 added
     switch (ev.type) {
@@ -612,7 +615,22 @@ Terminal.prototype.bindMouse = function() {
         }
         break;
       case 'mouseup':
-        button = 3;
+        if (self.sgrMouse) {
+          button = ev.button != null
+            ? +ev.button
+            : ev.which != null
+              ? ev.which - 1
+              : null;
+
+          if (~navigator.userAgent.indexOf('MSIE')) {
+            button = button === 1 ? 0 : button === 4 ? 1 : button;
+          }
+
+          button += 128; // sgr mode release event
+
+        } else {
+          button = 3;
+        }
         break;
       case 'DOMMouseScroll':
         button = ev.detail < 0
@@ -641,8 +659,12 @@ Terminal.prototype.bindMouse = function() {
       mod = 0;
     }
 
-    // increment to SP
-    button = (32 + (mod << 2)) + button;
+    button = (mod << 2) + button;
+
+    // increment to SP if mouse encoding is not SGR
+    if (!self.sgrMouse) {
+      button += 32;
+    }
 
     return button;
   }
