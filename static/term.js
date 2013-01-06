@@ -799,6 +799,10 @@ Terminal.prototype.refresh = function(start, end) {
   width = this.cols;
   y = start;
 
+  // if (end > this.lines.length) {
+  //   end = this.lines.length;
+  // }
+
   for (; y <= end; y++) {
     row = y + this.ydisp;
 
@@ -2314,6 +2318,12 @@ Terminal.prototype.resize = function(x, y) {
 Terminal.prototype.updateRange = function(y) {
   if (y < this.refreshStart) this.refreshStart = y;
   if (y > this.refreshEnd) this.refreshEnd = y;
+  // if (y > this.refreshEnd) {
+  //   this.refreshEnd = y;
+  //   if (y > this.rows - 1) {
+  //     this.refreshEnd = this.rows - 1;
+  //   }
+  // }
 };
 
 Terminal.prototype.maxRange = function() {
