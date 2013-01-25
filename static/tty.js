@@ -54,7 +54,7 @@ tty.elements;
  */
 
 tty.open = function() {
-  tty.socket = io.connect(null, { resource: 'term/socket.io' });
+  tty.socket = io.connect();
   tty.windows = [];
   tty.terms = {};
 
