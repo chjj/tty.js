@@ -163,6 +163,7 @@ function Terminal(cols, rows, handler) {
 
   // modes
   this.applicationKeypad = false;
+  this.applicationCursor = false;
   this.originMode = false;
   this.insertMode = false;
   this.wraparoundMode = false;
@@ -1985,7 +1986,7 @@ Terminal.prototype.keyDown = function(ev) {
       break;
     // left-arrow
     case 37:
-      if (this.applicationKeypad) {
+      if (this.applicationCursor) {
         key = '\x1bOD'; // SS3 as ^[O for 7-bit
         //key = '\x8fD'; // SS3 as 0x8f for 8-bit
         break;
@@ -1994,7 +1995,7 @@ Terminal.prototype.keyDown = function(ev) {
       break;
     // right-arrow
     case 39:
-      if (this.applicationKeypad) {
+      if (this.applicationCursor) {
         key = '\x1bOC';
         break;
       }
@@ -2002,7 +2003,7 @@ Terminal.prototype.keyDown = function(ev) {
       break;
     // up-arrow
     case 38:
-      if (this.applicationKeypad) {
+      if (this.applicationCursor) {
         key = '\x1bOA';
         break;
       }
@@ -2015,7 +2016,7 @@ Terminal.prototype.keyDown = function(ev) {
       break;
     // down-arrow
     case 40:
-      if (this.applicationKeypad) {
+      if (this.applicationCursor) {
         key = '\x1bOB';
         break;
       }
@@ -3183,7 +3184,7 @@ Terminal.prototype.setMode = function(params) {
   } else if (this.prefix === '?') {
     switch (params) {
       case 1:
-        this.applicationKeypad = true;
+        this.applicationCursor = true;
         break;
       case 2:
         this.setgCharset(0, Terminal.charsets.US);
@@ -3381,7 +3382,7 @@ Terminal.prototype.resetMode = function(params) {
   } else if (this.prefix === '?') {
     switch (params) {
       case 1:
-        this.applicationKeypad = false;
+        this.applicationCursor = false;
         break;
       case 3:
         if (this.cols === 132 && this.savedCols) {
@@ -3635,6 +3636,7 @@ Terminal.prototype.softReset = function(params) {
   this.originMode = false;
   this.wraparoundMode = false; // autowrap
   this.applicationKeypad = false; // ?
+  this.applicationCursor = false;
   this.scrollTop = 0;
   this.scrollBottom = this.rows - 1;
   this.curAttr = this.defAttr;
