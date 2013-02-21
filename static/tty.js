@@ -503,7 +503,7 @@ Window.prototype.each = function(func) {
 };
 
 Window.prototype.createTab = function() {
-  return new Tab(this, this.socket);
+  return new tty.Tab(this, this.socket);
 };
 
 Window.prototype.highlight = function() {
