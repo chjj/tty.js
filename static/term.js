@@ -1009,6 +1009,7 @@ Terminal.prototype.write = function(data) {
         switch (ch) {
           // '\0'
           // case '\0':
+          // case '\200':
           //   break;
 
           // '\a'
