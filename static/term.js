@@ -299,6 +299,7 @@ Terminal.popOnBell = false;
 Terminal.scrollback = 1000;
 Terminal.screenKeys = false;
 Terminal.programFeatures = false;
+Terminal.escapeKey = null;
 Terminal.debug = false;
 
 /**
