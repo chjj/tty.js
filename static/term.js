@@ -107,6 +107,7 @@ EventEmitter.prototype.emit = function(type) {
 
   for (; i < l; i++) {
     obj[i].apply(this, args);
+    // if (obj[i].apply(this, args) === false) return false;
   }
 };
 
@@ -1958,6 +1959,8 @@ Terminal.prototype.writeln = function(data) {
   this.write(data + '\r\n');
 };
 
+// Key Resources:
+// https://developer.mozilla.org/en-US/docs/DOM/KeyboardEvent
 Terminal.prototype.keyDown = function(ev) {
   var key;
 
@@ -2153,9 +2156,11 @@ Terminal.prototype.keyDown = function(ev) {
   }
 
   this.emit('keydown', ev);
+  // if (this.emit('keydown', key, ev) === false) { this.showCursor(); cancel(ev); return; }
 
   if (key) {
     this.emit('key', key, ev);
+    // if (this.emit('key', key, ev) === false) { this.showCursor(); cancel(ev); return; }
 
     this.showCursor();
     this.handler(key);
@@ -2198,7 +2203,9 @@ Terminal.prototype.keyPress = function(ev) {
   key = String.fromCharCode(key);
 
   this.emit('keypress', key, ev);
+  // if (this.emit('keypress', key, ev) === false) { this.showCursor(); return; }
   this.emit('key', key, ev);
+  // if (this.emit('key', key, ev) === false) { this.showCursor(); return; }
 
   this.showCursor();
   this.handler(key);
