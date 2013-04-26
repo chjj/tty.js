@@ -75,12 +75,14 @@ tty.open = function() {
   if (open) {
     on(open, 'click', function() {
       new Window;
+      open.blur();
     });
   }
 
   if (lights) {
     on(lights, 'click', function() {
       tty.toggleLights();
+      lights.blur();
     });
   }
 
