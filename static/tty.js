@@ -751,8 +751,26 @@ Tab.prototype.hookKeys = function() {
       this._ignoreNext();
       return this.window.createTab();
     }
+
+    if (key === Terminal.escapeKey) {
+      this._ignoreNext();
+      return setTimeout(function() {
+        this.keyDown({ keyCode: 27 });
+      }.bind(this), 1);
+    }
   });
 };
+
+//var keyDown = Tab.prototype.keyDown;
+//Tab.prototype.keyDown = function(ev) {
+//  if (!Terminal.escapeKey) {
+//    return keyDown.apply(this, arguments);
+//  }
+//  if (ev.keyCode === Terminal.escapeKey) {
+//    return keyDown.call(this, { keyCode: 27 });
+//  }
+//  return keyDown.apply(this, arguments);
+//};
 
 // tmux/screen-like keys
 Tab.prototype.specialKeyHandler = function(key) {

@@ -80,6 +80,7 @@ JSON file. An example configuration file looks like:
   "syncSession": false,
   "sessionTimeout": 600000,
   "log": true,
+  "io": { "log": false },
   "debug": false,
   "term": {
     "termName": "xterm",

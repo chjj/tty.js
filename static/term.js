@@ -107,6 +107,7 @@ EventEmitter.prototype.emit = function(type) {
 
   for (; i < l; i++) {
     obj[i].apply(this, args);
+    // if (obj[i].apply(this, args) === false) return false;
   }
 };
 
@@ -163,6 +164,7 @@ function Terminal(cols, rows, handler) {
 
   // modes
   this.applicationKeypad = false;
+  this.applicationCursor = false;
   this.originMode = false;
   this.insertMode = false;
   this.wraparoundMode = false;
@@ -298,6 +300,7 @@ Terminal.popOnBell = false;
 Terminal.scrollback = 1000;
 Terminal.screenKeys = false;
 Terminal.programFeatures = false;
+Terminal.escapeKey = null;
 Terminal.debug = false;
 
 /**
@@ -1008,6 +1011,7 @@ Terminal.prototype.write = function(data) {
         switch (ch) {
           // '\0'
           // case '\0':
+          // case '\200':
           //   break;
 
           // '\a'
@@ -1955,6 +1959,8 @@ Terminal.prototype.writeln = function(data) {
   this.write(data + '\r\n');
 };
 
+// Key Resources:
+// https://developer.mozilla.org/en-US/docs/DOM/KeyboardEvent
 Terminal.prototype.keyDown = function(ev) {
   var key;
 
@@ -1985,7 +1991,7 @@ Terminal.prototype.keyDown = function(ev) {
       break;
     // left-arrow
     case 37:
-      if (this.applicationKeypad) {
+      if (this.applicationCursor) {
         key = '\x1bOD'; // SS3 as ^[O for 7-bit
         //key = '\x8fD'; // SS3 as 0x8f for 8-bit
         break;
@@ -1994,7 +2000,7 @@ Terminal.prototype.keyDown = function(ev) {
       break;
     // right-arrow
     case 39:
-      if (this.applicationKeypad) {
+      if (this.applicationCursor) {
         key = '\x1bOC';
         break;
       }
@@ -2002,7 +2008,7 @@ Terminal.prototype.keyDown = function(ev) {
       break;
     // up-arrow
     case 38:
-      if (this.applicationKeypad) {
+      if (this.applicationCursor) {
         key = '\x1bOA';
         break;
       }
@@ -2015,7 +2021,7 @@ Terminal.prototype.keyDown = function(ev) {
       break;
     // down-arrow
     case 40:
-      if (this.applicationKeypad) {
+      if (this.applicationCursor) {
         key = '\x1bOB';
         break;
       }
@@ -2150,9 +2156,11 @@ Terminal.prototype.keyDown = function(ev) {
   }
 
   this.emit('keydown', ev);
+  // if (this.emit('keydown', key, ev) === false) { this.showCursor(); cancel(ev); return; }
 
   if (key) {
     this.emit('key', key, ev);
+    // if (this.emit('key', key, ev) === false) { this.showCursor(); cancel(ev); return; }
 
     this.showCursor();
     this.handler(key);
@@ -2195,7 +2203,9 @@ Terminal.prototype.keyPress = function(ev) {
   key = String.fromCharCode(key);
 
   this.emit('keypress', key, ev);
+  // if (this.emit('keypress', key, ev) === false) { this.showCursor(); return; }
   this.emit('key', key, ev);
+  // if (this.emit('key', key, ev) === false) { this.showCursor(); return; }
 
   this.showCursor();
   this.handler(key);
@@ -3183,7 +3193,7 @@ Terminal.prototype.setMode = function(params) {
   } else if (this.prefix === '?') {
     switch (params) {
       case 1:
-        this.applicationKeypad = true;
+        this.applicationCursor = true;
         break;
       case 2:
         this.setgCharset(0, Terminal.charsets.US);
@@ -3381,7 +3391,7 @@ Terminal.prototype.resetMode = function(params) {
   } else if (this.prefix === '?') {
     switch (params) {
       case 1:
-        this.applicationKeypad = false;
+        this.applicationCursor = false;
         break;
       case 3:
         if (this.cols === 132 && this.savedCols) {
@@ -3635,6 +3645,7 @@ Terminal.prototype.softReset = function(params) {
   this.originMode = false;
   this.wraparoundMode = false; // autowrap
   this.applicationKeypad = false; // ?
+  this.applicationCursor = false;
   this.scrollTop = 0;
   this.scrollBottom = this.rows - 1;
   this.curAttr = this.defAttr;
