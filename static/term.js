@@ -1476,14 +1476,14 @@ Terminal.prototype.write = function(data) {
 
           // CSI Pm m  Character Attributes (SGR).
           case 'm':
-            if (!this.prefix)
+            if (!this.prefix) {
               this.charAttributes(this.params);
             }
             break;
 
           // CSI Ps n  Device Status Report (DSR).
           case 'n':
-            if (!this.prefix)
+            if (!this.prefix) {
               this.deviceStatus(this.params);
             }
             break;
