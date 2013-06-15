@@ -221,6 +221,12 @@ function Terminal(cols, rows, handler) {
 
 inherits(Terminal, EventEmitter);
 
+// back_color_erase feature for xterm.
+Terminal.prototype.eraseAttr = function() {
+  // if (this.is('screen')) return this.defAttr;
+  return (this.defAttr & ~0x1ff) | (this.curAttr & 0x1ff);
+};
+
 /**
  * Colors
  */
@@ -1026,6 +1032,9 @@ Terminal.prototype.write = function(data) {
             if (this.convertEol) {
               this.x = 0;
             }
+            // TODO: Implement eat_newline_glitch.
+            // if (this.realX >= this.cols) //   break;
+            // this.realX = 0;
             this.y++;
             if (this.y > this.scrollBottom) {
               this.y--;
@@ -2263,7 +2272,7 @@ Terminal.prototype.resize = function(x, y) {
   // resize cols
   j = this.cols;
   if (j < x) {
-    ch = [this.defAttr, ' '];
+    ch = [this.defAttr, ' ']; // does xterm use the default attr?
     i = this.lines.length;
     while (i--) {
       while (this.lines[i].length < x) {
@@ -2374,7 +2383,8 @@ Terminal.prototype.nextStop = function(x) {
 
 Terminal.prototype.eraseRight = function(x, y) {
   var line = this.lines[this.ybase + y]
-    , ch = [this.curAttr, ' ']; // xterm
+    , ch = [this.eraseAttr(), ' ']; // xterm
+
 
   for (; x < this.cols; x++) {
     line[x] = ch;
@@ -2385,7 +2395,7 @@ Terminal.prototype.eraseRight = function(x, y) {
 
 Terminal.prototype.eraseLeft = function(x, y) {
   var line = this.lines[this.ybase + y]
-    , ch = [this.curAttr, ' ']; // xterm
+    , ch = [this.eraseAttr(), ' ']; // xterm
 
   x++;
   while (x--) line[x] = ch;
@@ -2399,7 +2409,7 @@ Terminal.prototype.eraseLine = function(y) {
 
 Terminal.prototype.blankLine = function(cur) {
   var attr = cur
-    ? this.curAttr
+    ? this.eraseAttr()
     : this.defAttr;
 
   var ch = [attr, ' ']
@@ -2415,7 +2425,7 @@ Terminal.prototype.blankLine = function(cur) {
 
 Terminal.prototype.ch = function(cur) {
   return cur
-    ? [this.curAttr, ' ']
+    ? [this.eraseAttr(), ' ']
     : [this.defAttr, ' '];
 };
 
@@ -2675,82 +2685,92 @@ Terminal.prototype.eraseInLine = function(params) {
 Terminal.prototype.charAttributes = function(params) {
   var l = params.length
     , i = 0
-    , bg
-    , fg
+    , flags = this.curAttr >> 18
+    , fg = (this.curAttr >> 9) & 0x1ff
+    , bg = this.curAttr & 0x1ff
     , p;
 
   for (; i < l; i++) {
     p = params[i];
     if (p >= 30 && p <= 37) {
       // fg color 8
-      this.curAttr = (this.curAttr & ~(0x1ff << 9)) | ((p - 30) << 9);
+      fg = p - 30;
     } else if (p >= 40 && p <= 47) {
       // bg color 8
-      this.curAttr = (this.curAttr & ~0x1ff) | (p - 40);
+      bg = p - 40;
     } else if (p >= 90 && p <= 97) {
       // fg color 16
       p += 8;
-      this.curAttr = (this.curAttr & ~(0x1ff << 9)) | ((p - 90) << 9);
+      fg = p - 90;
     } else if (p >= 100 && p <= 107) {
       // bg color 16
       p += 8;
-      this.curAttr = (this.curAttr & ~0x1ff) | (p - 100);
+      bg = p - 100;
     } else if (p === 0) {
       // default
-      this.curAttr = this.defAttr;
+      flags = this.defAttr >> 18;
+      fg = (this.defAttr >> 9) & 0x1ff;
+      bg = this.defAttr & 0x1ff;
     } else if (p === 1) {
       // bold text
-      this.curAttr = this.curAttr | (1 << 18);
+      flags |= 1;
     } else if (p === 4) {
       // underlined text
-      this.curAttr = this.curAttr | (2 << 18);
+      flags |= 2;
     } else if (p === 7 || p === 27) {
       // inverse and positive
       // test with: echo -e '\e[31m\e[42mhello\e[7mworld\e[27mhi\e[m'
       if (p === 7) {
-        if ((this.curAttr >> 18) & 4) continue;
-        this.curAttr = this.curAttr | (4 << 18);
+        if (flags & 4) continue;
+        flags |= 4;
       } else if (p === 27) {
-        if (~(this.curAttr >> 18) & 4) continue;
-        this.curAttr = this.curAttr & ~(4 << 18);
+        if (~flags & 4) continue;
+        flags &= ~4;
       }
-
-      bg = this.curAttr & 0x1ff;
-      fg = (this.curAttr >> 9) & 0x1ff;
-
-      this.curAttr = (this.curAttr & ~0x3ffff) | ((bg << 9) | fg);
+      // JAVASCRIPT, Y U NO XOR SWAP?
+      p = bg, bg = fg, fg = p;
     } else if (p === 22) {
       // not bold
-      this.curAttr = this.curAttr & ~(1 << 18);
+      flags &= ~1;
     } else if (p === 24) {
       // not underlined
-      this.curAttr = this.curAttr & ~(2 << 18);
+      flags &= ~2;
     } else if (p === 39) {
       // reset fg
-      this.curAttr = this.curAttr & ~(0x1ff << 9);
-      this.curAttr = this.curAttr | (((this.defAttr >> 9) & 0x1ff) << 9);
+      fg = (this.defAttr >> 9) & 0x1ff;
     } else if (p === 49) {
       // reset bg
-      this.curAttr = this.curAttr & ~0x1ff;
-      this.curAttr = this.curAttr | (this.defAttr & 0x1ff);
+      bg = this.defAttr & 0x1ff;
     } else if (p === 38) {
       // fg color 256
+      //if (params[i+1] === 2) {
+      //  // match rgb
+      //  i += 2;
+      //  var r = params[i] & 0xff, g = params[i + 1] & 0xff, b = params[i + 2] & 0xff;
+      //} else
       if (params[i+1] !== 5) continue;
       i += 2;
       p = params[i] & 0xff;
       // convert 88 colors to 256
       // if (this.is('rxvt-unicode') && p < 88) p = p * 2.9090 | 0;
-      this.curAttr = (this.curAttr & ~(0x1ff << 9)) | (p << 9);
+      fg = p;
     } else if (p === 48) {
       // bg color 256
+      //if (params[i+1] === 2) {
+      //  // match rgb
+      //  i += 2;
+      //  var r = params[i] & 0xff, g = params[i + 1] & 0xff, b = params[i + 2] & 0xff;
+      //} else
       if (params[i+1] !== 5) continue;
       i += 2;
       p = params[i] & 0xff;
       // convert 88 colors to 256
       // if (this.is('rxvt-unicode') && p < 88) p = p * 2.9090 | 0;
-      this.curAttr = (this.curAttr & ~0x1ff) | p;
+      bg = p;
     }
   }
+
+  this.curAttr = (flags << 18) | (fg << 9) | bg;
 };
 
 // CSI Ps n  Device Status Report (DSR).
@@ -2836,7 +2856,7 @@ Terminal.prototype.insertChars = function(params) {
 
   row = this.y + this.ybase;
   j = this.x;
-  ch = [this.curAttr, ' ']; // xterm
+  ch = [this.eraseAttr(), ' ']; // xterm
 
   while (param-- && j < this.cols) {
     this.lines[row].splice(j++, 0, ch);
@@ -2933,7 +2953,7 @@ Terminal.prototype.deleteChars = function(params) {
   if (param < 1) param = 1;
 
   row = this.y + this.ybase;
-  ch = [this.curAttr, ' ']; // xterm
+  ch = [this.eraseAttr(), ' ']; // xterm
 
   while (param--) {
     this.lines[row].splice(this.x, 1);
@@ -2951,7 +2971,7 @@ Terminal.prototype.eraseChars = function(params) {
 
   row = this.y + this.ybase;
   j = this.x;
-  ch = [this.curAttr, ' ']; // xterm
+  ch = [this.eraseAttr(), ' ']; // xterm
 
   while (param-- && j < this.cols) {
     this.lines[row][j++] = ch;
@@ -3215,6 +3235,10 @@ Terminal.prototype.setMode = function(params) {
       case 12:
         // this.cursorBlink = true;
         break;
+      case 66:
+        this.log('Serial port requested application keypad.');
+        this.applicationKeypad = true;
+        break;
       case 9: // X10 Mouse
         // no release, no motion, no wheel, no modifiers.
       case 1000: // vt200 mouse
@@ -3407,6 +3431,10 @@ Terminal.prototype.resetMode = function(params) {
         break;
       case 12:
         // this.cursorBlink = false;
+        break;
+      case 66:
+        this.log('Switching back to normal keypad.');
+        this.applicationKeypad = false;
         break;
       case 9: // X10 Mouse
       case 1000: // vt200 mouse
@@ -3964,7 +3992,7 @@ Terminal.prototype.eraseRectangle = function(params) {
     , i
     , ch;
 
-  ch = [this.curAttr, ' ']; // xterm?
+  ch = [this.eraseAttr(), ' ']; // xterm?
 
   for (; t < b + 1; t++) {
     line = this.lines[this.ybase + t];
@@ -4050,7 +4078,7 @@ Terminal.prototype.requestLocatorPosition = function(params) {
 Terminal.prototype.insertColumns = function() {
   var param = params[0]
     , l = this.ybase + this.rows
-    , ch = [this.curAttr, ' '] // xterm?
+    , ch = [this.eraseAttr(), ' '] // xterm?
     , i;
 
   while (param--) {
@@ -4069,7 +4097,7 @@ Terminal.prototype.insertColumns = function() {
 Terminal.prototype.deleteColumns = function() {
   var param = params[0]
     , l = this.ybase + this.rows
-    , ch = [this.curAttr, ' '] // xterm?
+    , ch = [this.eraseAttr(), ' '] // xterm?
     , i;
 
   while (param--) {
