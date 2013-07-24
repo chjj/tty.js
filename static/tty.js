@@ -58,7 +58,13 @@ tty.open = function() {
     pathComponents = document.location.pathname.split('/'),
     // Strip last part (either index.html or "", presumably)
     baseURL = pathComponents.slice(0,pathComponents.length-1).join('/') + '/',
-    resource = baseURL.substring(1) + "socket.io";
+    resource;
+    
+    if (window.io_resource){
+        resource = window.io_resource.substring(1);
+    } else {
+        resource = baseURL.substring(1) + "socket.io";
+    }
 
   tty.socket = io.connect(null, { resource: resource });
 

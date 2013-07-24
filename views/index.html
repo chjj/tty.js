@@ -1,0 +1,25 @@
+<!doctype html>
+<title>tty.js</title>
+<link rel="stylesheet" href="{{static_url}}/style.css">
+
+<h1>View Of tty.js</h1>
+
+<div id="help">
+  <p>Click the titlebar to drag.</p>
+  <p>Double-click titlebar to maximize.</p>
+  <p>Click the lower-right corner to resize.</p>
+  <p>Click the tilde to open a new tab.</p>
+  <p>Click the tilde with a modifier to close the window.</p>
+</div>
+
+<button id="open">Open Terminal</button>
+<button id="lights">Light Switch</button>
+
+<script type="application/javascript">
+    window.io_resource = "{{ url_prefix }}/socket.io";
+</script>
+
+<script src="{{ url_prefix }}/socket.io/socket.io.js"></script>
+<script src="{{static_url}}/term.js"></script>
+<script src="{{static_url}}/options.js"></script>
+<script src="{{static_url}}/tty.js"></script>
