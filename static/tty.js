@@ -54,13 +54,15 @@ tty.elements;
  */
 
 tty.open = function() {
-  var
-    pathComponents = document.location.pathname.split('/'),
-    // Strip last part (either index.html or "", presumably)
-    baseURL = pathComponents.slice(0,pathComponents.length-1).join('/') + '/',
-    resource = baseURL.substring(1) + "socket.io";
+  if (document.location.pathname) {
+    var parts = document.location.pathname.split('/')
+      , base = parts.slice(0, parts.length - 1).join('/') + '/'
+      , resource = base.substring(1) + 'socket.io';
 
-  tty.socket = io.connect(null, { resource: resource });
+    tty.socket = io.connect(null, { resource: resource });
+  } else {
+    tty.socket = io.connect();
+  }
 
   tty.windows = [];
   tty.terms = {};
