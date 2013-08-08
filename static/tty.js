@@ -551,7 +551,10 @@ function Tab(win, socket) {
   var cols = win.cols
     , rows = win.rows;
 
-  Terminal.call(this, cols, rows);
+  Terminal.call(this, {
+    cols: cols,
+    rows: rows
+  });
 
   var button = document.createElement('div');
   button.className = 'tab';
