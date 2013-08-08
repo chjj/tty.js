@@ -325,17 +325,32 @@ Terminal.prototype.focus = function() {
  * Global Events for key handling
  */
 
+
+function isFocusElement(ev) {
+  if (ev.srcElement instanceof HTMLInputElement) { return true; }
+  if (ev.srcElement instanceof HTMLButtonElement) { return true; }
+  if (ev.srcElement instanceof HTMLOptGroupElement) { return true; }
+  if (ev.srcElement instanceof HTMLOptionElement) { return true; }
+  if (ev.srcElement instanceof HTMLSelectElement) { return true; }
+  if (ev.srcElement instanceof HTMLTextAreaElement) { return true; }
+  return false;
+}
+
 Terminal.bindKeys = function() {
   if (Terminal.focus) return;
 
   // We could put an "if (Terminal.focus)" check
   // here, but it shouldn't be necessary.
   on(document, 'keydown', function(ev) {
-    return Terminal.focus.keyDown(ev);
+    if (!isFocusElement(ev)) {
+      return Terminal.focus.keyDown(ev);
+    }
   }, true);
 
   on(document, 'keypress', function(ev) {
-    return Terminal.focus.keyPress(ev);
+    if (!isFocusElement(ev)) {
+      return Terminal.focus.keyPress(ev);
+    }
   }, true);
 };
 
