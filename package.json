@@ -16,7 +16,7 @@
     "express": "3.1.0",
     "socket.io": "0.9.13",
     "pty.js": "0.2.3",
-    "term.js": "0.0.1"
+    "term.js": "0.0.2"
   },
   "engines": { "node": ">= 0.8.0" }
 }
