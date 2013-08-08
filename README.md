@@ -3,6 +3,12 @@
 A terminal in your browser using node.js and socket.io. Based on Fabrice
 Bellard's vt100 for [jslinux](http://bellard.org/jslinux/).
 
+For the standalone web terminal, see
+[**term.js**](https://github.com/chjj/term.js).
+
+For the lowlevel terminal spawner, see
+[**pty.js**](https://github.com/chjj/pty.js).
+
 ## Screenshots
 
 ### irssi
