@@ -28,7 +28,6 @@ var initialTitle = document.title;
  */
 
 var EventEmitter = Terminal.EventEmitter
-  , isMac = Terminal.isMac
   , inherits = Terminal.inherits
   , on = Terminal.on
   , off = Terminal.off
