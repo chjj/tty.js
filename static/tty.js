@@ -719,24 +719,9 @@ Tab.prototype.destroy = function() {
 };
 
 Tab.prototype.hookKeys = function() {
+  var self = this;
+
   this.on('key', function(key, ev) {
-    // ^A for screen-key-like prefix.
-    if (Terminal.screenKeys) {
-      if (this.pendingKey) {
-        this._ignoreNext();
-        this.pendingKey = false;
-        this.specialKeyHandler(key);
-        return;
-      }
-
-      // ^A
-      if (key === '\x01') {
-        this._ignoreNext();
-        this.pendingKey = true;
-        return;
-      }
-    }
-
     // Alt-` to quickly swap between windows.
     if (key === '\x1b`') {
       var i = indexOf(tty.windows, this.window) + 1;
@@ -768,48 +753,31 @@ Tab.prototype.hookKeys = function() {
       }.bind(this), 1);
     }
   });
-};
 
-//var keyDown = Tab.prototype.keyDown;
-//Tab.prototype.keyDown = function(ev) {
-//  if (!Terminal.escapeKey) {
-//    return keyDown.apply(this, arguments);
-//  }
-//  if (ev.keyCode === Terminal.escapeKey) {
-//    return keyDown.call(this, { keyCode: 27 });
-//  }
-//  return keyDown.apply(this, arguments);
-//};
+  this.on('request paste', function(key) {
+    this.socket.emit('request paste', function(err, text) {
+      if (err) return;
+      self.send(text);
+    });
+  });
 
-// tmux/screen-like keys
-Tab.prototype.specialKeyHandler = function(key) {
-  var win = this.window;
+  this.on('request create', function() {
+    this.window.createTab();
+  });
 
-  switch (key) {
-    case '\x01': // ^A
-      this.send(key);
-      break;
-    case 'c':
-      win.createTab();
-      break;
-    case 'k':
-      win.focused.destroy();
-      break;
-    case 'w': // tmux
-    case '"': // screen
-      break;
-    default:
-      if (key >= '0' && key <= '9') {
-        key = +key;
-        // 1-indexed
-        key--;
-        if (!~key) key = 9;
-        if (win.tabs[key]) {
-          win.tabs[key].focus();
-        }
-      }
-      break;
-  }
+  this.on('request term', function(key) {
+    if (this.window.tabs[key]) {
+      this.window.tabs[key].focus();
+    }
+  });
+
+  this.on('request term next', function(key) {
+    this.window.nextTab();
+  });
+
+  this.on('request term previous', function(key) {
+    this.window.previousTab();
+  });
 };
 
 Tab.prototype._ignoreNext = function() {
