@@ -745,13 +745,6 @@ Tab.prototype.hookKeys = function() {
       this._ignoreNext();
       return this.window.createTab();
     }
-
-    if (key === Terminal.escapeKey) {
-      this._ignoreNext();
-      return setTimeout(function() {
-        this.keyDown({ keyCode: 27 });
-      }.bind(this), 1);
-    }
   });
 
   this.on('request paste', function(key) {
