@@ -721,30 +721,37 @@ Tab.prototype.destroy = function() {
 Tab.prototype.hookKeys = function() {
   var self = this;
 
+  // Alt-[jk] to quickly swap between windows.
   this.on('key', function(key, ev) {
-    // Alt-` to quickly swap between windows.
-    if (key === '\x1b`') {
-      var i = indexOf(tty.windows, this.window) + 1;
+    if (Terminal.focusKeys === false) {
+      return;
+    }
 
-      this._ignoreNext();
-      if (tty.windows[i]) return tty.windows[i].highlight();
+    var offset
+      , i;
+
+    if (key === '\x1bj') {
+      offset = -1;
+    } else if (key === '\x1bk') {
+      offset = +1;
+    } else {
+      return;
+    }
+
+    i = indexOf(tty.windows, this.window) + offset;
+
+    this._ignoreNext();
+
+    if (tty.windows[i]) return tty.windows[i].highlight();
+
+    if (offset > 0) {
       if (tty.windows[0]) return tty.windows[0].highlight();
-
-      return this.window.highlight();
+    } else {
+      i = tty.windows.length - 1;
+      if (tty.windows[i]) return tty.windows[i].highlight();
     }
 
-    // URXVT Keys for tab navigation and creation.
-    // Shift-Left, Shift-Right, Shift-Down
-    if (key === '\x1b[1;2D') {
-      this._ignoreNext();
-      return this.window.previousTab();
-    } else if (key === '\x1b[1;2B') {
-      this._ignoreNext();
-      return this.window.nextTab();
-    } else if (key === '\x1b[1;2C') {
-      this._ignoreNext();
-      return this.window.createTab();
-    }
+    return this.window.highlight();
   });
 
   this.on('request paste', function(key) {
