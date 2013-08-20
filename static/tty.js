@@ -97,9 +97,10 @@ tty.open = function() {
     tty.emit('connect');
   });
 
-  tty.socket.on('data', function(id, data) {
+  tty.socket.on('data', function(id, data, func) {
     if (!tty.terms[id]) return;
     tty.terms[id].write(data);
+    func('ack');
   });
 
   tty.socket.on('kill', function(id) {
