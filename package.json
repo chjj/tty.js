@@ -2,7 +2,7 @@
   "name": "tty.js",
   "description": "A terminal for your browser",
   "author": "Christopher Jeffrey",
-  "version": "0.2.12-2",
+  "version": "0.2.13",
   "main": "./index.js",
   "bin": "./bin/tty.js",
   "man": "./man/tty.js.1",
@@ -16,7 +16,7 @@
     "express": "3.1.0",
     "socket.io": "0.9.13",
     "pty.js": "0.2.3",
-    "term.js": "0.0.2"
+    "term.js": "0.0.3"
   },
   "engines": { "node": ">= 0.8.0" }
 }
