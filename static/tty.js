@@ -147,7 +147,10 @@ tty.open = function() {
 
     while (i--) {
       win = tty.windows[i];
-      win.maximize();
+      if(win.minimize) {
+          win.minimize();
+          win.maximize();
+      }
     }
   });
 
@@ -196,7 +199,7 @@ function Window(socket) {
   bar.className = 'bar';
 
   button = document.createElement('div');
-  button.innerHTML = '~';
+  button.innerHTML = 'tab';
   button.title = 'new/close';
   button.className = 'tab';
 
@@ -401,15 +404,15 @@ Window.prototype.maximize = function() {
 };
 
 Window.prototype.resize = function(cols, rows) {
-  this.cols = cols;
-  this.rows = rows;
+      this.cols = cols;
+      this.rows = rows;
 
-  this.each(function(term) {
-    term.resize(cols, rows);
-  });
+      this.each(function(term) {
+          term.resize(cols, rows);
+      });
 
-  tty.emit('resize window', this, cols, rows);
-  this.emit('resize', cols, rows);
+      tty.emit('resize window', this, cols, rows);
+      this.emit('resize', cols, rows);
 };
 
 Window.prototype.each = function(func) {
