@@ -147,10 +147,7 @@ tty.open = function() {
 
     while (i--) {
       win = tty.windows[i];
-      if (win.minimize) {
-        win.minimize();
-        win.maximize();
-      }
+      win.maximize();
     }
   });
 
@@ -275,7 +272,6 @@ Window.prototype.bind = function() {
     }
     last = new Date;
 
-    self.drag(ev);
 
     return cancel(ev);
   });
@@ -300,8 +296,6 @@ Window.prototype.destroy = function() {
   if (this.destroyed) return;
   this.destroyed = true;
 
-  if (this.minimize) this.minimize();
-
   splice(tty.windows, this);
   if (tty.windows.length) tty.windows[0].focus();
 
@@ -315,57 +309,11 @@ Window.prototype.destroy = function() {
   this.emit('close');
 };
 
-Window.prototype.drag = function(ev) {
-  var self = this
-    , el = this.element;
-
-  if (this.minimize) return;
-
-  var drag = {
-    left: el.offsetLeft,
-    top: el.offsetTop,
-    pageX: ev.pageX,
-    pageY: ev.pageY
-  };
-
-  el.style.opacity = '0.60';
-  el.style.cursor = 'move';
-  root.style.cursor = 'move';
-
-  function move(ev) {
-    el.style.left =
-      (drag.left + ev.pageX - drag.pageX) + 'px';
-    el.style.top =
-      (drag.top + ev.pageY - drag.pageY) + 'px';
-  }
-
-  function up() {
-    el.style.opacity = '';
-    el.style.cursor = '';
-    root.style.cursor = '';
-
-    off(document, 'mousemove', move);
-    off(document, 'mouseup', up);
-
-    var ev = {
-      left: el.style.left.replace(/\w+/g, ''),
-      top: el.style.top.replace(/\w+/g, '')
-    };
-
-    tty.emit('drag window', self, ev);
-    self.emit('drag', ev);
-  }
-
-  on(document, 'mousemove', move);
-  on(document, 'mouseup', up);
-};
 
 Window.prototype.resizing = function(ev) {
   var self = this
     , el = this.element
     , term = this.focused;
-
-  if (this.minimize) delete this.minimize;
 
   var resize = {
     w: el.clientWidth,
@@ -415,8 +363,6 @@ Window.prototype.resizing = function(ev) {
 };
 
 Window.prototype.maximize = function() {
-  if (this.minimize) return this.minimize();
-
   var self = this
     , el = this.element
     , term = this.focused
@@ -429,25 +375,6 @@ Window.prototype.maximize = function() {
     left: el.offsetLeft,
     top: el.offsetTop,
     root: root.className
-  };
-
-  this.minimize = function() {
-    delete this.minimize;
-
-    el.style.left = m.left + 'px';
-    el.style.top = m.top + 'px';
-    el.style.width = '';
-    el.style.height = '';
-    term.element.style.width = '';
-    term.element.style.height = '';
-    el.style.boxSizing = '';
-    self.grip.style.display = '';
-    root.className = m.root;
-
-    tty.emit('minimize window', self);
-    self.emit('minimize');
-    self.resize(m.cols, m.rows);
-
   };
 
   window.scrollTo(0, 0);
