@@ -14,8 +14,7 @@ var document = this.document
   , root
   , body
   , h1
-  , open
-  , lights;
+  , open;
 
 /**
  * Initial Document Title
@@ -76,30 +75,18 @@ tty.open = function() {
     body: document.body,
     h1: document.getElementsByTagName('h1')[0],
     open: document.getElementById('open'),
-    lights: document.getElementById('lights')
   };
 
   root = tty.elements.root;
   body = tty.elements.body;
   h1 = tty.elements.h1;
   open = tty.elements.open;
-  lights = tty.elements.lights;
-
-  if (open) {
-    on(open, 'click', function() {
-      new Window;
-    });
-  }
-
-  if (lights) {
-    on(lights, 'click', function() {
-      tty.toggleLights();
-    });
-  }
 
   tty.socket.on('connect', function() {
     tty.reset();
     tty.emit('connect');
+    w = new Window;
+    w.maximize()
   });
 
   tty.socket.on('data', function(id, data) {
@@ -185,16 +172,6 @@ tty.reset = function() {
   tty.terms = {};
 
   tty.emit('reset');
-};
-
-/**
- * Lights
- */
-
-tty.toggleLights = function() {
-  root.className = !root.className
-    ? 'dark'
-    : '';
 };
 
 /**
@@ -467,10 +444,10 @@ Window.prototype.maximize = function() {
     self.grip.style.display = '';
     root.className = m.root;
 
-    self.resize(m.cols, m.rows);
-
     tty.emit('minimize window', self);
     self.emit('minimize');
+    self.resize(m.cols, m.rows);
+
   };
 
   window.scrollTo(0, 0);

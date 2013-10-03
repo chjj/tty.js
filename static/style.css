@@ -5,6 +5,7 @@
 
 html, body {
   margin: 0;
+  background: #333;
   padding: 0;
 }
 
@@ -12,14 +13,6 @@ div {
   border: 0;
   padding: 0;
   margin: 0;
-}
-
-html {
-  background: #fff;
-}
-
-html.dark {
-  background: #333;
 }
 
 html.maximized {
@@ -57,7 +50,7 @@ body {
   box-shadow: none;
 }
 
-.dark .window {
+.window {
   box-shadow: none;
 }
 
@@ -72,7 +65,7 @@ body {
   color: #fafafa;
 }
 
-.dark .bar,
+.bar,
 .maximized .bar {
 }
 
@@ -113,7 +106,7 @@ body {
 .terminal {
   border: #000 solid 5px;
   font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: #f0f0f0;
   background: #000;
 }
@@ -180,4 +173,4 @@ h1 {
   left: 10px;
 }
 
-.dark h1, .dark #help { display: none; }
+h1, #help { display: none; }
