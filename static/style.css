@@ -83,9 +83,16 @@ body {
   margin-top: -2px;
   float: left;
   cursor: pointer;
+  padding: 0px 3px 0px 3px;
+}
+
+.tab.selected {
+  color: #8ae234;
+  font-weight: bold;
 }
 
 .tab:hover {
+  cursor: pointer;
   font-weight: bold;
 }
 
