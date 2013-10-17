@@ -199,7 +199,7 @@ function Window(socket) {
   bar.className = 'bar';
 
   button = document.createElement('div');
-  button.innerHTML = '~';
+  button.innerHTML = '+';
   button.title = 'new/close';
   button.className = 'tab';
 
@@ -535,8 +535,11 @@ Window.prototype.previousTab = function() {
  * Tab
  */
 
+var num_tabs = 0 ;
+
 function Tab(win, socket) {
   var self = this;
+  num_tabs += 1;
 
   var cols = win.cols
     , rows = win.rows;
@@ -545,7 +548,7 @@ function Tab(win, socket) {
 
   var button = document.createElement('div');
   button.className = 'tab';
-  button.innerHTML = '\u2022';
+  button.innerHTML = num_tabs;
   win.bar.appendChild(button);
 
   on(button, 'click', function(ev) {
@@ -626,7 +629,7 @@ Tab.prototype.focus = function() {
       if (win.focused.element.parentNode) {
         win.focused.element.parentNode.removeChild(win.focused.element);
       }
-      win.focused.button.style.fontWeight = '';
+      win.focused.button.className = 'tab';
     }
 
     win.element.appendChild(this.element);
@@ -634,8 +637,7 @@ Tab.prototype.focus = function() {
 
     win.title.innerHTML = this.process;
     document.title = this.title || initialTitle;
-    this.button.style.fontWeight = 'bold';
-    this.button.style.color = '';
+    this.button.style.className = 'tab selected';
   }
 
   this.handleTitle(this.title);
