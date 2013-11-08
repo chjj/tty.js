@@ -13,8 +13,8 @@
   "keywords": ["tty", "terminal", "term", "xterm"],
   "tags": ["tty", "terminal", "term", "xterm"],
   "dependencies": {
-    "express": "3.1.0",
-    "socket.io": "0.9.13",
+    "express": "3.4.4",
+    "socket.io": "0.9.16",
     "pty.js": "0.2.3",
     "term.js": "0.0.3"
   },
