@@ -589,7 +589,7 @@ function Tab(win, socket) {
 
   win.tabs.push(this);
 
-  this.socket.emit('create', cols, rows, function(err, data) {
+  this.socket.emit('create', cols, rows, "host:localhost, docker-container:eac3cf910b59", function(err, data) {
     if (err) return self._destroy();
     self.pty = data.pty;
     self.id = data.id;
