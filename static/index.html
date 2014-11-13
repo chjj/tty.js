@@ -13,7 +13,13 @@
   <p>Click the tilde with a modifier to close the window.</p>
 </div>
 
-<button id="open" onclick="new tty.Window(false, {title:'Local host', user:'foo', host:'localhost', password:'bar'})">Open Terminal</button>
+<ul>
+  <li><button onclick="new tty.Window(false, {title:'localhost'})">Open</button> local terminal
+  <li><button onclick="new tty.Window(false, {title:'root@localhost',protocol:'local', user:'root'})">Open</button> local terminal for user root
+  <li><button onclick="new tty.Window(false, {title:'root@localhost', protocol:'ssh', user:'root', host:'localhost'})">Open</button> ssh terminal to root@localhost
+  <li><button onclick="new tty.Window(false, {title:'foo', protocol:'docker', container:'foo'})">Open</button> terminal to docker container "foo"
+  <li><button onclick="new tty.Window(false, {title:'bar', protocol:'docker', container:'bar', remoteHost:'localhost'})">Open</button> terminal to docker container "bar" via ssh
+</ul>
 
 <script src="socket.io/socket.io.js"></script>
 <script src="term.js"></script>
