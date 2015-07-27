@@ -138,6 +138,16 @@ but you.
 - `tty.js --daemonize` - daemonize process.
 - `tty.js --config ~/my-config.json` - specify config file.
 
+## Dockerized usage
+
+Build the `tty.js` Docker image using the `node:onbuild` image:
+
+`docker build -t tty.js .`
+
+and then run the container using the same CLI params as above:
+
+`docker run --rm -it -p 3000:3000 tty.js --port 3000`
+
 ## TERM
 
 The main goal of tty.js is to eventually write a full xterm emulator.
