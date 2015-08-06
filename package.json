@@ -3,6 +3,7 @@
   "description": "A terminal for your browser",
   "author": "Christopher Jeffrey",
   "version": "0.2.14-1",
+  "license": "MIT",
   "main": "./index.js",
   "bin": "./bin/tty.js",
   "man": "./man/tty.js.1",
