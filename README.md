@@ -9,6 +9,9 @@ For the standalone web terminal, see
 For the lowlevel terminal spawner, see
 [**pty.js**](https://github.com/chjj/pty.js).
 
+## Demo
+[![Launch with Cloudify](http://rantav.github.io/cloudify-widget-pages/img/gh-button.png)](http://rantav.github.io/cloudify-widget-pages/tty.js.html)
+
 ## Screenshots
 
 ### irssi
