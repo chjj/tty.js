@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <title>tty.js</title>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="user.css">
@@ -13,11 +13,47 @@
   <p>Click the tilde with a modifier to close the window.</p>
 </div>
 
-<button id="open">Open Terminal</button>
-<button id="lights">Light Switch</button>
+<ul>
+  <li><button onclick="new tty.Window(false, {title:'localhost'})">Open</button> local terminal
+  <li><button onclick="new tty.Window(false, {title:'root@localhost',protocol:'local', user:'root'})">Open</button> local terminal for user root
+  <li><button onclick="new tty.Window(false, {title:'root@localhost', protocol:'ssh', user:'root', host:'localhost'})">Open</button> ssh terminal to root@localhost
+  <li><button onclick="new tty.Window(false, {title:'foo', protocol:'docker', container:'foo'})">Open</button> terminal to docker container "foo"
+  <li><button onclick="new tty.Window(false, {title:'bar', protocol:'docker', container:'bar', remoteHost:'localhost'})">Open</button> terminal to docker container "bar" via ssh
+</ul>
 
 <script src="socket.io/socket.io.js"></script>
 <script src="term.js"></script>
 <script src="options.js"></script>
 <script src="tty.js"></script>
 <script src="user.js"></script>
+<script>
+(function() {
+  var on = Terminal.on;
+  var off = Terminal.off;
+
+  function load() {
+    if (load.done) return;
+    load.done = true;
+
+    off(document, 'load', load);
+    off(document, 'DOMContentLoaded', load);
+
+    if (document.location.pathname) {
+      // "/foo/bar/baz" -> "/foo/bar/socket.io"
+      var parts = document.location.pathname.split('/')
+        , base = parts.slice(0, parts.length - 1).join('/') + '/'
+        , resource = base.substring(1) + 'socket.io';
+
+      window.socket = io.connect(null, { resource: resource });
+    } else {
+      window.socket = io.connect();
+    }
+
+    tty.open(window.socket);
+  }
+
+  on(document, 'load', load);
+  on(document, 'DOMContentLoaded', load);
+  setTimeout(load, 200);
+})();
+</script>

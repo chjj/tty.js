@@ -12,10 +12,7 @@
 var document = this.document
   , window = this
   , root
-  , body
-  , h1
-  , open
-  , lights;
+  , body;
 
 /**
  * Initial Document Title
@@ -52,15 +49,19 @@ tty.elements;
  * Open
  */
 
-tty.open = function() {
-  if (document.location.pathname) {
-    var parts = document.location.pathname.split('/')
-      , base = parts.slice(0, parts.length - 1).join('/') + '/'
-      , resource = base.substring(1) + 'socket.io';
-
-    tty.socket = io.connect(null, { resource: resource });
+tty.open = function(socket) {
+  if(socket) {
+    tty.socket = socket;
   } else {
-    tty.socket = io.connect();
+    if (document.location.pathname) {
+      var parts = document.location.pathname.split('/')
+        , base = parts.slice(0, parts.length - 1).join('/') + '/'
+        , resource = base.substring(1) + 'socket.io';
+
+      tty.socket = io.connect(null, { resource: resource });
+    } else {
+      tty.socket = io.connect();
+    }
   }
 
   tty.windows = [];
@@ -69,28 +70,10 @@ tty.open = function() {
   tty.elements = {
     root: document.documentElement,
     body: document.body,
-    h1: document.getElementsByTagName('h1')[0],
-    open: document.getElementById('open'),
-    lights: document.getElementById('lights')
   };
 
   root = tty.elements.root;
   body = tty.elements.body;
-  h1 = tty.elements.h1;
-  open = tty.elements.open;
-  lights = tty.elements.lights;
-
-  if (open) {
-    on(open, 'click', function() {
-      new Window;
-    });
-  }
-
-  if (lights) {
-    on(lights, 'click', function() {
-      tty.toggleLights();
-    });
-  }
 
   tty.socket.on('connect', function() {
     tty.reset();
@@ -119,7 +102,7 @@ tty.open = function() {
 
     Object.keys(terms).forEach(function(key) {
       var data = terms[key]
-        , win = new Window
+        , win = new Window()
         , tab = win.tabs[0];
 
       delete tty.terms[tab.id];
@@ -183,20 +166,10 @@ tty.reset = function() {
 };
 
 /**
- * Lights
- */
-
-tty.toggleLights = function() {
-  root.className = !root.className
-    ? 'dark'
-    : '';
-};
-
-/**
  * Window
  */
 
-function Window(socket) {
+function Window(socket, options) {
   var self = this;
 
   EventEmitter.call(this);
@@ -223,7 +196,7 @@ function Window(socket) {
 
   title = document.createElement('div');
   title.className = 'title';
-  title.innerHTML = '';
+  title.innerHTML = options.title || '';
 
   this.socket = socket || tty.socket;
   this.element = el;
@@ -231,6 +204,7 @@ function Window(socket) {
   this.bar = bar;
   this.button = button;
   this.title = title;
+  this.options = options || {};
 
   this.tabs = [];
   this.focused = null;
@@ -511,7 +485,7 @@ Window.prototype.each = function(func) {
 };
 
 Window.prototype.createTab = function() {
-  return new Tab(this, this.socket);
+  return new Tab(this, this.socket, this.options);
 };
 
 Window.prototype.highlight = function() {
@@ -552,8 +526,7 @@ Window.prototype.previousTab = function() {
 /**
  * Tab
  */
-
-function Tab(win, socket) {
+function Tab(win, socket, options) {
   var self = this;
 
   var cols = win.cols
@@ -589,7 +562,7 @@ function Tab(win, socket) {
 
   win.tabs.push(this);
 
-  this.socket.emit('create', cols, rows, function(err, data) {
+  this.socket.emit('create', cols, rows, options, function(err, data) {
     if (err) return self._destroy();
     self.pty = data.pty;
     self.id = data.id;
@@ -618,7 +591,6 @@ Tab.prototype.handleTitle = function(title) {
 
   if (Terminal.focus === this) {
     document.title = title;
-    // if (h1) h1.innerHTML = title;
   }
 
   if (this.window.focused === this) {
@@ -653,7 +625,7 @@ Tab.prototype.focus = function() {
     win.element.appendChild(this.element);
     win.focused = this;
 
-    win.title.innerHTML = this.process;
+    win.title.innerHTML = (this.options.title || 'local') + ' - ' + this.process;
     document.title = this.title || initialTitle;
     this.button.style.fontWeight = 'bold';
     this.button.style.color = '';
@@ -701,11 +673,6 @@ Tab.prototype._destroy = function() {
   if (!win.tabs.length) {
     win.destroy();
   }
-
-  // if (!tty.windows.length) {
-  //   document.title = initialTitle;
-  //   if (h1) h1.innerHTML = initialTitle;
-  // }
 
   this.__destroy();
 };
@@ -860,7 +827,7 @@ Tab.prototype.setProcessName = function(name) {
     // if (this.title) {
     //   name += ' (' + this.title + ')';
     // }
-    this.window.title.innerHTML = name;
+    this.window.title.innerHTML = (this.window.options.title || 'local') + ' - ' + name;
   }
 };
 
@@ -885,23 +852,6 @@ function sanitize(text) {
   if (!text) return '';
   return (text + '').replace(/[&<>]/g, '')
 }
-
-/**
- * Load
- */
-
-function load() {
-  if (load.done) return;
-  load.done = true;
-
-  off(document, 'load', load);
-  off(document, 'DOMContentLoaded', load);
-  tty.open();
-}
-
-on(document, 'load', load);
-on(document, 'DOMContentLoaded', load);
-setTimeout(load, 200);
 
 /**
  * Expose
