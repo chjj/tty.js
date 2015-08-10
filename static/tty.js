@@ -491,6 +491,29 @@ Window.prototype.maximize = function() {
   this.emit('maximize');
 };
 
+Window.prototype.resizePixel = function(x, y) {
+  var tempDiv = document.createElement('div');
+  tempDiv.className = 'terminal';
+  tempDiv.style.width = '0';
+  tempDiv.style.height = '0';
+  tempDiv.style.visibility = 'hidden';
+
+  var char = document.createElement('div');
+  char.style.position = 'absolute';
+  char.innerHTML = 'W';
+  tempDiv.appendChild(char);
+
+  this.element.parentNode.insertBefore(tempDiv, this.element.nextSibling);
+
+  var cols = Math.floor(x / char.clientWidth);
+  var rows = Math.floor(y / char.clientHeight);
+
+  tempDiv.parentNode.removeChild(tempDiv);
+  char.parentNode.removeChild(char);
+
+  this.resize(cols, rows);
+};
+
 Window.prototype.resize = function(cols, rows) {
   this.cols = cols;
   this.rows = rows;
