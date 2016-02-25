@@ -48,7 +48,7 @@ var tty = require('tty.js');
 var app = tty.createServer({
   shell: 'bash',
   users: {
-    foo: 'bar'
+    myUsername: 'myPassword'
   },
   port: 8000
 });
@@ -68,7 +68,7 @@ JSON file. An example configuration file looks like:
 ``` json
 {
   "users": {
-    "hello": "world"
+    "MyUsername": "MyPassword"
   },
   "https": {
     "key": "./server.key",
