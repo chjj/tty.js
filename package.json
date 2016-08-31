@@ -7,6 +7,9 @@
   "main": "./index.js",
   "bin": "./bin/tty.js",
   "man": "./man/tty.js.1",
+  "scripts": {
+    "start": "node ./bin/tty.js"
+  },
   "preferGlobal": false,
   "repository": "git://github.com/chjj/tty.js.git",
   "homepage": "https://github.com/chjj/tty.js",
