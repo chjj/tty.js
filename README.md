@@ -3,6 +3,12 @@
 A terminal in your browser using node.js and socket.io. Based on Fabrice
 Bellard's vt100 for [jslinux](http://bellard.org/jslinux/).
 
+For the standalone web terminal, see
+[**term.js**](https://github.com/chjj/term.js).
+
+For the lowlevel terminal spawner, see
+[**pty.js**](https://github.com/chjj/pty.js).
+
 ## Screenshots
 
 ### irssi
@@ -23,11 +29,35 @@ Bellard's vt100 for [jslinux](http://bellard.org/jslinux/).
 - Screen/Tmux-like keys (optional)
 - Ability to efficiently render programs: vim, mc, irssi, vifm, etc.
 - Support for xterm mouse events
+- 256 color support
+- Persistent sessions
 
 ## Install
 
 ``` bash
 $ npm install tty.js
+```
+
+## Usage
+
+tty.js is an app, but it's also possible to hook into it programatically.
+
+``` js
+var tty = require('tty.js');
+
+var app = tty.createServer({
+  shell: 'bash',
+  users: {
+    foo: 'bar'
+  },
+  port: 8000
+});
+
+app.get('/foo', function(req, res, next) {
+  res.send('bar');
+});
+
+app.listen();
 ```
 
 ## Configuration
@@ -51,11 +81,16 @@ JSON file. An example configuration file looks like:
   "static": "./static",
   "limitGlobal": 10000,
   "limitPerUser": 1000,
-  "hooks": "./hooks.js",
+  "localOnly": false,
   "cwd": ".",
+  "syncSession": false,
+  "sessionTimeout": 600000,
+  "log": true,
+  "io": { "log": false },
+  "debug": false,
   "term": {
     "termName": "xterm",
-    "geometry": [80, 30],
+    "geometry": [80, 24],
     "scrollback": 1000,
     "visualBell": false,
     "popOnBell": false,
@@ -69,7 +104,7 @@ JSON file. An example configuration file looks like:
       "#3465a4",
       "#75507b",
       "#06989a",
-      "#d3d7cf"
+      "#d3d7cf",
       "#555753",
       "#ef2929",
       "#8ae234",
@@ -77,9 +112,7 @@ JSON file. An example configuration file looks like:
       "#729fcf",
       "#ad7fa8",
       "#34e2e2",
-      "#eeeeec",
-      "#000000",
-      "#f0f0f0"
+      "#eeeeec"
     ]
   }
 }
@@ -87,18 +120,10 @@ JSON file. An example configuration file looks like:
 
 Usernames and passwords can be plaintext or sha1 hashes.
 
-### Example Hooks File
+### 256 colors
 
-``` js
-var db = require('./db');
-
-module.exports = {
-  auth: function(user, pass, next) {
-    // Do database auth
-    next(null, pass === password);
-  }
-};
-```
+If tty.js fails to check your terminfo properly, you can force your `TERM`
+to `xterm-256color` by setting `"termName": "xterm-256color"` in your config.
 
 ## Security
 
@@ -138,8 +163,14 @@ The distance to go before full xterm compatibility.
 - Origin Mode, Insert Mode
 - Proper Tab Setting
 
+## Contribution and License Agreement
+
+If you contribute code to this project, you are implicitly allowing your code
+to be distributed under the MIT license. You are also implicitly verifying that
+all code is your original work. `</legalese>`
+
 ## License
 
-Copyright (c) 2012, Christopher Jeffrey (MIT License)
+Copyright (c) 2012-2014, Christopher Jeffrey (MIT License)
 
 [1]: http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking
