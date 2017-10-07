@@ -15,7 +15,7 @@
   "tags": ["tty", "terminal", "term", "xterm"],
   "dependencies": {
     "express": "3.4.4",
-    "socket.io": "0.9.16",
+    "socket.io": "0.9.19",
     "pty.js": ">= 0.2.13",
     "term.js": ">= 0.0.5"
   },
