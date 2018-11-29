@@ -10,14 +10,28 @@
   "preferGlobal": false,
   "repository": "git://github.com/chjj/tty.js.git",
   "homepage": "https://github.com/chjj/tty.js",
-  "bugs": { "url": "https://github.com/chjj/tty.js/issues" },
-  "keywords": ["tty", "terminal", "term", "xterm"],
-  "tags": ["tty", "terminal", "term", "xterm"],
+  "bugs": {
+    "url": "https://github.com/chjj/tty.js/issues"
+  },
+  "keywords": [
+    "tty",
+    "terminal",
+    "term",
+    "xterm"
+  ],
+  "tags": [
+    "tty",
+    "terminal",
+    "term",
+    "xterm"
+  ],
   "dependencies": {
-    "express": "3.4.4",
-    "socket.io": "0.9.16",
-    "pty.js": ">= 0.2.13",
+    "express": "4.16.4",
+    "pty.js": "github:p-mcgowan/pty.js",
+    "socket.io": "2.2.0",
     "term.js": ">= 0.0.5"
   },
-  "engines": { "node": ">= 0.8.0" }
+  "engines": {
+    "node": ">= 0.8.0"
+  }
 }
