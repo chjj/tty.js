@@ -28,8 +28,8 @@
   "dependencies": {
     "express": "4.16.4",
     "pty.js": "github:p-mcgowan/pty.js",
-    "socket.io": "2.2.0",
-    "term.js": ">= 0.0.5"
+    "socket.io": "^2.2.0",
+    "term.js": "github:p-mcgowan/term.js"
   },
   "engines": {
     "node": ">= 0.8.0"
